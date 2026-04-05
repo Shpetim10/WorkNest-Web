@@ -1,11 +1,46 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { Input, Button } from '@/common/ui';
 
 export function LoginView() {
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      // Proceed with login
+      console.log('Login valid', formData);
+    }
+  };
+
+  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full bg-white font-sans">
       {/* Left Panel - Form */}
@@ -23,13 +58,16 @@ export function LoginView() {
             <p className="text-gray-500 text-sm">Sign in to continue to your account</p>
           </div>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <Input
               id="email"
               label="Email Address"
-              type="email"
+              type="text" // Use text so html5 validation doesn't block custom validation
               placeholder="you@company.com"
               icon={<Mail className="h-[18px] w-[18px]" />}
+              value={formData.email}
+              onChange={handleChange('email')}
+              error={errors.email}
             />
 
             <Input
@@ -38,6 +76,9 @@ export function LoginView() {
               type="password"
               placeholder="Enter your password"
               icon={<Lock className="h-[18px] w-[18px]" />}
+              value={formData.password}
+              onChange={handleChange('password')}
+              error={errors.password}
             />
 
             <div className="flex justify-end pt-1">

@@ -1,10 +1,40 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
 
 export function ForgotPasswordView() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+
+  const validate = () => {
+    if (!email) {
+      setError('Email is required');
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      router.push('/password-reset-success');
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (error) setError('');
+  };
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-[#f0f4f8] to-[#e2e8f0] font-sans p-4 relative overflow-hidden">
       {/* Background Glow */}
@@ -34,13 +64,16 @@ export function ForgotPasswordView() {
           </p>
         </div>
 
-        <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <Input
             id="email"
             label="Email Address"
-            type="email"
+            type="text"
             placeholder="you@company.com"
             icon={<Mail className="h-[18px] w-[18px]" />}
+            value={email}
+            onChange={handleChange}
+            error={error}
           />
 
           <Button

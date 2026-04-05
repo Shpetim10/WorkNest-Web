@@ -48,6 +48,12 @@ export function PasswordResetSuccessView() {
           instructions to continue.
         </p>
 
+        {/* 
+          TODO: Backend Integration
+          The email sent to the user should contain a magic link that points to:
+          /set-new-password?token=RESET_TOKEN
+        */}
+
       </Card>
 
       {/* Back to Login Link */}

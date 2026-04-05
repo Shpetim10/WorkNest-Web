@@ -1,0 +1,53 @@
+"use client";
+import React from 'react';
+import { Check } from 'lucide-react';
+
+interface AuthHeaderProps {
+  currentStep: 1 | 2 | 3 | 4;
+}
+
+export function AuthHeader({ currentStep }: AuthHeaderProps) {
+  const Step = ({ stepNum, label }: { stepNum: number; label: string }) => {
+    const isCompleted = currentStep > stepNum;
+    const isActive = currentStep === stepNum;
+
+    return (
+      <div className="flex flex-col items-center gap-2 w-[60px] shrink-0">
+        <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-[13px] font-bold ${
+          isCompleted || isActive 
+            ? 'bg-gradient-to-r from-[#2178ff] to-[#01c951] text-white shadow-[0_6px_16px_-4px_rgba(21,93,252,0.5)]'
+            : 'bg-[#e2e8f0] text-gray-500'
+        }`}>
+          {isCompleted ? <Check size={18} strokeWidth={3} /> : stepNum}
+        </div>
+        <span className={`text-[11px] ${isActive || isCompleted ? 'font-bold text-gray-800' : 'font-medium text-gray-500'}`}>
+          {label}
+        </span>
+      </div>
+    );
+  };
+
+  const Line = ({ stepNum }: { stepNum: number }) => {
+    const isCompleted = currentStep > stepNum;
+    return (
+      <div className={`flex-1 h-[2px] mt-[17px] mx-3 lg:mx-4 ${
+        isCompleted ? 'bg-gradient-to-r from-[#01c951] to-[#2178ff]' : 'bg-gray-200'
+      }`} />
+    );
+  };
+
+  return (
+    <div className="w-full max-w-[850px] flex items-start justify-center mb-6 relative">
+      {/* Center: Stepper */}
+      <div className="flex items-start justify-center w-full max-w-[600px] relative z-10 shrink-0">
+        <Step stepNum={1} label="Pricing" />
+        <Line stepNum={1} />
+        <Step stepNum={2} label="Company" />
+        <Line stepNum={2} />
+        <Step stepNum={3} label="Admin" />
+        <Line stepNum={3} />
+        <Step stepNum={4} label="Done" />
+      </div>
+    </div>
+  );
+}

@@ -13,3 +13,5 @@ export { PricingView } from './components/PricingView';
 export { CompanyView } from './components/CompanyView';
 export { AdminView } from './components/AdminView';
 export { AuthLayout } from './components/AuthLayout';
+export { DoneView } from './components/DoneView';
+export { CreatePasswordView } from './components/CreatePasswordView';

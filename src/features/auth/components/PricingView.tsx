@@ -1,14 +1,14 @@
 "use client";
 import React from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
+import { AuthHeader } from './AuthHeader';
 
 const FeatureItem = ({ text }: { text: string }) => (
   <li className="flex items-center gap-2.5">
     <div className="flex-shrink-0 w-[16px] h-[16px] rounded-full bg-green-100 flex items-center justify-center">
-      <Check className="w-[10px] h-[10px] text-green-600" strokeWidth={3} />
+      <svg className="w-[10px] h-[10px] text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
     </div>
     <span className="text-[12.5px] text-gray-600 font-medium">{text}</span>
   </li>
@@ -19,71 +19,7 @@ export function PricingView() {
 
   return (
     <AuthLayout>
-      {/* Top Navbar */}
-      <div className="w-full flex justify-center mb-8 relative shrink-0">
-        <div className="w-full max-w-[850px] relative flex justify-center">
-
-          {/* Back Button Container */}
-          <div className="absolute left-0 sm:left-4 md:left-0 top-[9px] z-20">
-            <Link
-              href="/login"
-              className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft size={16} />
-              Back to Login
-            </Link>
-          </div>
-
-          {/* Steps Indicator */}
-          <div className="flex justify-center z-10 shrink-0 w-full px-6 md:px-0">
-            <div className="flex items-start justify-center w-full max-w-[600px]">
-
-              {/* Step 1 */}
-              <div className="flex flex-col items-center gap-2 w-[60px] shrink-0">
-                <div className="w-[36px] h-[36px] rounded-full bg-gradient-to-r from-[#2178ff] to-[#01c951] text-white flex items-center justify-center text-[13px] font-bold shadow-[0_6px_16px_-4px_rgba(21,93,252,0.5)]">
-                  1
-                </div>
-                <span className="text-[11px] font-bold text-gray-800">Pricing</span>
-              </div>
-
-              {/* Connecting Line 1 */}
-              <div className="flex-1 h-[2px] bg-gray-200 mt-[17px] mx-3 lg:mx-4" />
-
-              {/* Step 2 */}
-              <div className="flex flex-col items-center gap-2 w-[60px] shrink-0">
-                <div className="w-[36px] h-[36px] rounded-full bg-[#e2e8f0] text-gray-500 flex items-center justify-center text-[13px] font-bold">
-                  2
-                </div>
-                <span className="text-[11px] font-medium text-gray-500">Company</span>
-              </div>
-
-              {/* Connecting Line 2 */}
-              <div className="flex-1 h-[2px] bg-gray-200 mt-[17px] mx-3 lg:mx-4" />
-
-              {/* Step 3 */}
-              <div className="flex flex-col items-center gap-2 w-[60px] shrink-0">
-                <div className="w-[36px] h-[36px] rounded-full bg-[#e2e8f0] text-gray-500 flex items-center justify-center text-[13px] font-bold">
-                  3
-                </div>
-                <span className="text-[11px] font-medium text-gray-500">Admin</span>
-              </div>
-
-              {/* Connecting Line 3 */}
-              <div className="flex-1 h-[2px] bg-gray-200 mt-[17px] mx-3 lg:mx-4" />
-
-              {/* Step 4 */}
-              <div className="flex flex-col items-center gap-2 w-[60px] shrink-0">
-                <div className="w-[36px] h-[36px] rounded-full bg-[#e2e8f0] text-gray-500 flex items-center justify-center text-[13px] font-bold">
-                  4
-                </div>
-                <span className="text-[11px] font-medium text-gray-500">Done</span>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-      </div>
+      <AuthHeader currentStep={1} />
 
       {/* Headings */}
       <div className="text-center mb-10 shrink-0 mt-2">

@@ -36,7 +36,7 @@ export const Input = ({
         )}
         <input
           id={id}
-          className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${iconRight ? 'pr-10' : 'pr-4'} py-2.5 bg-[#f8fafc] border ${
+          className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${iconRight ? 'pr-12' : 'pr-4'} py-2.5 bg-[#f8fafc] border ${
             isInvalid 
               ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' 
               : 'border-gray-200 focus:ring-[#0066FF]/20 focus:border-[#0066FF]'
@@ -47,7 +47,9 @@ export const Input = ({
           <button
             type="button"
             onClick={onIconRightClick}
-            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+            aria-label={`Toggle ${label}`}
+            title={`Toggle ${label}`}
+            className="absolute inset-y-0 right-0 z-10 flex items-center px-3.5 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-gray-700"
           >
             {iconRight}
           </button>

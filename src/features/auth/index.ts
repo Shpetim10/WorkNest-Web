@@ -3,6 +3,8 @@ export * from './types';
 
 // Export API Hooks
 export * from './api/login';
+export * from './api/register-company';
+export * from './api/activate-invitation';
 
 // Export Components
 export { LoginView } from './components/LoginView';
@@ -14,4 +16,5 @@ export { CompanyView } from './components/CompanyView';
 export { AdminView } from './components/AdminView';
 export { AuthLayout } from './components/AuthLayout';
 export { DoneView } from './components/DoneView';
-export { CreatePasswordView } from './components/CreatePasswordView';
+export { ActivateInvitationView } from './components/ActivateInvitationView';
+export { CreatePasswordView } from './components/ActivateInvitationView';

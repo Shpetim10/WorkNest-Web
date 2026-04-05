@@ -1,41 +1,39 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Mail, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Building2, Mail, ArrowLeft, ArrowRight, Camera } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
 import { AuthLayout } from './AuthLayout';
 import { AuthHeader } from './AuthHeader';
+import { useRegistrationStore } from '../store/useRegistrationStore';
 
 export function CompanyView() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { 
+    companyName, nipt, primaryEmail, primaryPhone, industry, currency, dateFormat,
+    logoPreviewUrl,
+    setCompanyData, setLogoFile 
+  } = useRegistrationStore();
 
-  const [formData, setFormData] = useState({
-    companyName: '',
-    nipt: '',
-    contactNumber: '',
-    contactEmail: '',
-    industry: '',
-    currency: '',
-    dateFormat: ''
-  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.companyName) newErrors.companyName = 'Company Name is required';
-    if (!formData.nipt) newErrors.nipt = 'NIPT is required';
-    if (!formData.contactNumber) newErrors.contactNumber = 'Contact Number is required';
+    if (!companyName) newErrors.companyName = 'Company Name is required';
+    if (!nipt) newErrors.nipt = 'NIPT is required';
+    if (!primaryPhone) newErrors.primaryPhone = 'Contact Number is required';
     
-    if (!formData.contactEmail) {
-      newErrors.contactEmail = 'Contact Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
-      newErrors.contactEmail = 'Please enter a valid email address';
+    if (!primaryEmail) {
+      newErrors.primaryEmail = 'Contact Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(primaryEmail)) {
+      newErrors.primaryEmail = 'Please enter a valid email address';
     }
 
-    // Currency and Date Format are required
-    if (!formData.currency) newErrors.currency = 'Currency is required';
-    if (!formData.dateFormat) newErrors.dateFormat = 'Date format is required';
+    if (!currency) newErrors.currency = 'Currency is required';
+    if (!dateFormat) newErrors.dateFormat = 'Date format is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -48,10 +46,32 @@ export function CompanyView() {
     }
   };
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+  const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setCompanyData({ [field]: e.target.value });
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleLogoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, logo: 'Please upload an image file' }));
+        return;
+      }
+      // Validate file size (e.g., 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, logo: 'Image size should be less than 5MB' }));
+        return;
+      }
+      setLogoFile(file);
+      setErrors(prev => ({ ...prev, logo: '' }));
     }
   };
 
@@ -70,13 +90,32 @@ export function CompanyView() {
 
           {/* Logo upload pill */}
           <div className="relative shrink-0 ml-4">
-            {/* Gradient capsule */}
-            <div className="w-[100px] h-[44px] rounded-full bg-gradient-to-r from-[#2178ff] to-[#01c951] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(21,93,252,0.4)]">
-              <Building2 size={22} strokeWidth={1.8} className="text-white" />
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+            {/* Gradient capsule / Preview */}
+            <div 
+              onClick={handleLogoClick}
+              className="w-[100px] h-[44px] rounded-full bg-gradient-to-r from-[#2178ff] to-[#01c951] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(21,93,252,0.4)] cursor-pointer overflow-hidden group"
+            >
+              {logoPreviewUrl ? (
+                <img src={logoPreviewUrl} alt="Logo preview" className="w-full h-full object-cover" />
+              ) : (
+                <Building2 size={22} strokeWidth={1.8} className="text-white" />
+              )}
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                <Camera size={16} className="text-white" />
+              </div>
             </div>
             {/* Overlapping upload icon button */}
             <button
               type="button"
+              onClick={handleLogoClick}
               aria-label="Upload company logo"
               className="absolute -bottom-2.5 -right-1.5 w-7 h-7 rounded-full bg-white border border-gray-100 shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
             >
@@ -89,6 +128,10 @@ export function CompanyView() {
           </div>
         </div>
 
+        {errors.logo && (
+          <p className="text-[12px] text-red-500 font-medium mb-3 -mt-3">{errors.logo}</p>
+        )}
+
         <form className="space-y-3.5" onSubmit={handleSubmit}>
 
           {/* Company Name */}
@@ -98,8 +141,8 @@ export function CompanyView() {
             placeholder="Acme Corporation"
             required
             icon={<Building2 className="w-[16px] h-[16px]" />}
-            value={formData.companyName}
-            onChange={handleChange('companyName')}
+            value={companyName}
+            onChange={handleInputChange('companyName')}
             error={errors.companyName}
           />
 
@@ -109,8 +152,8 @@ export function CompanyView() {
             label="NIPT (Tax ID)"
             placeholder="K12345678A"
             required
-            value={formData.nipt}
-            onChange={handleChange('nipt')}
+            value={nipt}
+            onChange={handleInputChange('nipt')}
             error={errors.nipt}
           />
 
@@ -125,9 +168,9 @@ export function CompanyView() {
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.66 16z" />
               </svg>
             }
-            value={formData.contactNumber}
-            onChange={handleChange('contactNumber')}
-            error={errors.contactNumber}
+            value={primaryPhone}
+            onChange={handleInputChange('primaryPhone')}
+            error={errors.primaryPhone}
           />
 
           {/* Primary Contact Email */}
@@ -138,9 +181,9 @@ export function CompanyView() {
             placeholder="contact@company.com"
             required
             icon={<Mail className="w-[16px] h-[16px]" />}
-            value={formData.contactEmail}
-            onChange={handleChange('contactEmail')}
-            error={errors.contactEmail}
+            value={primaryEmail}
+            onChange={handleInputChange('primaryEmail')}
+            error={errors.primaryEmail}
           />
 
           {/* Industry — full-width select */}
@@ -152,8 +195,8 @@ export function CompanyView() {
               <select
                 id="industry"
                 className="w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] transition-all appearance-none cursor-pointer"
-                value={formData.industry}
-                onChange={handleChange('industry')}
+                value={industry}
+                onChange={handleInputChange('industry')}
               >
                 <option value="" disabled>Select an industry</option>
                 <option value="technology">Technology</option>
@@ -186,11 +229,11 @@ export function CompanyView() {
                 <select
                   id="currency"
                   className={`w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border ${errors.currency ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#0066FF] focus:ring-[#0066FF]/20'} rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer`}
-                  value={formData.currency}
-                  onChange={handleChange('currency')}
+                  value={currency}
+                  onChange={handleInputChange('currency')}
                 >
                   <option value="" disabled>Select currency</option>
-                  <option value="LEK">LEK - Albanian Lek</option>
+                  <option value="ALL">LEK - Albanian Lek</option>
                   <option value="EUR">EUR – Euro</option>
                   <option value="USD">USD – US Dollar</option>
                   <option value="GBP">GBP – British Pound</option>
@@ -213,8 +256,8 @@ export function CompanyView() {
                 <select
                   id="date_format"
                   className={`w-full pl-4 pr-10 py-2.5 bg-[#f8fafc] border ${errors.dateFormat ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 focus:border-[#0066FF] focus:ring-[#0066FF]/20'} rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer`}
-                  value={formData.dateFormat}
-                  onChange={handleChange('dateFormat')}
+                  value={dateFormat}
+                  onChange={handleInputChange('dateFormat')}
                 >
                   <option value="" disabled>Select format</option>
                   <option value="DD/MM/YYYY">DD/MM/YYYY</option>

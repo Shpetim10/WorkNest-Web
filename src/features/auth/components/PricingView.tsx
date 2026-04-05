@@ -31,7 +31,7 @@ export function PricingView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 w-full flex-grow items-stretch">
 
         {/* Starter Plan */}
-        <div className="bg-white rounded-[24px] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] p-5 md:p-6 flex flex-col lg:hover:-translate-y-1 transition-transform relative z-10 lg:my-2">
+        <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:p-6 flex flex-col lg:hover:-translate-y-1 transition-transform relative z-10 lg:my-2">
           <h3 className="text-[18px] font-bold text-[#1a1c23] mb-1">Starter</h3>
           <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">Perfect for small teams getting started</p>
           <div className="flex items-baseline mb-6">
@@ -57,7 +57,7 @@ export function PricingView() {
         </div>
 
         {/* Professional Plan (Highlighted) */}
-        <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.12)] p-5 md:px-7 md:py-8 flex flex-col relative z-20 border border-gray-100 lg:-translate-y-2 transition-transform lg:hover:-translate-y-3">
+        <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:px-7 md:py-8 flex flex-col relative z-20 border border-gray-100 lg:-translate-y-2 transition-transform lg:hover:-translate-y-3">
           <div className="absolute top-4 left-6">
             <span className="bg-gradient-to-r from-[#0066FF] to-[#00C853] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
               Most Popular
@@ -91,7 +91,7 @@ export function PricingView() {
         </div>
 
         {/* Enterprise Plan */}
-        <div className="bg-white rounded-[24px] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] p-5 md:p-6 flex flex-col lg:hover:-translate-y-1 transition-transform relative z-10 lg:my-2">
+        <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:p-6 flex flex-col lg:hover:-translate-y-1 transition-transform relative z-10 lg:my-2">
           <h3 className="text-[18px] font-bold text-[#1a1c23] mb-1">Enterprise</h3>
           <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">Advanced features for large organizations</p>
           <div className="flex items-baseline mb-6">

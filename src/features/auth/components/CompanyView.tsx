@@ -59,8 +59,7 @@ export function CompanyView() {
     <AuthLayout>
       <AuthHeader currentStep={2} />
 
-      {/* Main Form Card */}
-      <Card className="w-full max-w-[580px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.08)] p-5 md:px-8 md:py-6 flex flex-col relative z-20 mt-2">
+      <Card className="w-full max-w-[580px] p-5 md:px-8 md:py-6 flex flex-col relative z-20 mt-2">
 
         {/* Header row: title + logo upload pill */}
         <div className="flex items-start justify-between mb-5 border-b border-gray-100 pb-4">

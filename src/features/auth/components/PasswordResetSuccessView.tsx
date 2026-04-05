@@ -10,7 +10,7 @@ export function PasswordResetSuccessView() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#B9F8CF]/30 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Card */}
-      <Card className="w-full max-w-[460px] shadow-[0_25px_50px_-12px_rgba(209,213,220,0.5)] p-12 flex flex-col items-center text-center relative z-10">
+      <Card className="w-full max-w-[460px] p-12 flex flex-col items-center text-center relative z-10">
 
         {/* Blue Circle Icon */}
         <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#155DFC] to-[#4b8df8] shadow-lg shadow-blue-500/20 flex items-center justify-center mb-8">

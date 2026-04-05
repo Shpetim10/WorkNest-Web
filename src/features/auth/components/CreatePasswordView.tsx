@@ -57,8 +57,7 @@ export function CreatePasswordView() {
       {/* Background Glow - Lower Left Green Glow */}
       <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[500px] h-[500px] bg-[#B9F8CF]/40 rounded-full blur-[130px] pointer-events-none" />
 
-      {/* Card */}
-      <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.08)]">
+      <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10">
         <div className="mb-8">
           {/* Logo Text */}
           <div className="mb-6">

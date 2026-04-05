@@ -71,8 +71,7 @@ export function AdminView() {
 
       <AuthHeader currentStep={3} />
 
-      {/* Main Admin Form Card */}
-      <Card className="w-full max-w-[580px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.08)] px-5 pt-6 pb-8 md:px-8 md:pt-7 md:pb-9 flex flex-col relative z-20 mt-2">
+      <Card className="w-full max-w-[580px] px-5 pt-6 pb-8 md:px-8 md:pt-7 md:pb-9 flex flex-col relative z-20 mt-2">
         <div className="mb-4">
           <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-1">Admin Profile</h1>
           <p className="text-[13.5px] md:text-[14px] text-gray-500 font-medium">

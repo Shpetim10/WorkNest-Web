@@ -40,7 +40,7 @@ export function ForgotPasswordView() {
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#B9F8CF]/30 rounded-full blur-[120px] pointer-events-none" />
 
-      <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.08)]">
+      <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10">
         {/* Back Link */}
         <Link
           href="/login"

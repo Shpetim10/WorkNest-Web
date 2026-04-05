@@ -7,15 +7,15 @@ interface AuthLayoutProps {
   justify?: 'start' | 'center';
 }
 
-export function AuthLayout({ 
-  children, 
-  containerMaxWidth = "max-w-[1140px]", 
-  justify = 'start' 
+export function AuthLayout({
+  children,
+  containerMaxWidth = "max-w-[1140px]",
+  justify = 'start'
 }: AuthLayoutProps) {
   const containerClass = justify === 'center' ? 'justify-center' : 'justify-start pt-4 md:pt-5';
 
   return (
-    <div className={`flex flex-col min-h-screen w-full items-center ${containerClass} bg-gradient-to-br from-[#f0f4f8] to-[#e2e8f0] font-sans relative pb-10`}>
+    <div className={`flex flex-col min-h-screen w-full items-center ${containerClass} bg-white font-sans relative pb-10`}>
 
       {/* Background Glows Wrapper - Shared Auth Decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

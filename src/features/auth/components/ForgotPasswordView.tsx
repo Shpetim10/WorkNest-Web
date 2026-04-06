@@ -2,11 +2,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
+import { useForgotPassword } from '../api/password-reset';
 
 export function ForgotPasswordView() {
   const router = useRouter();
+  const forgotPasswordMutation = useForgotPassword();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -23,10 +25,15 @@ export function ForgotPasswordView() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      router.push('/password-reset-success');
+      try {
+        await forgotPasswordMutation.mutateAsync({ email });
+        router.push('/check-email');
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      }
     }
   };
 
@@ -79,9 +86,10 @@ export function ForgotPasswordView() {
           <Button
             type="submit"
             fullWidth
-            icon={<ArrowRight className="h-[18px] w-[18px]" />}
+            icon={forgotPasswordMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
+            disabled={forgotPasswordMutation.isPending}
           >
-            Send Reset Link
+            {forgotPasswordMutation.isPending ? 'Sending...' : 'Send Reset Link'}
           </Button>
         </form>
 

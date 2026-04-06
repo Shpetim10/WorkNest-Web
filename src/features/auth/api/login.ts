@@ -1,24 +1,67 @@
 import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
-import { AuthResponse, LoginRequest } from '../types';
-import { ApiErrorResponse } from '@/common/types/api';
+import { LoginResponse, LoginRequest, SelectRoleRequest, SelectRoleResponse } from '../types';
+import { ApiResponse, ApiErrorResponse } from '@/common/types/api';
+import { useAuthStore } from '../store/authStore';
 
 /**
  * Mutation hook for user login
  */
 export const useLogin = () => {
-  return useMutation<AuthResponse, ApiErrorResponse, LoginRequest>({
+  const setLoginResponse = useAuthStore((state) => state.setLoginResponse);
+
+  return useMutation<LoginResponse, ApiErrorResponse, LoginRequest>({
     mutationFn: async (data: LoginRequest) => {
-      const response = await apiClient.post<AuthResponse>('/auth/login', data);
-      return response.data;
+      // 🚨 [DEBUG] FINAL PAYLOAD VERIFICATION
+      console.log('📦 [Mutation] Initiating Login with payload:', JSON.stringify(data, null, 2));
+
+      try {
+        const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', data);
+        return response.data.data;
+      } catch (error: any) {
+        // Detailed error logging specifically for this mutation
+        console.error('❌ [Mutation Error] Login mutation failed:', {
+          payload: data,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        throw error;
+      }
     },
     onSuccess: (data) => {
-      // Store token in local storage
+      // Store initial tokens (may be partial)
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
-        if (data.user.companyId) {
-          localStorage.setItem('current_company_id', data.user.companyId);
+        
+        if (data.tenantContext?.companyId) {
+          localStorage.setItem('current_company_id', data.tenantContext.companyId);
+        }
+      }
+      
+      // Store primary response for role selection if needed
+      setLoginResponse(data);
+    },
+  });
+};
+
+/**
+ * Mutation hook for workspace session initialization (role selection)
+ */
+export const useSelectRole = () => {
+  return useMutation<SelectRoleResponse, ApiErrorResponse, SelectRoleRequest>({
+    mutationFn: async (data: SelectRoleRequest) => {
+      const response = await apiClient.post<ApiResponse<SelectRoleResponse>>('/auth/select-role', data);
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      // Substitute initial tokens with final workspace tokens
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_token', data.accessToken);
+        localStorage.setItem('refresh_token', data.refreshToken);
+        
+        if (data.tenantContext?.companyId) {
+          localStorage.setItem('current_company_id', data.tenantContext.companyId);
         }
       }
     },

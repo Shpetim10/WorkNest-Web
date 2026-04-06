@@ -1,9 +1,9 @@
-import { PasswordResetSuccessView } from "@/features/auth";
+import { PasswordResetSuccessView } from "@/features/auth/components/PasswordResetSuccessView";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Email Sent | WorkNest",
-  description: "Your WorkNest password reset link has been sent.",
+  title: "Password Reset Successfully | WorkNest",
+  description: "Your WorkNest password has been updated.",
 };
 
 export default function PasswordResetSuccessPage() {

@@ -2,10 +2,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { Input, Button } from '@/common/ui';
+import { useLogin } from '../api/login';
+import { PlatformAccess } from '../types';
+import { useRouter } from 'next/navigation';
 
 export function LoginView() {
+  const router = useRouter();
+  const loginMutation = useLogin();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -25,11 +30,26 @@ export function LoginView() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      // Proceed with login
-      console.log('Login valid', formData);
+      try {
+        const response = await loginMutation.mutateAsync({
+          email: formData.email,
+          password: formData.password,
+          platformAccess: PlatformAccess.WEB,
+        });
+
+        if (response.roleSelectionRequired) {
+          router.push('/select-role');
+        } else {
+          router.push('/dashboard');
+        }
+      } catch (error: any) {
+        // Errors are handled by the mutation and typically displayed via global toast
+        // but we can also set local errors if preferred
+        console.error('Login failed:', error);
+      }
     }
   };
 
@@ -94,9 +114,10 @@ export function LoginView() {
               <Button
                 type="submit"
                 fullWidth
-                icon={<ArrowRight className="h-[18px] w-[18px]" />}
+                icon={loginMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
+                disabled={loginMutation.isPending}
               >
-                Sign In
+                {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
               </Button>
             </div>
           </form>

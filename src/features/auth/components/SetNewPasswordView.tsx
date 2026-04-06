@@ -1,12 +1,53 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useResetPassword } from '../api/password-reset';
 
 export function SetNewPasswordView() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const resetPasswordMutation = useResetPassword();
+
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+
+  const validate = () => {
+    if (!token) {
+      setError('Invalid or missing reset token.');
+      return false;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validate()) {
+      try {
+        await resetPasswordMutation.mutateAsync({
+          token: token!,
+          newPassword: password,
+        });
+        router.push('/password-reset-success');
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      }
+    }
+  };
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-[#f0f4f8] to-[#e2e8f0] font-sans p-4 relative overflow-hidden">
@@ -31,7 +72,7 @@ export function SetNewPasswordView() {
           </p>
         </div>
 
-        <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
 
           <Input
             id="new-password"
@@ -41,6 +82,8 @@ export function SetNewPasswordView() {
             icon={<Lock className="h-[18px] w-[18px]" />}
             iconRight={showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
             onIconRightClick={() => setShowPassword(!showPassword)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           <Input
@@ -51,6 +94,9 @@ export function SetNewPasswordView() {
             icon={<Lock className="h-[18px] w-[18px]" />}
             iconRight={showConfirmPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
             onIconRightClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={error}
           />
 
           {/* Password Requirements Info Box */}
@@ -79,9 +125,10 @@ export function SetNewPasswordView() {
           <Button
             type="submit"
             fullWidth
-            icon={<ArrowRight className="h-[18px] w-[18px]" />}
+            icon={resetPasswordMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
+            disabled={resetPasswordMutation.isPending}
           >
-            Update Password
+            {resetPasswordMutation.isPending ? 'Updating...' : 'Update Password'}
           </Button>
         </form>
 

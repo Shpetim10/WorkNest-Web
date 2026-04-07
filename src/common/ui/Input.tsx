@@ -24,8 +24,8 @@ export const Input = ({
   const isInvalid = !!error;
 
   return (
-    <div className="space-y-1 w-full text-left">
-      <label className="text-[13px] font-semibold text-gray-700 font-sans" htmlFor={id}>
+    <div className="space-y-2 w-full text-left">
+      <label className="block text-[13px] font-semibold text-gray-700 font-sans" htmlFor={id}>
         {label} {required && <span className="text-gray-500">*</span>}
       </label>
       <div className="relative">
@@ -36,10 +36,10 @@ export const Input = ({
         )}
         <input
           id={id}
-          className={`w-full ${icon ? 'pl-9' : 'pl-4'} ${iconRight ? 'pr-12' : 'pr-4'} py-2.5 bg-[#f8fafc] border ${
+          className={`w-full h-11 ${icon ? 'pl-9' : 'pl-4'} ${iconRight ? 'pr-12' : 'pr-4'} bg-[#f8fafc] border ${
             isInvalid 
               ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' 
-              : 'border-gray-200 focus:ring-[#0066FF]/20 focus:border-[#0066FF]'
+              : 'border-gray-100 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40'
           } rounded-xl text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 ${className}`}
           {...props}
         />

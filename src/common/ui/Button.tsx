@@ -1,7 +1,7 @@
 import React, { ButtonHTMLAttributes, ReactNode } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'destructive';
   fullWidth?: boolean;
   isLoading?: boolean;
   icon?: ReactNode;
@@ -31,14 +31,16 @@ export const Button = ({
   
   const secondaryStyle = "bg-[#f4f7fb] text-gray-800 hover:bg-[#e2e8f0]";
   
+  const destructiveStyle = "bg-[#EF4444] text-white shadow-md shadow-red-500/10 hover:bg-[#DC2626] hover:shadow-red-500/20";
+  
   const disabledStyle = "opacity-60 cursor-not-allowed grayscale-[0.5]";
 
   const combinedClassName = `
     ${baseStyle} 
     ${widthStyle} 
     ${isDisabled ? disabledStyle : 'cursor-pointer'}
-    ${variant === 'primary' ? primaryStyle : secondaryStyle} 
-    ${!isDisabled && variant === 'primary' ? primaryHover : ''}
+    ${variant === 'primary' ? primaryStyle : variant === 'secondary' ? secondaryStyle : destructiveStyle} 
+    ${!isDisabled && (variant === 'primary' || variant === 'destructive') ? primaryHover : ''}
     ${className}
   `.trim();
 

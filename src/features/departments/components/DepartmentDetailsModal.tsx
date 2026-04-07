@@ -2,16 +2,49 @@
 
 import React from 'react';
 import { Modal } from '@/common/ui';
-import { Department } from '../types';
+import { useDepartment } from '../api';
+import { DepartmentListItem } from '../types';
+import { Loader2 } from 'lucide-react';
 
 interface DepartmentDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  department: Department | null;
+  departmentId: string | null;
+  initialData?: DepartmentListItem | null;
 }
 
-export function DepartmentDetailsModal({ isOpen, onClose, department }: DepartmentDetailsModalProps) {
-  if (!department) return null;
+export function DepartmentDetailsModal({ isOpen, onClose, departmentId, initialData }: DepartmentDetailsModalProps) {
+  const { data: department, isLoading } = useDepartment(departmentId);
+  
+  // Use either the fetched detail or the initial list item data
+  const displayData = department || initialData;
+
+  if (!displayData && isLoading) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Department Details" width="max-w-[700px]">
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-[#155DFC] animate-spin mb-2" />
+          <p className="text-sm text-gray-500">Loading details...</p>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (!displayData) return null;
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
 
   return (
     <Modal
@@ -31,7 +64,7 @@ export function DepartmentDetailsModal({ isOpen, onClose, department }: Departme
           {/* Name */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Name</p>
-            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{department.name}</p>
+            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{displayData.name}</p>
           </div>
 
           {/* Status */}
@@ -39,11 +72,11 @@ export function DepartmentDetailsModal({ isOpen, onClose, department }: Departme
             <p className="text-[14px] font-medium text-gray-400">Status</p>
             <div className="flex">
               <span className={`px-4 py-1.5 rounded-full text-[13px] font-bold ${
-                department.status === 'Active' 
+                displayData.status === 'ACTIVE' 
                   ? 'bg-emerald-50 text-emerald-600' 
-                  : 'bg-red-50 text-red-600'
+                  : 'bg-gray-100 text-gray-400'
               }`}>
-                {department.status}
+                {displayData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
               </span>
             </div>
           </div>
@@ -51,13 +84,13 @@ export function DepartmentDetailsModal({ isOpen, onClose, department }: Departme
           {/* Created At */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Created At</p>
-            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{department.createdAt}</p>
+            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{formatDate(displayData.createdAt)}</p>
           </div>
 
           {/* Updated At */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Updated At</p>
-            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{department.updatedAt}</p>
+            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{formatDate(displayData.updatedAt)}</p>
           </div>
         </div>
 
@@ -65,7 +98,7 @@ export function DepartmentDetailsModal({ isOpen, onClose, department }: Departme
         <div className="space-y-1.5 pt-2">
           <p className="text-[14px] font-medium text-gray-400">Description</p>
           <p className="text-[16px] font-medium text-gray-700 leading-relaxed max-w-[580px]">
-            {department.description || 'No description provided.'}
+            {displayData.description || 'No description provided.'}
           </p>
         </div>
 

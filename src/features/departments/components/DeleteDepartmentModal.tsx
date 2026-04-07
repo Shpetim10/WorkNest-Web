@@ -3,21 +3,27 @@
 import React from 'react';
 import { Modal, Button } from '@/common/ui';
 import { Trash2 } from 'lucide-react';
-import { Department } from '../types';
+import { useDeleteDepartment } from '../api';
+import { DepartmentListItem } from '../types';
 
 interface DeleteDepartmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  department: Department | null;
+  department: DepartmentListItem | null;
 }
 
 export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDepartmentModalProps) {
+  const deleteMutation = useDeleteDepartment();
+
   if (!department) return null;
 
-  const handleDelete = () => {
-    // UI-only logic
-    console.log('Deleting Department:', department.id);
-    onClose();
+  const handleDelete = async () => {
+    try {
+      await deleteMutation.mutateAsync(department.id);
+      onClose();
+    } catch (error) {
+      console.error('Failed to delete department:', error);
+    }
   };
 
   return (
@@ -45,13 +51,15 @@ export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDep
         <div className="flex items-center gap-4 w-full pt-6">
           <button
             onClick={onClose}
-            className="flex-1 py-3 text-[14px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 rounded-2xl transition-all"
+            disabled={deleteMutation.isPending}
+            className="flex-1 py-3 text-[14px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 rounded-2xl transition-all disabled:opacity-50"
           >
             Back
           </button>
           <Button
             onClick={handleDelete}
             variant="destructive"
+            isLoading={deleteMutation.isPending}
             className="flex-1 h-12 rounded-2xl font-bold"
           >
             Delete

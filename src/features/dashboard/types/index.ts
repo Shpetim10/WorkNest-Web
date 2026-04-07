@@ -21,12 +21,4 @@ export interface ExpiringContract {
   daysLeft: number;
 }
 
-export interface Department {
-  id: string;
-  name: string;
-  status: 'Active' | 'Inactive';
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  employeeCount?: number;
-}
+

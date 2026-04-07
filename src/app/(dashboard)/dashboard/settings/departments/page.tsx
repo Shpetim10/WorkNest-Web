@@ -1,4 +1,4 @@
-import { DepartmentsView } from "@/features/dashboard";
+import { DepartmentsView } from "@/features/departments";
 
 export const metadata = {
   title: 'Departments | WorkNest',

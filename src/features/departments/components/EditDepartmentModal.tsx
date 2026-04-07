@@ -2,35 +2,46 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Input, Select, Textarea, Button } from '@/common/ui';
-import { Department } from '../types';
+import { useUpdateDepartment } from '../api';
+import { DepartmentListItem, DepartmentStatus } from '../types';
 
 interface EditDepartmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  department: Department | null;
+  department: DepartmentListItem | null;
 }
 
 export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartmentModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    status: 'Active' as 'Active' | 'Inactive',
+    status: 'ACTIVE' as DepartmentStatus,
     description: ''
   });
 
+  const updateMutation = useUpdateDepartment(department?.id || '');
+
   useEffect(() => {
-    if (department) {
+    if (department && isOpen) {
       setFormData({
         name: department.name,
         status: department.status,
-        description: department.description
+        description: department.description || ''
       });
     }
   }, [department, isOpen]);
 
-  const handleSave = () => {
-    // UI-only logic
-    console.log('Saving Department:', formData);
-    onClose();
+  const handleSave = async () => {
+    if (!department) return;
+    try {
+      await updateMutation.mutateAsync({
+        name: formData.name,
+        status: formData.status,
+        description: formData.description
+      });
+      onClose();
+    } catch (error) {
+      console.error('Failed to update department:', error);
+    }
   };
 
   return (
@@ -51,12 +62,13 @@ export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartm
             placeholder="e.g Economy"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            autoComplete="off"
           />
           <Select
             id="edit-dept-status"
             label="Status"
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}
+            value={formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value === 'Active' ? 'ACTIVE' : 'INACTIVE' })}
             options={[
               { value: 'Active', label: 'Active' },
               { value: 'Inactive', label: 'Inactive' }
@@ -80,15 +92,18 @@ export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartm
         <div className="flex items-center justify-between mt-10 pt-4 border-t border-gray-50/50">
           <button
             onClick={onClose}
-            className="px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all"
+            disabled={updateMutation.isPending}
+            className="px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all disabled:opacity-50"
           >
             Back
           </button>
           <Button
             onClick={handleSave}
+            isLoading={updateMutation.isPending}
+            disabled={!formData.name.trim()}
             className="bg-gradient-to-r from-[#155DFC] to-[#01c951] hover:shadow-lg hover:shadow-[#155dfc]/20 shadow-md h-11 rounded-xl px-12 font-bold min-w-[140px]"
           >
-            Edit
+            Update
           </Button>
         </div>
       </div>

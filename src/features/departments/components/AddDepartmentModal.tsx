@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Modal, Input, Select, Textarea, Button } from '@/common/ui';
+import { useCreateDepartment } from '../api';
+import { DepartmentStatus } from '../types';
 
 interface AddDepartmentModalProps {
   isOpen: boolean;
@@ -11,16 +13,24 @@ interface AddDepartmentModalProps {
 export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    status: 'Active',
+    status: 'ACTIVE' as DepartmentStatus,
     description: ''
   });
 
-  const handleAdd = () => {
-    // UI-only logic
-    console.log('Adding Department:', formData);
-    onClose();
-    // Reset form after closing
-    setFormData({ name: '', status: 'Active', description: '' });
+  const createMutation = useCreateDepartment();
+
+  const handleAdd = async () => {
+    try {
+      await createMutation.mutateAsync({
+        name: formData.name,
+        status: formData.status,
+        description: formData.description
+      });
+      onClose();
+      setFormData({ name: '', status: 'ACTIVE', description: '' });
+    } catch (error) {
+      console.error('Failed to create department:', error);
+    }
   };
 
   return (
@@ -28,14 +38,14 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
       isOpen={isOpen}
       onClose={() => {
         onClose();
-        setFormData({ name: '', status: 'Active', description: '' });
+        setFormData({ name: '', status: 'ACTIVE', description: '' });
       }}
       title="Add Department"
       subtitle="Add new department for your company"
       width="max-w-[794px]"
     >
       <div className="space-y-8 pt-2">
-        {/* Row 1: Name and Status - Perfectly aligned using standardized components */}
+        {/* Row 1: Name and Status */}
         <div className="grid grid-cols-2 gap-x-10 items-start">
           <Input
             id="dept-name"
@@ -44,12 +54,13 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
             placeholder="e.g Economy"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            autoComplete="off"
           />
           <Select
             id="dept-status"
             label="Status"
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            value={formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value === 'Active' ? 'ACTIVE' : 'INACTIVE' })}
             options={[
               { value: 'Active', label: 'Active' },
               { value: 'Inactive', label: 'Inactive' }
@@ -57,7 +68,7 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
           />
         </div>
 
-        {/* Row 2: Description - Full width centered composition */}
+        {/* Row 2: Description */}
         <div className="w-full">
           <Textarea
             id="dept-description"
@@ -69,16 +80,19 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
           />
         </div>
 
-        {/* Footer Buttons - Split left/right */}
+        {/* Footer Buttons */}
         <div className="flex items-center justify-between mt-10 pt-4 border-t border-gray-50/50">
           <button
             onClick={onClose}
-            className="px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all"
+            disabled={createMutation.isPending}
+            className="px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all disabled:opacity-50"
           >
             Back
           </button>
           <Button
             onClick={handleAdd}
+            isLoading={createMutation.isPending}
+            disabled={!formData.name.trim()}
             className="bg-gradient-to-r from-[#155DFC] to-[#01c951] hover:shadow-lg hover:shadow-[#155dfc]/20 shadow-md h-11 rounded-xl px-12 font-bold min-w-[140px]"
           >
             Add

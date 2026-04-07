@@ -96,7 +96,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Don't attempt refresh if we're on the login page or if it was a final auth attempt
       const isLoginPage = typeof window !== 'undefined' && window.location.pathname.includes('/login');
-      const isAuthRequest = originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh');
+      const isAuthRequest = originalRequest.url?.includes('/auth/login') || 
+                            originalRequest.url?.includes('/auth/refresh') ||
+                            originalRequest.url?.includes('/auth/logout');
 
       if (isLoginPage || isAuthRequest) {
         return Promise.reject(error);

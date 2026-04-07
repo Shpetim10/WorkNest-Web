@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { LoginResponse } from '../types';
+import { removeCookie } from '@/common/utils/cookies';
 
 interface AuthState {
   loginResponse: LoginResponse | null;
@@ -18,6 +19,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('current_company_id');
+      removeCookie('auth_token');
     }
     set({ loginResponse: null });
   },

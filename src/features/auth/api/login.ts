@@ -3,6 +3,7 @@ import { apiClient } from '@/common/network/api-client';
 import { LoginResponse, LoginRequest, SelectRoleRequest, SelectRoleResponse } from '../types';
 import { ApiResponse, ApiErrorResponse } from '@/common/types/api';
 import { useAuthStore } from '../store/authStore';
+import { setCookie } from '@/common/utils/cookies';
 
 /**
  * Mutation hook for user login
@@ -37,6 +38,7 @@ export const useLogin = () => {
         if (data.tenantContext?.companyId) {
           localStorage.setItem('current_company_id', data.tenantContext.companyId);
         }
+        setCookie('auth_token', data.accessToken, 7);
       }
       
       // Store primary response for role selection if needed
@@ -63,6 +65,7 @@ export const useSelectRole = () => {
         if (data.tenantContext?.companyId) {
           localStorage.setItem('current_company_id', data.tenantContext.companyId);
         }
+        setCookie('auth_token', data.accessToken, 7);
       }
     },
   });

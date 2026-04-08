@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
       { name: 'Departments', href: '/dashboard/settings/departments' },
     ]
   },
-  { name: 'Locations', icon: MapPin, href: '#' },
+  { name: 'Locations', icon: MapPin, href: '/dashboard/locations' },
 ];
 
 export function Sidebar() {

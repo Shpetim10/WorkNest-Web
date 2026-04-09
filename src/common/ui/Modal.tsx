@@ -7,10 +7,11 @@ import { X } from 'lucide-react';
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
   width?: string;
+  containerClassName?: string;
 }
 
 export const Modal = ({ 
@@ -19,7 +20,8 @@ export const Modal = ({
   title, 
   subtitle, 
   children, 
-  width = 'max-w-[500px]' 
+  width = 'max-w-[500px]',
+  containerClassName = 'p-6'
 }: ModalProps) => {
   useEffect(() => {
     if (isOpen) {
@@ -43,20 +45,22 @@ export const Modal = ({
       />
       
       {/* Modal Container */}
-      <div className={`relative w-full ${width} bg-white rounded-xl shadow-lg p-6 animate-in zoom-in-95 slide-in-from-bottom-5 duration-300 ease-out`}>
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="space-y-1">
-            <h2 className="text-[24px] font-semibold text-[#0A0A0A] leading-8 font-sans tracking-tight">{title}</h2>
-            {subtitle && <p className="text-[14px] font-normal text-[#717182] leading-5 font-sans">{subtitle}</p>}
+      <div className={`relative w-full ${width} bg-white rounded-xl shadow-lg border border-gray-100 ${containerClassName} animate-in zoom-in-95 slide-in-from-bottom-5 duration-300 ease-out`}>
+        {/* Header - Only render if title exists */}
+        {title && (
+          <div className="flex items-start justify-between mb-6">
+            <div className="space-y-1">
+              <h2 className="text-[24px] font-semibold text-[#0A0A0A] leading-8 font-sans tracking-tight">{title}</h2>
+              {subtitle && <p className="text-[14px] font-normal text-[#717182] leading-5 font-sans">{subtitle}</p>}
+            </div>
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors pt-1"
+            >
+              <X size={20} strokeWidth={2} />
+            </button>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors pt-1"
-          >
-            <X size={20} strokeWidth={2} />
-          </button>
-        </div>
+        )}
 
         {/* Content */}
         <div>{children}</div>

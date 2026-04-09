@@ -19,7 +19,7 @@ const PUBLIC_ROUTES = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Get the auth token from cookies
   const authToken = request.cookies.get('auth_token')?.value;
   const isAuthenticated = !!authToken;
@@ -27,7 +27,7 @@ export function middleware(request: NextRequest) {
   // 1. If user is authenticated and tries to access an auth page (login, etc.),
   // redirect them to the dashboard.
   const isAuthPage = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
-  
+
   if (isAuthenticated && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }

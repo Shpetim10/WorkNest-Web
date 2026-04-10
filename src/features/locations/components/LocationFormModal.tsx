@@ -1,16 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Textarea, Button } from '@/common/ui';
-import { Check, ChevronRight, X, Save } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Modal, Button, Input, Select, Textarea, Stepper } from '@/common/ui';
+import { Check, ChevronRight, Loader2, Save, X } from 'lucide-react';
 import {
+  useActivateSite,
+  useCreateSiteDraft,
+  useDetectLocation,
+  useDetectNetwork,
+  useSaveBasicInfo,
+  useSaveLocation,
+  useSaveTrustedNetwork,
+} from '../api';
+import {
+  ActivateSiteResponse,
+  Issue,
+  Location,
+  LocationDetectionResponse,
   LocationFormData,
   LocationFormErrors,
   LocationStep2Data,
   LocationStep2Errors,
   LocationStep3Data,
   LocationStep3Errors,
-  Location,
+  NetworkDetectionResponse,
+  SaveBasicInfoRequest,
+  SaveLocationRequest,
+  SaveTrustedNetworkRequest,
   SiteType,
 } from '../types';
 import { COUNTRIES } from '../constants/countries';
@@ -25,14 +41,9 @@ interface LocationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: LocationFormMode;
-  /** In edit mode, pass the full location to prefill all form steps */
+  companyId?: string | null;
   initialLocation?: Location | null;
-  /** Called on final submit with all collected form data */
-  onSubmit?: (data: {
-    step1: LocationFormData;
-    step2: LocationStep2Data;
-    step3: LocationStep3Data;
-  }) => void;
+  onCompleted?: () => void;
 }
 
 const EMPTY_STEP1: LocationFormData = {
@@ -48,17 +59,28 @@ const EMPTY_STEP2: LocationStep2Data = {
   addressLine1: '',
   addressLine2: '',
   city: '',
+  stateRegion: '',
+  postalCode: '',
+  latitude: null,
+  longitude: null,
   geofenceRadius: 100,
+  detectedAccuracy: null,
+  browserTimestampMs: null,
   locationDetected: false,
   advancedSettings: { entryBuffer: 30, exitBuffer: 30, maxAccuracy: 50 },
 };
 
 const EMPTY_STEP3: LocationStep3Data = {
-  detectedIp: '192.168.1.45',
+  trustedNetworkId: null,
+  detectedIp: '',
   networkName: '',
   cidrBlock: '',
-  networkType: '',
+  networkType: 'AUTO_DETECTED',
   ipVersion: 'IPv4',
+  confidence: 'MANUAL',
+  torExitNode: false,
+  vpnDetected: false,
+  cgnatDetected: false,
   setExpiry: false,
   expiryDate: '',
   networkNotes: '',
@@ -67,108 +89,224 @@ const EMPTY_STEP3: LocationStep3Data = {
 
 function buildStep1FromLocation(loc: Location): LocationFormData {
   return {
-    siteType: loc.siteType as SiteType,
+    siteType: loc.siteType,
     siteName: loc.siteName,
     siteCode: loc.siteCode,
-    country: loc.country,
-    timezone: loc.timezone ?? '',
+    country: loc.countryCode,
+    timezone: loc.timezone,
     notes: loc.notes ?? '',
   };
 }
 
 function buildStep2FromLocation(loc: Location): LocationStep2Data {
   return {
-    addressLine1: loc.addressLine1 ?? '',
-    addressLine2: loc.addressLine2 ?? '',
-    city: loc.city ?? '',
-    geofenceRadius: loc.geofenceRadius ?? 100,
-    locationDetected: false,
-    advancedSettings: loc.advancedLocationSettings ?? {
-      entryBuffer: 30,
-      exitBuffer: 30,
-      maxAccuracy: 50,
-    },
+    addressLine1: loc.addressLine1,
+    addressLine2: loc.addressLine2,
+    city: loc.city,
+    stateRegion: loc.stateRegion,
+    postalCode: loc.postalCode,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+    geofenceRadius: loc.geofenceRadius,
+    detectedAccuracy: loc.advancedLocationSettings.maxAccuracy,
+    browserTimestampMs: null,
+    locationDetected: Boolean(loc.latitude && loc.longitude),
+    advancedSettings: loc.advancedLocationSettings,
   };
 }
 
 function buildStep3FromLocation(loc: Location): LocationStep3Data {
   return {
-    detectedIp: loc.detectedIp ?? '192.168.1.45',
-    networkName: loc.networkName ?? '',
-    cidrBlock: loc.cidrBlock ?? '',
-    networkType: loc.networkType ?? '',
-    ipVersion: loc.ipVersion ?? 'IPv4',
-    setExpiry: loc.setExpiry ?? false,
-    expiryDate: loc.expiryDate ?? '',
-    networkNotes: loc.networkNotes ?? '',
-    priorityOverride: loc.priorityOverride ?? '1',
+    trustedNetworkId: loc.trustedNetworks[0]?.id ?? null,
+    detectedIp: loc.detectedIp,
+    networkName: loc.networkName,
+    cidrBlock: loc.cidrBlock,
+    networkType: loc.networkType,
+    ipVersion: loc.ipVersion,
+    confidence: loc.confidence,
+    torExitNode: loc.torExitNode,
+    vpnDetected: loc.vpnDetected,
+    cgnatDetected: loc.cgnatDetected,
+    setExpiry: loc.setExpiry,
+    expiryDate: loc.expiryDate,
+    networkNotes: loc.networkNotes,
+    priorityOverride: loc.priorityOverride,
   };
 }
+
+function formatApiError(error: unknown): string {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) {
+      return response.data.message;
+    }
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message?: string }).message ?? 'Something went wrong.');
+  }
+  return 'Something went wrong.';
+}
+
+function getErrorStatus(error: unknown): number | undefined {
+  if (error && typeof error === 'object') {
+    if ('status' in error) return (error as { status: number }).status;
+    if ('response' in error) return (error as { response?: { status?: number } }).response?.status;
+  }
+  return undefined;
+}
+
+function buildConflictMessage(error: unknown): string | null {
+  if (getErrorStatus(error) === 409) {
+    return 'Another admin updated this site while you were editing. You need to sync with the server to get the latest data before saving.';
+  }
+  return null;
+}
+
+function toIsoExpiryDate(date: string): string | null {
+  if (!date) {
+    return null;
+  }
+  return `${date}T23:59:59.000Z`;
+}
+
 
 export function LocationFormModal({
   isOpen,
   onClose,
   mode,
+  companyId,
   initialLocation,
-  onSubmit,
+  onCompleted,
 }: LocationFormModalProps) {
   const isEdit = mode === 'edit';
   const [currentStep, setCurrentStep] = useState(1);
-
-  // ── Step 1
+  const [siteId, setSiteId] = useState<string | null>(initialLocation?.id ?? null);
+  const [version, setVersion] = useState(initialLocation?.version ?? 0);
   const [step1Data, setStep1Data] = useState<LocationFormData>(EMPTY_STEP1);
   const [step1Errors, setStep1Errors] = useState<LocationFormErrors>({});
-
-  // ── Step 2
   const [step2Data, setStep2Data] = useState<LocationStep2Data>(EMPTY_STEP2);
   const [step2Errors, setStep2Errors] = useState<LocationStep2Errors>({});
-
-  // ── Step 3
   const [step3Data, setStep3Data] = useState<LocationStep3Data>(EMPTY_STEP3);
   const [step3Errors, setStep3Errors] = useState<LocationStep3Errors>({});
+  const [locationWarnings, setLocationWarnings] = useState<Issue[]>([]);
+  const [networkWarnings, setNetworkWarnings] = useState<Issue[]>([]);
+  const [activationPreview, setActivationPreview] = useState<ActivateSiteResponse | null>(null);
+  const [isActivating, setIsActivating] = useState(false);
+  const [formError, setFormError] = useState<string>('');
+  const [isConflict, setIsConflict] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // ── Prefill when opening in edit mode
+  const createDraftMutation = useCreateSiteDraft();
+  const saveBasicInfoMutation = useSaveBasicInfo();
+  const detectLocationMutation = useDetectLocation();
+  const saveLocationMutation = useSaveLocation();
+  const detectNetworkMutation = useDetectNetwork();
+  const saveTrustedNetworkMutation = useSaveTrustedNetwork();
+  const activateSiteMutation = useActivateSite();
+
+  const isBusy =
+    createDraftMutation.isPending ||
+    saveBasicInfoMutation.isPending ||
+    detectLocationMutation.isPending ||
+    saveLocationMutation.isPending ||
+    detectNetworkMutation.isPending ||
+    saveTrustedNetworkMutation.isPending ||
+    activateSiteMutation.isPending ||
+    isActivating;
+
   useEffect(() => {
-    if (isOpen && isEdit && initialLocation) {
+    if (isOpen && initialLocation) {
+      setSiteId(initialLocation.id);
+      setVersion(initialLocation.version);
       setStep1Data(buildStep1FromLocation(initialLocation));
       setStep2Data(buildStep2FromLocation(initialLocation));
       setStep3Data(buildStep3FromLocation(initialLocation));
     }
+
     if (!isOpen) {
-      // Reset on close so next open starts clean
       setCurrentStep(1);
+      setSiteId(initialLocation?.id ?? null);
+      setVersion(initialLocation?.version ?? 0);
       setStep1Errors({});
       setStep2Errors({});
       setStep3Errors({});
-      if (!isEdit) {
+      setLocationWarnings([]);
+      setNetworkWarnings([]);
+      setActivationPreview(null);
+      setFormError('');
+
+      if (!initialLocation) {
         setStep1Data(EMPTY_STEP1);
         setStep2Data(EMPTY_STEP2);
         setStep3Data(EMPTY_STEP3);
       }
+      setIsConflict(false);
+      setIsSyncing(false);
     }
-  }, [isOpen, isEdit, initialLocation]);
+  }, [initialLocation, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || currentStep !== 4 || !siteId || isEdit) {
+      return;
+    }
+
+    let active = true;
+
+    const previewActivation = async () => {
+      try {
+        const preview = await activateSiteMutation.mutateAsync({ siteId, dryRun: true });
+        if (!active) {
+          return;
+        }
+        setActivationPreview(preview);
+        if (preview.site?.version) {
+          setVersion(preview.site.version);
+        }
+        if (preview.blockingIssues.length > 0) {
+          setFormError('The site is not ready to activate yet. Review the blocking issues before going live.');
+        } else {
+          setFormError('');
+        }
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        const conflict = buildConflictMessage(error);
+        if (conflict) {
+          setIsConflict(true);
+          setFormError(conflict);
+        } else {
+          setFormError(formatApiError(error));
+        }
+      }
+    };
+
+    void previewActivation();
+
+    return () => {
+      active = false;
+    };
+  }, [activateSiteMutation, currentStep, isEdit, isOpen, siteId]);
+
+  const mergedWarnings = useMemo(
+    () => [...locationWarnings, ...networkWarnings, ...(activationPreview?.warnings ?? [])],
+    [activationPreview?.warnings, locationWarnings, networkWarnings],
+  );
 
   const handleClose = () => {
-    setCurrentStep(1);
-    setStep1Errors({});
-    setStep2Errors({});
-    setStep3Errors({});
-    if (!isEdit) {
-      setStep1Data(EMPTY_STEP1);
-      setStep2Data(EMPTY_STEP2);
-      setStep3Data(EMPTY_STEP3);
+    if (isBusy) {
+      return;
     }
     onClose();
   };
 
-  // ── Validation (identical to original)
   const validateStep1 = (): boolean => {
     const errs: LocationFormErrors = {};
     if (!step1Data.siteType) errs.siteType = 'Site type is required';
-    if (!step1Data.siteName) errs.siteName = 'Site name is required';
-    if (!step1Data.siteCode) errs.siteCode = 'Site code is required';
-    if (!step1Data.country) errs.country = 'Country is required';
-    if (!step1Data.timezone) errs.timezone = 'Timezone is required';
+    if (!step1Data.siteName.trim()) errs.siteName = 'Site name is required';
+    if (!step1Data.siteCode.trim()) errs.siteCode = 'Site code is required';
+    if (!step1Data.country.trim()) errs.country = 'Country is required';
+    if (!step1Data.timezone.trim()) errs.timezone = 'Timezone is required';
     setStep1Errors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -177,6 +315,9 @@ export function LocationFormModal({
     const errs: LocationStep2Errors = {};
     if (!step2Data.addressLine1.trim()) errs.addressLine1 = 'Address is required';
     if (!step2Data.city.trim()) errs.city = 'City is required';
+    if (step2Data.latitude == null || step2Data.longitude == null) {
+      errs.coordinates = 'Detect or set a location before continuing.';
+    }
     setStep2Errors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -185,271 +326,584 @@ export function LocationFormModal({
     const errs: LocationStep3Errors = {};
     if (!step3Data.networkName.trim()) errs.networkName = 'Network name is required';
     if (!step3Data.cidrBlock.trim()) errs.cidrBlock = 'CIDR block is required';
+    if (step3Data.torExitNode) {
+      errs.detection = 'Tor exit nodes cannot be trusted networks. Switch to a secure office network and detect again.';
+    }
     setStep3Errors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleNext = () => {
-    if (currentStep === 1 && validateStep1()) setCurrentStep(2);
-    else if (currentStep === 2 && validateStep2()) setCurrentStep(3);
-    else if (currentStep === 3 && validateStep3()) setCurrentStep(4);
+  const getOrCreateSiteId = async (): Promise<string> => {
+    if (siteId) {
+      return siteId;
+    }
+
+    if (!companyId) {
+      throw new Error('Company context is missing. Please log in again and retry.');
+    }
+
+    const draft = await createDraftMutation.mutateAsync({
+      companyId,
+      data: {
+        code: step1Data.siteCode.trim(),
+        name: step1Data.siteName.trim(),
+        type: step1Data.siteType as SiteType,
+        countryCode: step1Data.country.trim(),
+        timezone: step1Data.timezone.trim(),
+      },
+    });
+
+    setSiteId(draft.id);
+    setVersion(draft.version);
+    return draft.id;
+  };
+
+  const handleConflictSync = async () => {
+    if (!siteId || isSyncing) return;
+    
+    setIsSyncing(true);
+    setFormError('');
+    
+    try {
+      // Direct API call to get latest status to bypass cache if needed
+      const { apiClient } = await import('@/common/network/api-client');
+      const { mapSetupStatusToLocation } = await import('../api');
+      const response = await apiClient.get(`/sites/${siteId}/setup-status`);
+      const status = response.data.data || response.data;
+      const latest = mapSetupStatusToLocation(status);
+      
+      // Update all form states with server data
+      setVersion(latest.version);
+      setStep1Data(buildStep1FromLocation(latest));
+      setStep2Data(buildStep2FromLocation(latest));
+      setStep3Data(buildStep3FromLocation(latest));
+      
+      // Reset conflict state
+      setIsConflict(false);
+      console.log('✅ [Conflict] State synchronized with version:', latest.version);
+    } catch (error) {
+      setFormError('Failed to synchronize with server. Please close and reopen the location.');
+      console.error('❌ [Conflict] Sync failed:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const saveStep1 = async () => {
+    const resolvedSiteId = await getOrCreateSiteId();
+
+    const payload: SaveBasicInfoRequest = {
+      version,
+      code: step1Data.siteCode.trim(),
+      name: step1Data.siteName.trim(),
+      type: step1Data.siteType as SiteType,
+      addressLine1: step2Data.addressLine1.trim(),
+      addressLine2: step2Data.addressLine2.trim() || undefined,
+      city: step2Data.city.trim(),
+      stateRegion: step2Data.stateRegion.trim() || undefined,
+      postalCode: step2Data.postalCode.trim() || undefined,
+      countryCode: step1Data.country.trim(),
+      timezone: step1Data.timezone.trim(),
+      notes: step1Data.notes.trim() || undefined,
+    };
+
+    const updatedSite = await saveBasicInfoMutation.mutateAsync({
+      siteId: resolvedSiteId,
+      data: payload,
+    });
+
+    setVersion(updatedSite.version);
+  };
+
+  const saveStep2 = async () => {
+    if (!siteId) {
+      throw new Error('Site draft is missing. Please return to basic info and save again.');
+    }
+
+    const payload: SaveLocationRequest = {
+      version,
+      latitude: step2Data.latitude!,
+      longitude: step2Data.longitude!,
+      geofenceShapeType: 'CIRCLE',
+      geofenceRadiusMeters: step2Data.geofenceRadius,
+      entryBufferMeters: step2Data.advancedSettings.entryBuffer,
+      exitBufferMeters: step2Data.advancedSettings.exitBuffer,
+      maxLocationAccuracyMeters: step2Data.advancedSettings.maxAccuracy,
+      locationRequired: true,
+    };
+
+    const updatedSite = await saveLocationMutation.mutateAsync({
+      siteId,
+      data: payload,
+    });
+
+    setVersion(updatedSite.version);
+  };
+
+  const saveStep3 = async () => {
+    if (!siteId) {
+      throw new Error('Site draft is missing. Please return to basic info and save again.');
+    }
+
+    const networkId = step3Data.trustedNetworkId ?? crypto.randomUUID();
+    const payload: SaveTrustedNetworkRequest = {
+      version,
+      name: step3Data.networkName.trim(),
+      cidr: step3Data.cidrBlock.trim(),
+      networkType: step3Data.networkType,
+      ipVersion: step3Data.ipVersion,
+      detectedIp: step3Data.detectedIp || undefined,
+      confidence: step3Data.confidence || undefined,
+      expiresAt: step3Data.setExpiry ? toIsoExpiryDate(step3Data.expiryDate) : null,
+      notes: step3Data.networkNotes.trim() || undefined,
+      priority: Number(step3Data.priorityOverride || 1),
+    };
+
+    const network = await saveTrustedNetworkMutation.mutateAsync({
+      siteId,
+      networkId,
+      data: payload,
+    });
+
+    setStep3Data((prev) => ({ ...prev, trustedNetworkId: network.id }));
+    if (network.updatedAt) {
+      setVersion((prev) => prev + 1);
+    }
+  };
+
+  const handleDetectLocation = async () => {
+    setFormError('');
+    setStep2Errors((prev) => ({ ...prev, detection: undefined, coordinates: undefined }));
+
+    if (!navigator.geolocation) {
+      setStep2Errors((prev) => ({
+        ...prev,
+        detection: 'Geolocation is not supported in this browser.',
+      }));
+      return;
+    }
+
+    try {
+      const resolvedSiteId = await getOrCreateSiteId();
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const detection = await detectLocationMutation.mutateAsync({
+        siteId: resolvedSiteId,
+        data: {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          browserTimestampMs: position.timestamp,
+        },
+      });
+
+      applyLocationDetection(position, detection);
+
+      // --- Autofill address fields via Reverse Geocoding ---
+      try {
+        const lat = detection.latitude ?? position.coords.latitude;
+        const lon = detection.longitude ?? position.coords.longitude;
+        
+        const geoResponse = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
+        
+        if (geoResponse.ok) {
+          const geoData = await geoResponse.json();
+          const addr = geoData.address;
+          
+          if (addr) {
+            // Build Address Line 1: prefer house_number + road
+            const street = addr.road || addr.pedestrian || addr.suburb || '';
+            const house = addr.house_number || '';
+            const line1 = street ? (house ? `${house} ${street}` : street) : addr.amenity || '';
+
+            setStep2Data((prev) => ({
+              ...prev,
+              addressLine1: line1 || prev.addressLine1,
+              city: addr.city || addr.town || addr.village || prev.city,
+              stateRegion: addr.state || addr.region || prev.stateRegion,
+              postalCode: addr.postcode || prev.postalCode,
+            }));
+          }
+        }
+      } catch (geoError) {
+        console.warn('Silent failure: Reverse geocoding failed', geoError);
+        // We don't block the user if geocoding fails, they can still enter address manually
+      }
+      // ---------------------------------------------------
+    } catch (error) {
+      const geolocationError =
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        ('code' in error || 'PERMISSION_DENIED' in error);
+
+      if (geolocationError) {
+        setStep2Errors((prev) => ({
+          ...prev,
+          detection: String((error as { message?: string }).message || 'Unable to access your current location.'),
+        }));
+        return;
+      }
+
+      setStep2Errors((prev) => ({
+        ...prev,
+        detection: buildConflictMessage(error) ?? formatApiError(error),
+      }));
+      if (getErrorStatus(error) === 409) setIsConflict(true);
+    }
+  };
+
+  const applyLocationDetection = (
+    position: GeolocationPosition,
+    detection: LocationDetectionResponse,
+  ) => {
+    setLocationWarnings(detection.warnings ?? []);
+    setStep2Data((prev) => ({
+      ...prev,
+      latitude: detection.latitude ?? position.coords.latitude,
+      longitude: detection.longitude ?? position.coords.longitude,
+      geofenceRadius: detection.suggestedRadiusMeters ?? prev.geofenceRadius,
+      detectedAccuracy: detection.accuracyMeters ?? position.coords.accuracy,
+      browserTimestampMs: position.timestamp,
+      locationDetected: true,
+    }));
+  };
+
+  const handleDetectNetwork = async () => {
+    setFormError('');
+    setStep3Errors((prev) => ({ ...prev, detection: undefined }));
+
+    try {
+      const resolvedSiteId = await getOrCreateSiteId();
+      const detection = await detectNetworkMutation.mutateAsync({ siteId: resolvedSiteId });
+      applyNetworkDetection(detection);
+    } catch (error) {
+      setStep3Errors((prev) => ({
+        ...prev,
+        detection: buildConflictMessage(error) ?? formatApiError(error),
+      }));
+      if (getErrorStatus(error) === 409) setIsConflict(true);
+    }
+  };
+
+  const applyNetworkDetection = (detection: NetworkDetectionResponse) => {
+    setNetworkWarnings(detection.warnings ?? []);
+    setStep3Data((prev) => ({
+      ...prev,
+      detectedIp: detection.detectedIp ?? prev.detectedIp,
+      networkName: detection.suggestedNetworkName ?? prev.networkName,
+      cidrBlock: detection.suggestedCidr ?? prev.cidrBlock,
+      networkType: detection.networkType ?? prev.networkType,
+      ipVersion: detection.ipVersion ?? prev.ipVersion,
+      confidence: detection.confidence ?? prev.confidence,
+      torExitNode: Boolean(detection.torExitNode),
+      vpnDetected: Boolean(detection.vpnDetected),
+      cgnatDetected: Boolean(detection.cgnatDetected),
+    }));
+  };
+
+  const handleNext = async () => {
+    setFormError('');
+
+    try {
+      if (currentStep === 1) {
+        if (!validateStep1()) {
+          return;
+        }
+        await saveStep1();
+        setCurrentStep(2);
+        return;
+      }
+
+      if (currentStep === 2) {
+        if (!validateStep2()) {
+          return;
+        }
+        await saveStep1();
+        await saveStep2();
+        setCurrentStep(3);
+        return;
+      }
+
+      if (currentStep === 3) {
+        if (!validateStep3()) {
+          return;
+        }
+        await saveStep3();
+        setCurrentStep(4);
+      }
+    } catch (error) {
+      const conflict = buildConflictMessage(error);
+      if (conflict) {
+        setIsConflict(true);
+        setFormError(conflict);
+      } else {
+        setFormError(formatApiError(error));
+      }
+    }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) setCurrentStep((p) => p - 1);
+    if (currentStep > 1 && !isBusy) {
+      setCurrentStep((prev) => prev - 1);
+    }
   };
 
-  const handleFinalSubmit = () => {
-    console.log(`[LocationFormModal] ${isEdit ? 'Update' : 'Activate'} location:`, {
-      step1Data,
-      step2Data,
-      step3Data,
-    });
-    onSubmit?.({ step1: step1Data, step2: step2Data, step3: step3Data });
-    handleClose();
+  const handleFinalSubmit = async () => {
+    if (!siteId) {
+      setFormError('Site draft is missing. Please retry the setup flow.');
+      return;
+    }
+
+    setFormError('');
+
+    try {
+      if (isEdit) {
+        onCompleted?.();
+        onClose();
+        return;
+      }
+
+      setIsActivating(true);
+      const activation = await activateSiteMutation.mutateAsync({ siteId });
+      setActivationPreview(activation);
+
+      if (!activation.readyToActivate || activation.blockingIssues.length > 0) {
+        setFormError('The site still has blocking issues. Review the readiness panel and try again.');
+        return;
+      }
+
+      onCompleted?.();
+      onClose();
+    } catch (error) {
+      const conflict = buildConflictMessage(error);
+      if (conflict) {
+        setIsConflict(true);
+        setFormError(conflict);
+      } else {
+        setFormError(formatApiError(error));
+      }
+    } finally {
+      setIsActivating(false);
+    }
   };
 
-  const getBubbleStyle = (stepId: number) => {
-    if (currentStep > stepId) return 'completed';
-    if (currentStep === stepId) return 'active';
-    return 'inactive';
-  };
-
-  const STEPS_CFG = [
+  const steps = [
     { id: 1, label: 'Basic Info' },
     { id: 2, label: 'Location' },
     { id: 3, label: 'Network' },
     { id: 4, label: isEdit ? 'Review' : 'Activate' },
   ];
 
-  const labelClasses = 'text-[13px] font-semibold text-[#364153] leading-[20px] mb-1';
-  const inputOverrideClasses =
-    'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] placeholder:text-[rgba(10,10,10,0.5)]';
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      width={currentStep === 4 ? 'max-w-[660px]' : 'max-w-[540px]'}
-      containerClassName="p-0"
+      title={isEdit ? 'Edit Location' : 'Add New Location'}
+      subtitle={
+        isEdit
+          ? 'Adjust location, network, and readiness settings with backend validation.'
+          : 'Create a draft site, verify location and network, then activate it when ready.'
+      }
+      width="max-w-[794px]"
     >
-      <div className="flex flex-col bg-white rounded-xl overflow-hidden shadow-sm">
-        {/* ─── Header ─── */}
-        <div className="pt-5 px-6 pb-4 border-b border-[#E5E7EB]">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[18px] font-bold text-[#101828]">
-              {isEdit ? 'Edit Location' : 'Add New Location'}
-            </h2>
-            <button
-              onClick={handleClose}
-              className="text-[#6A7282] hover:text-[#101828] transition-colors"
-            >
-              <X size={18} />
-            </button>
-          </div>
+      <div className="flex flex-col space-y-6">
+        <Stepper steps={steps} currentStep={currentStep} className="mb-2" />
 
-          {/* ─── Stepper ─── */}
-          <div className="flex items-center justify-between px-2">
-            {STEPS_CFG.map((step, index) => {
-              const style = getBubbleStyle(step.id);
-              const connectorBlue = currentStep > step.id || currentStep === step.id + 1;
-
-              return (
-                <React.Fragment key={step.id}>
-                  <div className="flex flex-col items-center shrink-0">
-                    <div
-                      className={`w-8 h-8 rounded-[8px] flex items-center justify-center text-[13px] font-semibold transition-all ${
-                        style === 'completed'
-                          ? 'bg-emerald-500 text-white'
-                          : style === 'active'
-                          ? 'bg-[#155DFC] text-white shadow-sm'
-                          : 'bg-[#E5E7EB] text-[#6A7282]'
-                      }`}
-                    >
-                      {style === 'completed' ? <Check size={14} strokeWidth={2.5} /> : step.id}
-                    </div>
-                    <span
-                      className={`mt-1.5 text-[11px] font-medium transition-colors ${
-                        style === 'active' ? 'text-[#155DFC]' : 'text-[#6A7282]'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
+        <div className="min-h-0 flex-1">
+          <div aria-live="polite" className="space-y-6">
+            {formError && (
+              <div className={`rounded-[12px] border px-4 py-3 text-[13px] font-medium transition-all duration-300 ${
+                isConflict ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-rose-200 bg-rose-50 text-rose-700'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isConflict ? (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                        <Save size={14} />
+                      </div>
+                    ) : (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                        <X size={14} />
+                      </div>
+                    )}
+                    <span>{formError}</span>
                   </div>
-
-                  {index < STEPS_CFG.length - 1 && (
-                    <div className="flex-1 h-[1px] mx-3 mb-4 transition-colors duration-300">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          connectorBlue ? 'bg-[#155DFC]' : 'bg-[#E5E7EB]'
-                        }`}
-                      />
-                    </div>
+                  {isConflict && (
+                    <button
+                      onClick={() => void handleConflictSync()}
+                      disabled={isSyncing}
+                      className="ml-4 flex items-center gap-2 rounded-lg bg-amber-600 px-3 py-1.5 text-white transition-all hover:bg-amber-700 active:scale-95 disabled:opacity-50"
+                    >
+                      {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      Sync & Overwrite
+                    </button>
                   )}
-                </React.Fragment>
-              );
-            })}
+                </div>
+                {isConflict && (
+                  <p className="mt-2 text-[11px] opacity-80">
+                    Warning: Syncing will overwrite your current unsaved changes with the latest data from the server.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {currentStep === 1 && (
+              <div className="animate-in slide-in-from-right-2 space-y-6 duration-300 fade-in">
+                <Select
+                  id="siteType"
+                  label="Site Type"
+                  required
+                  value={step1Data.siteType}
+                  onChange={(e) =>
+                    setStep1Data((prev) => ({ ...prev, siteType: e.target.value as SiteType }))
+                  }
+                  error={step1Errors.siteType}
+                  options={[
+                    { value: '', label: 'Select site type' },
+                    { value: 'OFFICE', label: 'Office' },
+                    { value: 'HQ', label: 'HQ' },
+                    { value: 'BRANCH', label: 'Branch' },
+                    { value: 'WAREHOUSE', label: 'Warehouse' },
+                    { value: 'STORE', label: 'Store' },
+                    { value: 'CLIENT_SITE', label: 'Client Site' },
+                    { value: 'FIELD_ZONE', label: 'Field Zone' },
+                  ]}
+                />
+
+                <div className="grid grid-cols-2 gap-x-10 items-start">
+                  <Input
+                    id="siteName"
+                    label="Site Name"
+                    required
+                    placeholder="e.g Tirana HQ"
+                    value={step1Data.siteName}
+                    onChange={(e) => setStep1Data((prev) => ({ ...prev, siteName: e.target.value }))}
+                    error={step1Errors.siteName}
+                    autoComplete="off"
+                  />
+                  <Input
+                    id="siteCode"
+                    label="Site Code"
+                    required
+                    placeholder="e.g HQ-TIR"
+                    value={step1Data.siteCode}
+                    onChange={(e) => setStep1Data((prev) => ({ ...prev, siteCode: e.target.value }))}
+                    error={step1Errors.siteCode}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-10 items-start">
+                  <Select
+                    id="country"
+                    label="Country"
+                    required
+                    value={step1Data.country}
+                    onChange={(e) => setStep1Data((prev) => ({ ...prev, country: e.target.value }))}
+                    error={step1Errors.country}
+                    options={[{ value: '', label: 'Select country' }, ...COUNTRIES]}
+                  />
+                  <Select
+                    id="timezone"
+                    label="Timezone"
+                    required
+                    value={step1Data.timezone}
+                    onChange={(e) => setStep1Data((prev) => ({ ...prev, timezone: e.target.value }))}
+                    error={step1Errors.timezone}
+                    options={[{ value: '', label: 'Select timezone' }, ...TIMEZONES]}
+                  />
+                </div>
+
+                <Textarea
+                  id="notes"
+                  label="Notes"
+                  placeholder="Additional information about this location..."
+                  value={step1Data.notes}
+                  onChange={(e) => setStep1Data((prev) => ({ ...prev, notes: e.target.value }))}
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <AddLocationStepLocation
+                data={step2Data}
+                errors={step2Errors}
+                warnings={locationWarnings}
+                isDetecting={detectLocationMutation.isPending}
+                countryCode={step1Data.country}
+                onChange={(updates) => setStep2Data((prev) => ({ ...prev, ...updates }))}
+                onDetect={handleDetectLocation}
+              />
+            )}
+
+            {currentStep === 3 && (
+              <AddLocationStepNetwork
+                data={step3Data}
+                errors={step3Errors}
+                warnings={networkWarnings}
+                isDetecting={detectNetworkMutation.isPending}
+                onChange={(updates) => setStep3Data((prev) => ({ ...prev, ...updates }))}
+                onDetect={handleDetectNetwork}
+              />
+            )}
+
+            {currentStep === 4 && (
+              <AddLocationStepActivate
+                step1={step1Data}
+                step2={step2Data}
+                step3={step3Data}
+                mode={mode}
+                warnings={mergedWarnings}
+                blockingIssues={activationPreview?.blockingIssues ?? []}
+                readyToActivate={activationPreview?.readyToActivate ?? isEdit}
+                isCheckingReadiness={activateSiteMutation.isPending && !isActivating}
+              />
+            )}
           </div>
         </div>
 
-        {/* ─── Form Body ─── */}
-        <div
-          className={`px-6 py-4 overflow-y-auto ${
-            currentStep === 1
-              ? 'max-h-[52vh]'
-              : currentStep === 4
-              ? 'max-h-[70vh]'
-              : 'max-h-[62vh]'
-          }`}
-        >
-          {/* Step 1 – Basic Info */}
-          {currentStep === 1 && (
-            <div className="space-y-3">
-              <Select
-                id="siteType"
-                label="Site Type"
-                required
-                value={step1Data.siteType}
-                onChange={(e) =>
-                  setStep1Data({ ...step1Data, siteType: e.target.value as SiteType })
-                }
-                error={step1Errors.siteType}
-                className={labelClasses}
-                style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-                options={[
-                  { value: '', label: 'Select site type' },
-                  { value: 'On-site', label: 'On-site' },
-                  { value: 'Remote', label: 'Remote' },
-                  { value: 'Hybrid', label: 'Hybrid' },
-                ]}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  id="siteName"
-                  label="Site Name"
-                  required
-                  placeholder="Main Office"
-                  value={step1Data.siteName}
-                  onChange={(e) => setStep1Data({ ...step1Data, siteName: e.target.value })}
-                  error={step1Errors.siteName}
-                  className={inputOverrideClasses}
-                />
-                <Input
-                  id="siteCode"
-                  label="Site Code"
-                  required
-                  placeholder="HQ-001"
-                  value={step1Data.siteCode}
-                  onChange={(e) => setStep1Data({ ...step1Data, siteCode: e.target.value })}
-                  error={step1Errors.siteCode}
-                  className={inputOverrideClasses}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  id="country"
-                  label="Country"
-                  required
-                  value={step1Data.country}
-                  onChange={(e) => setStep1Data({ ...step1Data, country: e.target.value })}
-                  error={step1Errors.country}
-                  className={labelClasses}
-                  style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-                  options={[{ value: '', label: 'Select country' }, ...COUNTRIES]}
-                />
-                <Select
-                  id="timezone"
-                  label="Timezone"
-                  required
-                  value={step1Data.timezone}
-                  onChange={(e) => setStep1Data({ ...step1Data, timezone: e.target.value })}
-                  error={step1Errors.timezone}
-                  className={labelClasses}
-                  style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-                  options={[{ value: '', label: 'Select timezone' }, ...TIMEZONES]}
-                />
-              </div>
-
-              <Textarea
-                id="notes"
-                label="Notes"
-                placeholder="Additional information..."
-                value={step1Data.notes}
-                onChange={(e) => setStep1Data({ ...step1Data, notes: e.target.value })}
-                className="h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] !min-h-[70px] resize-none py-2"
-              />
-            </div>
-          )}
-
-          {/* Step 2 – Location */}
-          {currentStep === 2 && (
-            <AddLocationStepLocation
-              data={step2Data}
-              errors={step2Errors}
-              onChange={(updates) => setStep2Data((prev) => ({ ...prev, ...updates }))}
-            />
-          )}
-
-          {/* Step 3 – Network */}
-          {currentStep === 3 && (
-            <AddLocationStepNetwork
-              data={step3Data}
-              errors={step3Errors}
-              onChange={(updates) => setStep3Data((prev) => ({ ...prev, ...updates }))}
-            />
-          )}
-
-          {/* Step 4 – Summary / Review */}
-          {currentStep === 4 && (
-            <AddLocationStepActivate
-              step1={step1Data}
-              step2={step2Data}
-              step3={step3Data}
-              mode={mode}
-            />
-          )}
-        </div>
-
-        {/* ─── Footer ─── */}
-        <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-between bg-[#FDFDFD]">
+        {/* Footer Buttons */}
+        <div className="flex items-center justify-between mt-10 pt-6 border-t border-gray-100/50">
           <button
-            disabled={currentStep === 1}
             onClick={handleBack}
-            className={`flex items-center gap-1.5 text-[14px] font-semibold transition-all ${
-              currentStep === 1
-                ? 'text-[#6A7282]/40 cursor-not-allowed'
-                : 'text-[#6A7282] hover:text-[#101828]'
+            disabled={currentStep === 1 || isBusy}
+            className={`px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all disabled:opacity-50 ${
+              currentStep === 1 ? 'invisible pointer-events-none' : ''
             }`}
           >
-            <ChevronRight className="rotate-180" size={16} />
             Back
           </button>
-
+          
           {currentStep < 4 ? (
             <Button
-              onClick={handleNext}
-              className="h-[40px] px-6 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#12B76A] text-white text-[14px] font-semibold flex items-center gap-2"
+              onClick={() => void handleNext()}
+              isLoading={isBusy}
+              className="h-11 rounded-xl px-12 font-bold min-w-[140px]"
+              icon={<ChevronRight size={18} />}
             >
               Next
-              <ChevronRight size={16} />
-            </Button>
-          ) : isEdit ? (
-            <Button
-              onClick={handleFinalSubmit}
-              className="h-[40px] px-6 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#1447E6] text-white text-[14px] font-semibold flex items-center gap-2"
-            >
-              <Save size={16} />
-              Update Location
             </Button>
           ) : (
             <Button
-              onClick={handleFinalSubmit}
-              className="h-[40px] px-6 rounded-[10px] bg-gradient-to-r from-[#00A63E] to-[#008236] text-white text-[14px] font-semibold flex items-center gap-2"
+              onClick={() => void handleFinalSubmit()}
+              isLoading={isBusy}
+              disabled={!isEdit && Boolean(activationPreview && activationPreview.blockingIssues.length > 0)}
+              className="h-11 rounded-xl px-12 font-bold min-w-[160px]"
+              icon={isEdit ? <Save size={18} /> : <Check size={18} strokeWidth={3} />}
             >
-              <Check size={16} />
-              Activate Location
+              {isEdit ? 'Finish Update' : 'Activate'}
             </Button>
           )}
         </div>

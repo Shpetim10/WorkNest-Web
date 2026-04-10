@@ -12,6 +12,7 @@ interface ModalProps {
   children: React.ReactNode;
   width?: string;
   containerClassName?: string;
+  showDefaultStyles?: boolean;
 }
 
 export const Modal = ({ 
@@ -21,7 +22,8 @@ export const Modal = ({
   subtitle, 
   children, 
   width = 'max-w-[500px]',
-  containerClassName = 'p-6'
+  containerClassName = '',
+  showDefaultStyles = true
 }: ModalProps) => {
   useEffect(() => {
     if (isOpen) {
@@ -45,7 +47,11 @@ export const Modal = ({
       />
       
       {/* Modal Container */}
-      <div className={`relative w-full ${width} bg-white rounded-xl shadow-lg border border-gray-100 ${containerClassName} animate-in zoom-in-95 slide-in-from-bottom-5 duration-300 ease-out`}>
+      <div className={`relative w-full ${width} ${
+        showDefaultStyles 
+          ? 'bg-white rounded-xl shadow-lg border border-gray-100 p-6' 
+          : ''
+      } ${containerClassName} animate-in zoom-in-95 slide-in-from-bottom-5 duration-300 ease-out`}>
         {/* Header - Only render if title exists */}
         {title && (
           <div className="flex items-start justify-between mb-6">

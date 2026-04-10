@@ -93,7 +93,7 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
             onClick={handleAdd}
             isLoading={createMutation.isPending}
             disabled={!formData.name.trim()}
-            className="bg-gradient-to-r from-[#155DFC] to-[#01c951] hover:shadow-lg hover:shadow-[#155dfc]/20 shadow-md h-11 rounded-xl px-12 font-bold min-w-[140px]"
+            className="h-11 rounded-xl px-12 font-bold min-w-[140px]"
           >
             Add
           </Button>

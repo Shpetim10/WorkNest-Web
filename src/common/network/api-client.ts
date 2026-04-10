@@ -54,8 +54,14 @@ apiClient.interceptors.request.use(
     }
 
     // 2. PUBLIC ROUTE DETECTION
-    const isPublicAuth = config.url?.startsWith(`${API_PREFIX}/auth/`) && 
-                         !config.url?.includes('/auth/refresh'); // Refresh itself needs the old token if using headers, but here we pass in body
+    const publicAuthEndpoints = [
+      `${API_PREFIX}/auth/login`,
+      `${API_PREFIX}/auth/invitations/activate`,
+      `${API_PREFIX}/auth/forgot-password`,
+      `${API_PREFIX}/auth/reset-password`,
+    ];
+
+    const isPublicAuth = config.url && publicAuthEndpoints.some(endpoint => config.url?.startsWith(endpoint));
 
     // 3. HEADER INJECTION
     if (!isPublicAuth) {

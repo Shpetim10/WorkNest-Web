@@ -26,8 +26,8 @@ export const Button = ({
   
   const widthStyle = fullWidth ? "w-full py-3.5 rounded-xl text-[15px]" : "px-6 py-2.5 rounded-[10px] text-[13px] w-auto shrink-0";
 
-  const primaryStyle = "text-white shadow-md bg-gradient-to-r from-[#0066FF] to-[#00C853]";
-  const primaryHover = "hover:shadow-lg hover:-translate-y-[1px]";
+  const primaryStyle = "text-white shadow-[0_4px_12px_-2px_rgba(21,93,252,0.3)] bg-gradient-to-r from-[#155DFC] to-[#01c951]";
+  const primaryHover = "hover:brightness-110 hover:shadow-[0_8px_20px_-4px_rgba(21,93,252,0.4)] hover:-translate-y-[1px] active:scale-[0.98]";
   
   const secondaryStyle = "bg-[#f4f7fb] text-gray-800 hover:bg-[#e2e8f0]";
   

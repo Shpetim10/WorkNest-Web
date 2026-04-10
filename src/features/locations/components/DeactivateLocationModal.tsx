@@ -37,7 +37,7 @@ export function DeactivateLocationModal({
 
         {/* Description */}
         <p className="text-[16px] font-normal text-[#4A5565] leading-[24px] mb-8 font-sans">
-          Are you sure you want to deactivate <span className="font-semibold">{locationName}</span>?
+          Deactivation is not part of the current backend contract for site setup. Use this as a reminder only until the disable endpoint is added for <span className="font-semibold">{locationName}</span>.
         </p>
 
         {/* Footer Actions */}
@@ -53,7 +53,7 @@ export function DeactivateLocationModal({
             onClick={onConfirm}
             className="flex-1 h-12 bg-gradient-to-r from-[#E7000B] to-[#C10007] hover:from-[#C10007] hover:to-[#A10006] text-white text-[16px] font-medium rounded-[14px] shadow-lg shadow-red-200 transition-all border-none"
           >
-            Deactivate
+            Close
           </Button>
         </div>
       </div>

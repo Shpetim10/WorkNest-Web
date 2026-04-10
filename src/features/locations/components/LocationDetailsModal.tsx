@@ -1,44 +1,52 @@
 "use client";
 
 import React from 'react';
-import { 
-  X, 
-  MapPin, 
-  Building2, 
-  Map, 
-  Network, 
+import {
+  Activity,
+  Building2,
   Edit3,
-  CheckCircle2,
-  Calendar,
   Layers,
-  Activity
+  Loader2,
+  Map,
+  MapPin,
+  Network,
+  X,
 } from 'lucide-react';
 import { Modal, Button } from '@/common/ui';
-import { Location } from '../types';
+import { mapSetupStatusToLocation, useLocationSetupStatus } from '../api';
+
+function DetailRow({
+  label,
+  value,
+  isMono = false,
+}: {
+  label: string;
+  value: string;
+  isMono?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-[13px] font-normal text-[#4A5565]">{label}</span>
+      <span className={`text-[13px] font-medium text-[#101828] ${isMono ? 'font-mono' : ''}`}>{value}</span>
+    </div>
+  );
+}
 
 interface LocationDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  location: Location | null;
-  onEdit?: (location: Location) => void;
+  siteId: string | null;
+  onEdit?: (siteId: string) => void;
 }
 
-export function LocationDetailsModal({ 
-  isOpen, 
-  onClose, 
-  location,
-  onEdit 
+export function LocationDetailsModal({
+  isOpen,
+  onClose,
+  siteId,
+  onEdit,
 }: LocationDetailsModalProps) {
-  if (!location) return null;
-
-  const DetailRow = ({ label, value, isMono = false }: { label: string; value: string; isMono?: boolean }) => (
-    <div className="flex justify-between items-center py-1.5">
-      <span className="text-[13px] font-normal text-[#4A5565]">{label}</span>
-      <span className={`text-[13px] font-medium text-[#101828] ${isMono ? 'font-mono' : ''}`}>
-        {value}
-      </span>
-    </div>
-  );
+  const { data, isLoading, isError } = useLocationSetupStatus(isOpen ? siteId : null);
+  const location = data ? mapSetupStatusToLocation(data) : null;
 
   return (
     <Modal
@@ -47,103 +55,166 @@ export function LocationDetailsModal({
       width="max-w-[560px]"
       containerClassName="p-0"
     >
-      <div className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-xl">
-        {/* Header with Gradient */}
-        <div 
-          className="relative pt-6 pb-[1.26px] px-8 border-b border-[#E5E7EB]"
+      <div className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div
+          className="relative border-b border-[#E5E7EB] px-8 pt-6 pb-[1.26px]"
           style={{ background: 'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)' }}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-[#155DFC] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-blue-200">
+              <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#155DFC] to-[#3B82F6] shadow-lg shadow-blue-200">
                 <MapPin size={26} className="text-white" strokeWidth={2.5} />
               </div>
               <div className="space-y-0.5">
-                <h2 className="text-[24px] font-bold text-[#101828] leading-tight tracking-tight">
-                  {location.siteName}
+                <h2 className="text-[24px] font-bold leading-tight tracking-tight text-[#101828]">
+                  {location?.siteName ?? 'Location details'}
                 </h2>
-                <p className="text-[14px] font-mono font-normal text-[#4A5565]">
-                  {location.siteCode}
+                <p className="text-[14px] font-normal text-[#4A5565]">
+                  {location?.siteCode ?? 'Loading...'}
                 </p>
               </div>
             </div>
-            <button 
-              onClick={onClose}
-              className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-[#6A7282]"
-            >
+            <button onClick={onClose} className="rounded-full p-1.5 text-[#6A7282] transition-colors hover:bg-gray-100">
               <X size={20} />
             </button>
           </div>
         </div>
 
-        {/* Content Body */}
-        <div className="px-6 py-4 space-y-6">
-          
-          {/* Basic Information */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Building2 size={18} className="text-[#155DFC]" />
-              <h3 className="text-[16px] font-semibold text-[#101828]">Basic Information</h3>
+        <div className="space-y-6 px-6 py-4">
+          {isLoading ? (
+            <div className="flex min-h-[280px] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-[#155DFC]" />
             </div>
-            <div className="bg-[#F9FAFB] border border-[#F1F3F5] rounded-xl p-3 space-y-0.5">
-              <div className="flex justify-between items-center py-1.5">
-                <span className="text-[13px] font-normal text-[#4A5565]">Site Type:</span>
-                <span className="px-2.5 py-0.5 bg-[#EFF6FF] text-[#1D4ED8] text-[12px] font-bold rounded-full">
-                  {location.siteType}
-                </span>
+          ) : isError || !location ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
+              Failed to load the latest location details.
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Building2 size={18} className="text-[#155DFC]" />
+                  <h3 className="text-[16px] font-semibold text-[#101828]">Basic Information</h3>
+                </div>
+                <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="text-[13px] font-normal text-[#4A5565]">Site Type:</span>
+                    <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-[12px] font-bold text-[#1D4ED8]">
+                      {location.siteType}
+                    </span>
+                  </div>
+                  <DetailRow label="Country:" value={location.country} />
+                  <DetailRow label="Timezone:" value={location.timezone} />
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="text-[13px] font-normal text-[#4A5565]">Status:</span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
+                        location.status === 'ACTIVE'
+                          ? 'bg-[#ECFDF5] text-[#059669]'
+                          : location.status === 'DRAFT'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      <span
+                        className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                          location.status === 'ACTIVE'
+                            ? 'bg-[#10B981]'
+                            : location.status === 'DRAFT'
+                              ? 'bg-amber-500'
+                              : 'bg-gray-400'
+                        }`}
+                      />
+                      {location.status}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <DetailRow label="Country:" value={location.country} />
-              <div className="flex justify-between items-center py-1.5">
-                <span className="text-[13px] font-normal text-[#4A5565]">Status:</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 bg-[#ECFDF5] text-[#059669] text-[12px] font-bold rounded-full">
-                  <span className="w-1.5 h-1.5 bg-[#10B981] rounded-full mr-1.5" />
-                  {location.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                </span>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Map size={18} className="text-[#155DFC]" />
+                  <h3 className="text-[16px] font-semibold text-[#101828]">Location Details</h3>
+                </div>
+                <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
+                  <DetailRow label="Address:" value={location.addressLine1 || '-'} />
+                  <DetailRow label="City:" value={location.city || '-'} />
+                  <DetailRow
+                    label="Coordinates:"
+                    value={
+                      location.latitude != null && location.longitude != null
+                        ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
+                        : '-'
+                    }
+                  />
+                  <DetailRow label="Geofence Radius:" value={`${location.geofenceRadius}m`} />
+                </div>
               </div>
-              <DetailRow label="Created:" value={location.createdAt} />
-            </div>
-          </div>
 
-          {/* Location Details */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Map size={18} className="text-[#155DFC]" />
-              <h3 className="text-[16px] font-semibold text-[#101828]">Location Details</h3>
-            </div>
-            <div className="bg-[#F9FAFB] border border-[#F1F3F5] rounded-xl p-3 space-y-0.5">
-              <DetailRow label="Address:" value={location.addressLine1} />
-              <DetailRow label="City:" value={location.city} />
-              <DetailRow label="Geofence Radius:" value={`${location.geofenceRadius}m`} />
-            </div>
-          </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Network size={18} className="text-[#155DFC]" />
+                  <h3 className="text-[16px] font-semibold text-[#101828]">Network Configuration</h3>
+                </div>
+                <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
+                  <DetailRow label="Network Name:" value={location.networkName || '-'} />
+                  <DetailRow label="CIDR Block:" value={location.cidrBlock || '-'} isMono />
+                  <DetailRow label="Detected IP:" value={location.detectedIp || '-'} isMono />
+                  <DetailRow label="Confidence:" value={location.confidence} />
+                </div>
+              </div>
 
-          {/* Network Configuration */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Network size={18} className="text-[#155DFC]" />
-              <h3 className="text-[16px] font-semibold text-[#101828]">Network Configuration</h3>
-            </div>
-            <div className="bg-[#F9FAFB] border border-[#F1F3F5] rounded-xl p-3 space-y-0.5">
-              <DetailRow label="Network Name:" value={location.networkName} />
-              <DetailRow label="CIDR Block:" value={location.cidrBlock} isMono />
-            </div>
-          </div>
-
+              {(location.blockingIssues.length > 0 || location.warnings.length > 0) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <div className="flex items-center gap-2">
+                      <Layers size={16} className="text-rose-600" />
+                      <p className="text-[13px] font-bold text-rose-700">Blocking Issues</p>
+                    </div>
+                    {location.blockingIssues.length === 0 ? (
+                      <p className="text-[13px] text-rose-700/70">No blocking issues.</p>
+                    ) : (
+                      location.blockingIssues.map((issue) => (
+                        <p key={issue.code} className="text-[13px] font-medium text-rose-700">
+                          {issue.message}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                  <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-center gap-2">
+                      <Activity size={16} className="text-amber-700" />
+                      <p className="text-[13px] font-bold text-amber-800">Warnings</p>
+                    </div>
+                    {location.warnings.length === 0 ? (
+                      <p className="text-[13px] text-amber-800/70">No warnings.</p>
+                    ) : (
+                      location.warnings.map((warning) => (
+                        <p key={warning.code} className="text-[13px] font-medium text-amber-800">
+                          {warning.message}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#E5E7EB] bg-gray-50/50 flex items-center justify-end gap-3">
-          <Button 
-            variant="secondary" 
+        <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] bg-gray-50/50 px-6 py-4">
+          <Button
+            variant="secondary"
             onClick={onClose}
-            className="px-6 font-semibold text-gray-600 hover:text-gray-900 border-none bg-transparent hover:bg-gray-100 h-10"
+            className="h-10 border-none bg-transparent px-6 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900"
           >
             Close
           </Button>
-          <Button 
-            variant="primary" 
-            onClick={() => onEdit?.(location)}
-            className="bg-gradient-to-r from-[#155DFC] to-[#1447E6] text-white px-6 font-semibold rounded-xl h-10 shadow-lg shadow-blue-100 flex items-center gap-2"
+          <Button
+            variant="primary"
+            onClick={() => siteId && onEdit?.(siteId)}
+            disabled={!siteId}
+            className="flex h-10 items-center gap-2 rounded-xl px-6 font-semibold shadow-lg"
           >
             <Edit3 size={16} />
             Edit Location

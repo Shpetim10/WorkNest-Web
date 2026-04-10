@@ -9,18 +9,8 @@ import { LocationFormModal } from './LocationFormModal';
 interface AddLocationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  companyId?: string | null;
-  onCompleted?: () => void;
 }
 
-export function AddLocationModal({ isOpen, onClose, companyId, onCompleted }: AddLocationModalProps) {
-  return (
-    <LocationFormModal
-      isOpen={isOpen}
-      onClose={onClose}
-      mode="add"
-      companyId={companyId}
-      onCompleted={onCompleted}
-    />
-  );
+export function AddLocationModal({ isOpen, onClose }: AddLocationModalProps) {
+  return <LocationFormModal isOpen={isOpen} onClose={onClose} mode="add" />;
 }

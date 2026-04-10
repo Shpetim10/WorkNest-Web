@@ -1,30 +1,32 @@
 "use client";
 
 import { LocationFormModal } from './LocationFormModal';
-import { useLocationSetupStatus, mapSetupStatusToLocation } from '../api';
+import { Location } from '../types';
 
 interface EditLocationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  siteId: string | null;
-  onCompleted?: () => void;
+  location: Location | null;
+  onSubmit?: (data: {
+    step1: import('../types').LocationFormData;
+    step2: import('../types').LocationStep2Data;
+    step3: import('../types').LocationStep3Data;
+  }) => void;
 }
 
 export function EditLocationModal({
   isOpen,
   onClose,
-  siteId,
-  onCompleted,
+  location,
+  onSubmit,
 }: EditLocationModalProps) {
-  const { data } = useLocationSetupStatus(isOpen ? siteId : null);
-
   return (
     <LocationFormModal
       isOpen={isOpen}
       onClose={onClose}
       mode="edit"
-      initialLocation={data ? mapSetupStatusToLocation(data) : null}
-      onCompleted={onCompleted}
+      initialLocation={location}
+      onSubmit={onSubmit}
     />
   );
 }

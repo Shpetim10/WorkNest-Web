@@ -37,7 +37,6 @@ interface LocationDetailsModalProps {
   onClose: () => void;
   siteId: string | null;
   companyId: string | null;
-  onEdit?: (siteId: string) => void;
 }
 
 export function LocationDetailsModal({
@@ -45,7 +44,6 @@ export function LocationDetailsModal({
   onClose,
   siteId,
   companyId,
-  onEdit,
 }: LocationDetailsModalProps) {
   const { data, isLoading, isError } = useSiteDetails(companyId, isOpen ? siteId : null);
   const location = data ? mapDetailsToLocation(data) : null;
@@ -171,22 +169,13 @@ export function LocationDetailsModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] bg-gray-50/50 px-6 py-4">
+        <div className="flex items-center justify-end border-t border-[#E5E7EB] bg-gray-50/50 px-6 py-4">
           <Button
             variant="secondary"
             onClick={onClose}
             className="h-10 border-none bg-transparent px-6 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900"
           >
             Close
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => siteId && onEdit?.(siteId)}
-            disabled={!siteId}
-            className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#155DFC] to-[#1447E6] px-6 font-semibold text-white shadow-lg shadow-blue-100"
-          >
-            <Edit3 size={16} />
-            Edit Location
           </Button>
         </div>
       </div>

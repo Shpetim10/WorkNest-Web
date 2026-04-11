@@ -250,6 +250,34 @@ export async function updateCompanySite(
   return putPayload<CompanySiteResponse, CompanySiteRequest>(`/sites/${siteId}`, data, options);
 }
 
+export async function updateMainDetails(
+  companyId: string,
+  siteId: string,
+  data: any,
+  options?: ApiRequestOptions,
+): Promise<CompanySiteResponse> {
+  return putPayload<CompanySiteResponse, any>(`/companies/${companyId}/sites/${siteId}/main-details`, data, options);
+}
+
+export async function updateLocation(
+  companyId: string,
+  siteId: string,
+  data: any,
+  options?: ApiRequestOptions,
+): Promise<CompanySiteResponse> {
+  return putPayload<CompanySiteResponse, any>(`/companies/${companyId}/sites/${siteId}/location`, data, options);
+}
+
+export async function updateTrustedNetwork(
+  companyId: string,
+  siteId: string,
+  networkId: string,
+  data: any,
+  options?: ApiRequestOptions,
+): Promise<TrustedNetwork> {
+  return putPayload<TrustedNetwork, any>(`/companies/${companyId}/sites/${siteId}/networks/${networkId}`, data, options);
+}
+
 export async function deleteCompanySite(
   companyId: string,
   siteId: string,
@@ -284,11 +312,12 @@ export async function disableCompanySite(
 }
 
 export async function assessExistingSiteLocation(
+  companyId: string,
   siteId: string,
   data: LocationDetectionRequest,
   options?: ApiRequestOptions,
 ): Promise<LocationDetectionResponse> {
-  return postPayload<LocationDetectionResponse, LocationDetectionRequest>(`/sites/${siteId}/detect-location`, data, options);
+  return postPayload<LocationDetectionResponse, LocationDetectionRequest>(`/companies/${companyId}/sites/${siteId}/detect-location`, data, options);
 }
 
 export async function detectSiteNetwork(options?: ApiRequestOptions): Promise<DetectNetworkResponse> {
@@ -338,7 +367,6 @@ export const useSiteDetails = (companyId: string | null, siteId: string | null) 
       return fetchSiteDetails(companyId, siteId);
     },
     enabled: Boolean(companyId && siteId),
-    staleTime: 5 * 60 * 1000, // 5 minutes cache for details
   });
 
 export const useSite = (siteId: string | null) =>
@@ -386,13 +414,63 @@ export const useUpdateSite = () => {
   });
 };
 
+export const useUpdateMainDetails = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    CompanySiteResponse,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; data: any; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ companyId, siteId, data, signal }) => updateMainDetails(companyId, siteId, data, { signal }),
+    onSuccess: (_, { siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+    },
+  });
+};
+
+export const useUpdateLocation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    CompanySiteResponse,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; data: any; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ companyId, siteId, data, signal }) => updateLocation(companyId, siteId, data, { signal }),
+    onSuccess: (_, { siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+    },
+  });
+};
+
+export const useUpdateTrustedNetwork = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    TrustedNetwork,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; networkId: string; data: any; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ companyId, siteId, networkId, data, signal }) => updateTrustedNetwork(companyId, siteId, networkId, data, { signal }),
+    onSuccess: (_, { siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
+    },
+  });
+};
+
 export const useDetectLocation = () =>
   useMutation<
     LocationDetectionResponse,
     ApiErrorResponse,
-    { siteId: string; data: LocationDetectionRequest; signal?: AbortSignal }
+    { companyId: string; siteId: string; data: LocationDetectionRequest; signal?: AbortSignal }
   >({
-    mutationFn: async ({ siteId, data, signal }) => assessExistingSiteLocation(siteId, data, { signal }),
+    mutationFn: async ({ companyId, siteId, data, signal }) => assessExistingSiteLocation(companyId, siteId, data, { signal }),
   });
 
 export const useDetectNetwork = () =>

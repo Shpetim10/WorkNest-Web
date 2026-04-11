@@ -261,6 +261,64 @@ export function mapFormToCreateCompanySiteRequest(
   };
 }
 
+export function mapForMainDetailsUpdate(values: CompanySiteFormValues, version: number | null) {
+  return {
+    code: values.basicInfo.siteCode.trim(),
+    name: values.basicInfo.siteName.trim(),
+    type: values.basicInfo.siteType,
+    status: 'ACTIVE', // Status isn't modified here normally but the API requires a value. It could be retrieved from original if needed.
+    countryCode: values.basicInfo.country.trim(),
+    timezone: values.basicInfo.timezone.trim(),
+    notes: trimToUndefined(values.basicInfo.notes),
+    qrEnabled: values.attendanceRules.qrEnabled,
+    checkInEnabled: values.attendanceRules.checkInEnabled,
+    checkOutEnabled: values.attendanceRules.checkOutEnabled,
+    version: version ?? 0,
+  };
+}
+
+export function mapForLocationUpdate(values: CompanySiteFormValues, version: number | null) {
+  const detectionSource: LocationDetectionSource = values.location.locationDetected 
+    ? 'BROWSER_GEOLOCATION' 
+    : 'MANUAL_ENTRY';
+
+  return {
+    addressLine1: trimToUndefined(values.location.addressLine1),
+    addressLine2: trimToUndefined(values.location.addressLine2),
+    city: trimToUndefined(values.location.city),
+    stateRegion: trimToUndefined(values.location.stateRegion),
+    postalCode: trimToUndefined(values.location.postalCode),
+    countryCode: values.basicInfo.country.trim(),
+    timezone: values.basicInfo.timezone.trim(),
+    latitude: values.location.latitude,
+    longitude: values.location.longitude,
+    geofenceShapeType: values.location.geofenceShapeType,
+    geofenceRadiusMeters:
+      values.location.geofenceShapeType === 'CIRCLE' ? values.location.geofenceRadius : undefined,
+    geofencePolygonGeoJson:
+      values.location.geofenceShapeType === 'POLYGON'
+        ? trimToUndefined(values.location.geofencePolygonGeoJson)
+        : undefined,
+    entryBufferMeters: values.location.advancedSettings.entryBuffer,
+    exitBufferMeters: values.location.advancedSettings.exitBuffer,
+    maxLocationAccuracyMeters: values.location.advancedSettings.maxAccuracy,
+    locationRequired: values.attendanceRules.locationRequired,
+    version: version ?? 0,
+  };
+}
+
+export function mapForNetworkUpdate(network: TrustedNetworkFormValue) {
+  return {
+    name: network.name.trim(),
+    networkType: network.networkType,
+    cidrBlock: network.cidrBlock.trim(),
+    isActive: true,
+    notes: trimToUndefined(network.notes) ?? null,
+    expiresAt: network.setExpiry ? normalizeDate(network.expiryDate) : null,
+    version: network.version ?? 0,
+  };
+}
+
 export function mapCreatedSiteToLocation(site: CompanySiteResponse): Partial<Location> {
   return {
     id: site.id,

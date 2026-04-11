@@ -9,6 +9,7 @@ interface EditLocationModalProps {
   siteId: string | null;
   initialStep?: number;
   onCompleted?: () => void;
+  isStandalone?: boolean;
 }
 
 export function EditLocationModal({
@@ -17,6 +18,7 @@ export function EditLocationModal({
   siteId,
   initialStep,
   onCompleted,
+  isStandalone = false,
 }: EditLocationModalProps) {
   // Always fetch fresh setup status when the modal opens.
   // staleTime: 0 ensures we never use a cached version — the network version
@@ -38,6 +40,7 @@ export function EditLocationModal({
       initialLocation={initialLocation}
       initialStep={initialStep}
       onCompleted={onCompleted}
+      isStandalone={isStandalone}
     />
   );
 }

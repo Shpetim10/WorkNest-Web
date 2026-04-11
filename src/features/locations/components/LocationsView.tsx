@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Card, Button } from '@/common/ui';
-import { Check, Edit2, Edit3, Eye, Filter, Globe, Loader2, MapPin, Network, Plus, Power, Search, Settings, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, Edit2, Edit3, Eye, Filter, Globe, Loader2, MapPin, Network, Plus, Power, Search, Settings, Trash2 } from 'lucide-react';
 import { SITES_LIST_UNAVAILABLE_MESSAGE, useLocations } from '../api';
 import { LocationListItem, SiteStatus, SiteType } from '../types';
 import { AddLocationModal } from './AddLocationModal';
@@ -104,8 +105,35 @@ export function LocationsView() {
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
   const [selectedDeleteLocation, setSelectedDeleteLocation] = useState<LocationListItem | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [openEditMenuRowId, setOpenEditMenuRowId] = useState<string | null>(null);
+  const [menuAnchorRect, setMenuAnchorRect] = useState<DOMRect | null>(null);
   const [editStep, setEditStep] = useState<number>(1);
+  const [isStandaloneEdit, setIsStandaloneEdit] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenEditMenuRowId(null);
+      }
+    };
+
+    const handleClose = () => {
+      if (openEditMenuRowId) {
+        setOpenEditMenuRowId(null);
+        setMenuAnchorRect(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('resize', handleClose);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('resize', handleClose);
+    };
+  }, [openEditMenuRowId]);
 
   const filteredLocations = useMemo(() => {
     const locations = data?.items ?? [];
@@ -172,7 +200,7 @@ export function LocationsView() {
                   </option>
                 ))}
               </select>
-              <Filter className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
             </div>
 
             <div className="relative min-w-[160px]">
@@ -187,7 +215,7 @@ export function LocationsView() {
                   </option>
                 ))}
               </select>
-              <Filter className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
             </div>
           </div>
         </div>
@@ -290,69 +318,88 @@ export function LocationsView() {
                           <button
                             onClick={(event) => {
                               event.stopPropagation();
-                              setActiveDropdownId(activeDropdownId === location.id ? null : location.id);
+                              if (openEditMenuRowId === location.id) {
+                                setOpenEditMenuRowId(null);
+                                setMenuAnchorRect(null);
+                              } else {
+                                setOpenEditMenuRowId(location.id);
+                                setMenuAnchorRect(event.currentTarget.getBoundingClientRect());
+                              }
                             }}
                             title="Edit Options"
-                            className={`rounded-lg p-2 transition-all ${
-                              activeDropdownId === location.id
+                            className={`rounded-lg p-2 transition-all ${openEditMenuRowId === location.id
                                 ? 'bg-blue-50 text-[#155DFC]'
                                 : 'text-gray-400 hover:bg-blue-50 hover:text-[#155DFC]'
-                            }`}
+                              }`}
                           >
                             <Edit3 size={18} />
                           </button>
 
-                          {activeDropdownId === location.id && (
+                          {openEditMenuRowId === location.id && menuAnchorRect && createPortal(
                             <>
                               <div
-                                className="fixed inset-0 z-10"
+                                className="fixed inset-0 z-[60]"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setActiveDropdownId(null);
+                                  setOpenEditMenuRowId(null);
+                                  setMenuAnchorRect(null);
                                 }}
                               />
-                              <div className="absolute right-0 z-20 mt-1 w-48 origin-top-right rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+                              <div
+                                className="fixed z-[70] min-w-[200px] overflow-hidden rounded-[6px] border border-[#155DFC] bg-white py-1 animate-in fade-in zoom-in-95 duration-100"
+                                style={{
+                                  top: menuAnchorRect.bottom + 4,
+                                  left: menuAnchorRect.right - 200,
+                                  boxShadow: `0px 9px 28px 8px rgba(0,0,0,0.10),
+                                              0px 3px 6px -4px rgba(0,0,0,0.24),
+                                              0px 6px 16px rgba(0,0,0,0.35)`
+                                }}
+                              >
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setSelectedEditSiteId(location.id);
                                     setEditStep(1);
-                                    setSelectedEditSiteId(location.id);
+                                    setIsStandaloneEdit(true);
                                     setIsEditModalOpen(true);
-                                    setActiveDropdownId(null);
+                                    setOpenEditMenuRowId(null);
+                                    setMenuAnchorRect(null);
                                   }}
-                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#155DFC]"
+                                  className="flex h-10 w-full items-center px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
                                 >
-                                  <Settings size={14} />
-                                  Edit Basic Details
+                                  Details
                                 </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setSelectedEditSiteId(location.id);
                                     setEditStep(2);
-                                    setSelectedEditSiteId(location.id);
+                                    setIsStandaloneEdit(true);
                                     setIsEditModalOpen(true);
-                                    setActiveDropdownId(null);
+                                    setOpenEditMenuRowId(null);
+                                    setMenuAnchorRect(null);
                                   }}
-                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#155DFC]"
+                                  className="flex h-10 w-full items-center px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
                                 >
-                                  <Globe size={14} />
-                                  Change Location
+                                  Location
                                 </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditStep(3);
                                     setSelectedEditSiteId(location.id);
+                                    setEditStep(3);
+                                    setIsStandaloneEdit(true);
                                     setIsEditModalOpen(true);
-                                    setActiveDropdownId(null);
+                                    setOpenEditMenuRowId(null);
+                                    setMenuAnchorRect(null);
                                   }}
-                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#155DFC]"
+                                  className="flex h-10 w-full items-center px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
                                 >
-                                  <Network size={14} />
-                                  Change Network
+                                  Network
                                 </button>
                               </div>
-                            </>
+                            </>,
+                            document.body
                           )}
                         </div>
 
@@ -417,11 +464,6 @@ export function LocationsView() {
         onClose={() => setIsDetailsModalOpen(false)}
         siteId={selectedSiteId}
         companyId={companyId}
-        onEdit={(siteId) => {
-          setIsDetailsModalOpen(false);
-          setSelectedEditSiteId(siteId);
-          setIsEditModalOpen(true);
-        }}
       />
 
       <EditLocationModal
@@ -429,6 +471,7 @@ export function LocationsView() {
         onClose={() => setIsEditModalOpen(false)}
         siteId={selectedEditSiteId}
         initialStep={editStep}
+        isStandalone={isStandaloneEdit}
         onCompleted={() => setIsEditModalOpen(false)}
       />
 

@@ -20,6 +20,7 @@ import { COUNTRIES } from '../constants/countries';
 import { COUNTRY_CENTROIDS, DEFAULT_MAP_VIEW } from '../constants/country-centroids';
 import { TIMEZONES } from '../constants/timezones';
 import { AddLocationStepActivate } from './AddLocationStepActivate';
+import { AddLocationStepDetails } from './AddLocationStepDetails';
 import { AddLocationStepLocation } from './AddLocationStepLocation';
 import { AddLocationStepNetwork } from './AddLocationStepNetwork';
 import {
@@ -58,6 +59,7 @@ interface LocationFormModalProps {
   initialLocation?: Location | null;
   initialStep?: number;
   onCompleted?: () => void;
+  isStandalone?: boolean;
 }
 
 const EMPTY_STEP1: LocationFormData = {
@@ -104,15 +106,17 @@ function getGeolocationErrorMessage(error: unknown) {
   return formatApiError(error);
 }
 
-export function LocationFormModal({
-  isOpen,
-  onClose,
-  mode,
-  companyId,
-  initialLocation,
-  initialStep = 1,
-  onCompleted,
-}: LocationFormModalProps) {
+export function LocationFormModal(props: LocationFormModalProps) {
+  const {
+    isOpen,
+    onClose,
+    mode,
+    companyId,
+    initialLocation,
+    initialStep = 1,
+    onCompleted,
+    isStandalone = false,
+  } = props;
   const isEdit = mode === 'edit';
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [step1Data, setStep1Data] = useState<LocationFormData>(EMPTY_STEP1);
@@ -140,6 +144,13 @@ export function LocationFormModal({
   const submitControllerRef = useRef<AbortController | null>(null);
   const detectLocationControllerRef = useRef<AbortController | null>(null);
   const locationSyncRequestRef = useRef(0);
+  
+  // Sync internal step with prop when modal opens or step changes
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(initialStep);
+    }
+  }, [isOpen, initialStep]);
 
   const isSubmitting = createSiteMutation.isPending || updateSiteMutation.isPending;
   const isDetectingNetwork = detectNetworkMutation.isPending;
@@ -385,26 +396,48 @@ export function LocationFormModal({
     const controller = new AbortController();
     submitControllerRef.current = controller;
 
-    const step1Validation = validateStep1(formValues);
-    const step2Validation = validateStep2(formValues);
-    const step3Validation = validateStep3(formValues);
+    if (isStandalone) {
+      if (currentStep === 1) {
+        const step1Validation = validateStep1(formValues);
+        if (Object.keys(step1Validation).length > 0) {
+          setStep1Errors(step1Validation);
+          return;
+        }
+      } else if (currentStep === 2) {
+        const step2Validation = validateStep2(formValues);
+        if (Object.keys(step2Validation).length > 0) {
+          setStep2Errors(step2Validation);
+          return;
+        }
+      } else if (currentStep === 3) {
+        const step3Validation = validateStep3(formValues);
+        if (Object.keys(step3Validation).length > 0) {
+          setStep3Errors(step3Validation);
+          return;
+        }
+      }
+    } else {
+      const step1Validation = validateStep1(formValues);
+      const step2Validation = validateStep2(formValues);
+      const step3Validation = validateStep3(formValues);
 
-    if (Object.keys(step1Validation).length > 0) {
-      setStep1Errors(step1Validation);
-      setCurrentStep(1);
-      return;
-    }
+      if (Object.keys(step1Validation).length > 0) {
+        setStep1Errors(step1Validation);
+        setCurrentStep(1);
+        return;
+      }
 
-    if (Object.keys(step2Validation).length > 0) {
-      setStep2Errors(step2Validation);
-      setCurrentStep(2);
-      return;
-    }
+      if (Object.keys(step2Validation).length > 0) {
+        setStep2Errors(step2Validation);
+        setCurrentStep(2);
+        return;
+      }
 
-    if (Object.keys(step3Validation).length > 0) {
-      setStep3Errors(step3Validation);
-      setCurrentStep(3);
-      return;
+      if (Object.keys(step3Validation).length > 0) {
+        setStep3Errors(step3Validation);
+        setCurrentStep(3);
+        return;
+      }
     }
 
     try {
@@ -474,22 +507,34 @@ export function LocationFormModal({
     { id: 3, label: 'Network' },
     { id: 4, label: 'Review' },
   ];
-  const labelClasses = 'text-[13px] font-semibold text-[#364153] leading-[20px] mb-1';
+  const labelClasses = 'text-[14px] font-semibold text-[#364153] leading-[20px] mb-1';
   const inputOverrideClasses =
-    'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] placeholder:text-[rgba(10,10,10,0.5)]';
+    'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[16px] text-[#0A0A0A] placeholder:text-[rgba(10,10,10,0.5)] placeholder:leading-[24px] font-inter';
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      width={currentStep === 4 ? 'max-w-[660px]' : 'max-w-[540px]'}
+      width="max-w-[660px]"
       containerClassName="p-0"
       showDefaultStyles={false}
     >
-      <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)]">
-        <div className="border-b border-[#E5E7EB] px-6 pt-5 pb-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[18px] font-bold text-[#101828]">{isEdit ? 'Edit Location' : 'Add New Location'}</h2>
+      <div className="flex flex-col max-h-[80vh] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)]">
+        <div className={`border-b border-[#E5E7EB] px-6 pt-5 pb-4`}>
+          <div className={`${isStandalone ? '' : 'mb-4'} flex items-center justify-between`}>
+            <h2 className="text-[24px] font-bold leading-[32px] text-[#101828] font-inter">
+              {isStandalone
+                ? currentStep === 1
+                  ? 'Edit Details'
+                  : currentStep === 2
+                    ? 'Edit Location'
+                    : currentStep === 3
+                      ? 'Edit Network'
+                      : 'Review'
+                : isEdit
+                  ? 'Edit Location'
+                  : 'Add New Location'}
+            </h2>
             <button
               onClick={handleClose}
               disabled={isSubmitting}
@@ -498,53 +543,51 @@ export function LocationFormModal({
               <X size={18} />
             </button>
           </div>
-          <div className="flex items-center justify-between px-2">
-            {steps.map((step, index) => {
-              const style = getBubbleStyle(step.id);
-              const connectorBlue = currentStep > step.id || currentStep === step.id + 1;
+          {!isStandalone && (
+            <div className="flex items-center justify-between px-2">
+              {steps.map((step, index) => {
+                const style = getBubbleStyle(step.id);
+                const connectorBlue = currentStep > step.id || currentStep === step.id + 1;
 
-              return (
-                <React.Fragment key={step.id}>
-                  <div className="flex shrink-0 flex-col items-center">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-[8px] text-[13px] font-semibold transition-all ${
-                        style === 'completed'
-                          ? 'bg-emerald-500 text-white'
-                          : style === 'active'
-                            ? 'bg-[#155DFC] text-white shadow-sm'
-                            : 'bg-[#E5E7EB] text-[#6A7282]'
-                      }`}
-                    >
-                      {style === 'completed' ? <Check size={14} strokeWidth={2.5} /> : step.id}
-                    </div>
-                    <span
-                      className={`mt-1.5 text-[11px] font-medium transition-colors ${
-                        style === 'active' ? 'text-[#155DFC]' : 'text-[#6A7282]'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className="mx-3 mb-4 h-[1px] flex-1 transition-colors duration-300">
+                return (
+                  <React.Fragment key={step.id}>
+                    <div className="flex shrink-0 flex-col items-center">
                       <div
-                        className={`h-full transition-all duration-500 ${
-                          connectorBlue ? 'bg-[#155DFC]' : 'bg-[#E5E7EB]'
+                        className={`flex h-8 w-8 items-center justify-center rounded-[8px] text-[13px] font-semibold transition-all ${
+                          style === 'completed'
+                            ? 'bg-emerald-500 text-white'
+                            : style === 'active'
+                              ? 'bg-[#155DFC] text-white shadow-sm'
+                              : 'bg-[#E5E7EB] text-[#6A7282]'
                         }`}
-                      />
+                      >
+                        {style === 'completed' ? <Check size={14} strokeWidth={2.5} /> : step.id}
+                      </div>
+                      <span
+                        className={`mt-1.5 text-[11px] font-medium transition-colors ${
+                          style === 'active' ? 'text-[#155DFC]' : 'text-[#6A7282]'
+                        }`}
+                      >
+                        {step.label}
+                      </span>
                     </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
+                    {index < steps.length - 1 && (
+                      <div className="mx-3 mb-4 h-[1px] flex-1 transition-colors duration-300">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                            connectorBlue ? 'bg-[#155DFC]' : 'bg-[#E5E7EB]'
+                          }`}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div
-          className={`overflow-y-auto px-6 py-4 ${
-            currentStep === 1 ? 'max-h-[58vh]' : currentStep === 4 ? 'max-h-[70vh]' : 'max-h-[62vh]'
-          }`}
-        >
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {formError && (
             <div className="mb-4 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
               {formError}
@@ -552,124 +595,15 @@ export function LocationFormModal({
           )}
 
           {currentStep === 1 && (
-            <div className="space-y-3">
-              <Select
-                id="siteType"
-                label="Site Type"
-                required
-                value={step1Data.siteType}
-                onChange={(e) => setStep1Data((prev) => ({ ...prev, siteType: e.target.value as SiteType }))}
-                error={step1Errors.siteType}
-                className={labelClasses}
-                style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-                options={[
-                  { value: '', label: 'Select site type' },
-                  { value: 'HQ', label: 'HQ' },
-                  { value: 'BRANCH', label: 'Branch' },
-                  { value: 'WAREHOUSE', label: 'Warehouse' },
-                  { value: 'STORE', label: 'Store' },
-                  { value: 'CLIENT_SITE', label: 'Client Site' },
-                  { value: 'FIELD_ZONE', label: 'Field Zone' },
-                ]}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  id="siteName"
-                  label="Site Name"
-                  required
-                  placeholder="Tirana Headquarters"
-                  value={step1Data.siteName}
-                  onChange={(e) => setStep1Data((prev) => ({ ...prev, siteName: e.target.value }))}
-                  error={step1Errors.siteName}
-                  className={inputOverrideClasses}
-                />
-                <Input
-                  id="siteCode"
-                  label="Site Code"
-                  required
-                  placeholder="HQ-TIR"
-                  value={step1Data.siteCode}
-                  onChange={(e) =>
-                    setStep1Data((prev) => ({ ...prev, siteCode: e.target.value.toUpperCase() }))
-                  }
-                  error={step1Errors.siteCode}
-                  className={inputOverrideClasses}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  id="country"
-                  label="Country"
-                  required
-                  value={step1Data.country}
-                  onChange={(e) => setStep1Data((prev) => ({ ...prev, country: e.target.value }))}
-                  error={step1Errors.country}
-                  className={labelClasses}
-                  style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-                  options={[{ value: '', label: 'Select country' }, ...COUNTRIES]}
-                />
-                <Select
-                  id="timezone"
-                  label="Timezone"
-                  required
-                  value={step1Data.timezone}
-                  onChange={(e) => setStep1Data((prev) => ({ ...prev, timezone: e.target.value }))}
-                  error={step1Errors.timezone}
-                  className={labelClasses}
-                  style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-                  options={[{ value: '', label: 'Select timezone' }, ...TIMEZONES]}
-                />
-              </div>
-              <Textarea
-                id="notes"
-                label="Notes"
-                placeholder="Additional information..."
-                value={step1Data.notes}
-                onChange={(e) => setStep1Data((prev) => ({ ...prev, notes: e.target.value }))}
-                className="h-[40px] !min-h-[70px] resize-none rounded-[10px] border-[#E5E7EB] bg-[#F9FAFB] py-2 text-[14px]"
-              />
-
-              <div className="grid grid-cols-2 gap-3 rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                <Checkbox
-                  label="Location Required"
-                  checked={attendanceSettings.locationRequired}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setAttendanceSettings((prev) => ({ ...prev, locationRequired: checked }));
-                    if (!checked) {
-                      setStep2Errors({});
-                    }
-                  }}
-                />
-                <Checkbox
-                  label="QR Enabled"
-                  checked={attendanceSettings.qrEnabled}
-                  onChange={(event) =>
-                    setAttendanceSettings((prev) => ({ ...prev, qrEnabled: event.target.checked }))
-                  }
-                />
-                <Checkbox
-                  label="Check-In Enabled"
-                  checked={attendanceSettings.checkInEnabled}
-                  onChange={(event) =>
-                    setAttendanceSettings((prev) => ({
-                      ...prev,
-                      checkInEnabled: event.target.checked,
-                    }))
-                  }
-                />
-                <Checkbox
-                  label="Check-Out Enabled"
-                  checked={attendanceSettings.checkOutEnabled}
-                  onChange={(event) =>
-                    setAttendanceSettings((prev) => ({
-                      ...prev,
-                      checkOutEnabled: event.target.checked,
-                    }))
-                  }
-                />
-              </div>
-            </div>
+            <AddLocationStepDetails
+              data={step1Data}
+              errors={step1Errors}
+              attendanceSettings={attendanceSettings}
+              onChange={(updates) => setStep1Data((prev) => ({ ...prev, ...updates }))}
+              onAttendanceChange={(updates) =>
+                setAttendanceSettings((prev) => ({ ...prev, ...updates }))
+              }
+            />
           )}
 
           {currentStep === 2 && (
@@ -713,46 +647,64 @@ export function LocationFormModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-[#E5E7EB] bg-[#FDFDFD] px-6 py-4">
-          <button
-            disabled={currentStep === 1 || isSubmitting}
-            onClick={handleBack}
-            className={`flex items-center gap-1.5 text-[14px] font-semibold transition-all ${
-              currentStep === 1
-                ? 'cursor-not-allowed text-[#6A7282]/40'
-                : 'text-[#6A7282] hover:text-[#101828] disabled:cursor-not-allowed disabled:opacity-60'
-            }`}
-          >
-            <ChevronRight className="rotate-180" size={16} />
-            Back
-          </button>
-          {currentStep < 4 ? (
-            <Button
-              onClick={handleNext}
-              isLoading={false}
-              className="flex h-[40px] items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#12B76A] px-6 text-[14px] font-semibold text-white"
-            >
-              Next
-              <ChevronRight size={16} />
-            </Button>
-          ) : isEdit ? (
-            <Button
-              onClick={() => void handleFinalSubmit()}
-              isLoading={isSubmitting}
-              className="flex h-[40px] items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#1447E6] px-6 text-[14px] font-semibold text-white"
-            >
-              <Save size={16} />
-              Save Location
-            </Button>
+        <div className={`flex items-center justify-between border-t border-[#E5E7EB] bg-[#FDFDFD] px-6 py-4`}>
+          {isStandalone ? (
+            <>
+              <button
+                onClick={handleClose}
+                className="flex items-center gap-1.5 text-[16px] font-medium leading-[24px] text-[#364153] transition-colors hover:text-[#101828] font-inter"
+              >
+                <ChevronRight className="rotate-180" size={16} />
+                Back
+              </button>
+              <Button
+                onClick={() => void handleFinalSubmit()}
+                isLoading={isSubmitting}
+                className="flex h-[44px] items-center rounded-[14px] bg-[#155DFC] bg-none px-8 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
+              >
+                Edit
+              </Button>
+            </>
           ) : (
-            <Button
-              onClick={() => void handleFinalSubmit()}
-              isLoading={isSubmitting}
-              className="flex h-[40px] items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#00A63E] to-[#008236] px-6 text-[14px] font-semibold text-white"
-            >
-              <Check size={16} />
-              Create Site
-            </Button>
+            <>
+              <button
+                disabled={currentStep === 1 || isSubmitting}
+                onClick={handleBack}
+                className={`flex items-center gap-1.5 text-[16px] font-medium leading-[24px] transition-all font-inter ${
+                  currentStep === 1
+                    ? 'cursor-not-allowed text-[#6A7282]/40'
+                    : 'text-[#364153] hover:text-[#101828] disabled:cursor-not-allowed disabled:opacity-60'
+                }`}
+              >
+                <ChevronRight className="rotate-180" size={16} />
+                Back
+              </button>
+              {currentStep < 4 ? (
+                <Button
+                  onClick={handleNext}
+                  isLoading={false}
+                  className="flex h-[40px] items-center rounded-[14px] bg-[#155DFC] bg-none px-6 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
+                >
+                  Next
+                </Button>
+              ) : isEdit ? (
+                <Button
+                  onClick={() => void handleFinalSubmit()}
+                  isLoading={isSubmitting}
+                  className="flex h-[40px] items-center rounded-[14px] bg-[#155DFC] bg-none px-6 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
+                >
+                  Save Location
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => void handleFinalSubmit()}
+                  isLoading={isSubmitting}
+                  className="flex h-[40px] items-center rounded-[14px] bg-[#155DFC] bg-none px-6 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
+                >
+                  Create Site
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>

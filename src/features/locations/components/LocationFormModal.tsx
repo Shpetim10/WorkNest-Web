@@ -1,23 +1,52 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Textarea, Button } from '@/common/ui';
-import { Check, ChevronRight, X, Save } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Checkbox, Input, Modal, Select, Textarea } from '@/common/ui';
+import { Check, ChevronRight, Save, X } from 'lucide-react';
+import { useCreateSite, useDetectLocation, useDetectNetwork, useUpdateSite } from '../api';
 import {
+  CompanySiteFormValues,
+  Issue,
+  Location,
   LocationFormData,
   LocationFormErrors,
   LocationStep2Data,
   LocationStep2Errors,
   LocationStep3Data,
   LocationStep3Errors,
-  Location,
   SiteType,
 } from '../types';
 import { COUNTRIES } from '../constants/countries';
+import { COUNTRY_CENTROIDS, DEFAULT_MAP_VIEW } from '../constants/country-centroids';
 import { TIMEZONES } from '../constants/timezones';
+import { AddLocationStepActivate } from './AddLocationStepActivate';
 import { AddLocationStepLocation } from './AddLocationStepLocation';
 import { AddLocationStepNetwork } from './AddLocationStepNetwork';
-import { AddLocationStepActivate } from './AddLocationStepActivate';
+import {
+  buildLocalLocationAssessment,
+  getBrowserGeolocation,
+  normalizeLocationDetectionResponse,
+  reverseGeocodeCoordinates,
+  toLocationDetectionRequest,
+} from '../utils/detection';
+import {
+  buildConflictMessage,
+  formatApiError,
+  mapServerErrorsToLocationForm,
+} from '../utils/errors';
+import {
+  applyDetectedLocationToStep,
+  buildCompanySiteFormValues,
+  clearTrustedNetworkFormValue,
+  DEFAULT_ATTENDANCE_SETTINGS,
+  DEFAULT_LOCATION_STEP,
+  EMPTY_TRUSTED_NETWORK,
+  hasTrustedNetworkInput,
+  mapDetectNetworkResponseToFormValue,
+  mapFormToCreateCompanySiteRequest,
+  mapLocationToForm,
+} from '../utils/mappers';
+import { validateStep1, validateStep2, validateStep3 } from '../utils/validation';
 
 export type LocationFormMode = 'add' | 'edit';
 
@@ -25,14 +54,9 @@ interface LocationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: LocationFormMode;
-  /** In edit mode, pass the full location to prefill all form steps */
+  companyId?: string | null;
   initialLocation?: Location | null;
-  /** Called on final submit with all collected form data */
-  onSubmit?: (data: {
-    step1: LocationFormData;
-    step2: LocationStep2Data;
-    step3: LocationStep3Data;
-  }) => void;
+  onCompleted?: () => void;
 }
 
 const EMPTY_STEP1: LocationFormData = {
@@ -44,226 +68,410 @@ const EMPTY_STEP1: LocationFormData = {
   notes: '',
 };
 
-const EMPTY_STEP2: LocationStep2Data = {
-  addressLine1: '',
-  addressLine2: '',
-  city: '',
-  stateRegion: '',
-  postalCode: '',
-  latitude: null,
-  longitude: null,
-  geofenceRadius: 100,
-  detectedAccuracy: null,
-  browserTimestampMs: null,
-  locationDetected: false,
-  advancedSettings: { entryBuffer: 30, exitBuffer: 30, maxAccuracy: 50 },
-};
-
-const EMPTY_STEP3: LocationStep3Data = {
-  trustedNetworkId: null,
-  detectedIp: '192.168.1.45',
-  networkName: '',
-  cidrBlock: '',
-  networkType: '',
-  ipVersion: 'IPv4',
-  confidence: 'MANUAL',
-  torExitNode: false,
-  vpnDetected: false,
-  cgnatDetected: false,
-  setExpiry: false,
-  expiryDate: '',
-  networkNotes: '',
-  priorityOverride: '1',
-};
-
-function buildStep1FromLocation(loc: Location): LocationFormData {
+function createEmptyStep2(): LocationStep2Data {
   return {
-    siteType: loc.siteType as SiteType,
-    siteName: loc.siteName,
-    siteCode: loc.siteCode,
-    country: loc.country,
-    timezone: loc.timezone ?? '',
-    notes: loc.notes ?? '',
+    ...DEFAULT_LOCATION_STEP,
+    advancedSettings: { ...DEFAULT_LOCATION_STEP.advancedSettings },
   };
 }
 
-function buildStep2FromLocation(loc: Location): LocationStep2Data {
-  return {
-    addressLine1: loc.addressLine1 ?? '',
-    addressLine2: loc.addressLine2 ?? '',
-    city: loc.city ?? '',
-    stateRegion: loc.stateRegion ?? '',
-    postalCode: loc.postalCode ?? '',
-    latitude: loc.latitude ?? null,
-    longitude: loc.longitude ?? null,
-    geofenceRadius: loc.geofenceRadius ?? 100,
-    detectedAccuracy: null,
-    browserTimestampMs: null,
-    locationDetected: false,
-    advancedSettings: loc.advancedLocationSettings ?? {
-      entryBuffer: 30,
-      exitBuffer: 30,
-      maxAccuracy: 50,
-    },
-  };
+function createEmptyAttendanceSettings() {
+  return { ...DEFAULT_ATTENDANCE_SETTINGS };
 }
 
-function buildStep3FromLocation(loc: Location): LocationStep3Data {
-  return {
-    trustedNetworkId: loc.id, // Using location ID as a placeholder or check if loc has a network ID
-    detectedIp: loc.detectedIp ?? '192.168.1.45',
-    networkName: loc.networkName ?? '',
-    cidrBlock: loc.cidrBlock ?? '',
-    networkType: loc.networkType ?? '',
-    ipVersion: loc.ipVersion ?? 'IPv4',
-    confidence: loc.confidence ?? 'MANUAL',
-    torExitNode: loc.torExitNode ?? false,
-    vpnDetected: loc.vpnDetected ?? false,
-    cgnatDetected: loc.cgnatDetected ?? false,
-    setExpiry: loc.setExpiry ?? false,
-    expiryDate: loc.expiryDate ?? '',
-    networkNotes: loc.networkNotes ?? '',
-    priorityOverride: loc.priorityOverride ?? '1',
-  };
+function createEmptyStep3(): LocationStep3Data {
+  return { ...EMPTY_TRUSTED_NETWORK };
 }
 
-/**
- * Returns [latitude, longitude, zoom] for a given country code.
- * Used for map centering before precise detection.
- */
-function getCountryCenter(countryCode: string): [number, number, number] {
-  const centers: Record<string, [number, number, number]> = {
-    AL: [41.3275, 19.8187, 8], // Albania (Tirana)
-    XK: [42.6629, 21.1655, 9], // Kosovo (Pristina)
-    US: [37.0902, -95.7129, 4], // USA
-    GB: [55.3781, -3.436, 6], // UK
-    DE: [51.1657, 10.4515, 6], // Germany
-    FR: [46.2276, 2.2137, 6], // France
-    IT: [41.8719, 12.5674, 6], // Italy
-    GR: [39.0742, 21.8243, 7], // Greece
-    CH: [46.8182, 8.2275, 8], // Switzerland
-  };
+function getGeolocationErrorMessage(error: unknown) {
+  if (typeof error === 'object' && error && 'code' in error) {
+    const geolocationError = error as GeolocationPositionError;
 
-  return centers[countryCode] ?? [20, 0, 2]; // Global default
+    if (geolocationError.code === geolocationError.PERMISSION_DENIED) {
+      return 'Location permission was denied. You can keep filling the address manually.';
+    }
+
+    if (geolocationError.code === geolocationError.TIMEOUT) {
+      return 'Location detection timed out. Retry or enter the site details manually.';
+    }
+
+    if (geolocationError.code === geolocationError.POSITION_UNAVAILABLE) {
+      return 'Current location is unavailable right now. You can continue with manual entry.';
+    }
+  }
+
+  return formatApiError(error);
 }
 
 export function LocationFormModal({
   isOpen,
   onClose,
   mode,
+  companyId,
   initialLocation,
-  onSubmit,
+  onCompleted,
 }: LocationFormModalProps) {
   const isEdit = mode === 'edit';
   const [currentStep, setCurrentStep] = useState(1);
-
-  // ── Step 1
   const [step1Data, setStep1Data] = useState<LocationFormData>(EMPTY_STEP1);
   const [step1Errors, setStep1Errors] = useState<LocationFormErrors>({});
-
-  // ── Step 2
-  const [step2Data, setStep2Data] = useState<LocationStep2Data>(EMPTY_STEP2);
+  const [step2Data, setStep2Data] = useState<LocationStep2Data>(createEmptyStep2);
   const [step2Errors, setStep2Errors] = useState<LocationStep2Errors>({});
-
-  // ── Step 3
-  const [step3Data, setStep3Data] = useState<LocationStep3Data>(EMPTY_STEP3);
+  const [attendanceSettings, setAttendanceSettings] = useState(createEmptyAttendanceSettings);
+  const [step3Data, setStep3Data] = useState<LocationStep3Data>(createEmptyStep3);
   const [step3Errors, setStep3Errors] = useState<LocationStep3Errors>({});
+  const [locationWarnings, setLocationWarnings] = useState<Issue[]>([]);
+  const [networkWarnings, setNetworkWarnings] = useState<Issue[]>([]);
+  const [formError, setFormError] = useState('');
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
-  // ── Prefill when opening in edit mode
+  const createSiteMutation = useCreateSite();
+  const updateSiteMutation = useUpdateSite();
+  const detectLocationMutation = useDetectLocation();
+  const detectNetworkMutation = useDetectNetwork();
+
+  const siteIdRef = useRef<string | null>(initialLocation?.id ?? null);
+  const versionRef = useRef<number | null>(initialLocation?.version ?? null);
+  const reverseGeocodeControllerRef = useRef<AbortController | null>(null);
+  const detectNetworkControllerRef = useRef<AbortController | null>(null);
+  const submitControllerRef = useRef<AbortController | null>(null);
+  const detectLocationControllerRef = useRef<AbortController | null>(null);
+  const locationSyncRequestRef = useRef(0);
+
+  const isSubmitting = createSiteMutation.isPending || updateSiteMutation.isPending;
+  const isDetectingNetwork = detectNetworkMutation.isPending;
+  const countryCenter = step1Data.country
+    ? COUNTRY_CENTROIDS[step1Data.country] ?? DEFAULT_MAP_VIEW
+    : DEFAULT_MAP_VIEW;
+  const formValues = useMemo<CompanySiteFormValues>(
+    () =>
+      buildCompanySiteFormValues(step1Data, step2Data, attendanceSettings, [
+        step3Data,
+      ]),
+    [attendanceSettings, step1Data, step2Data, step3Data],
+  );
+
   useEffect(() => {
-    if (isOpen && isEdit && initialLocation) {
-      setStep1Data(buildStep1FromLocation(initialLocation));
-      setStep2Data(buildStep2FromLocation(initialLocation));
-      setStep3Data(buildStep3FromLocation(initialLocation));
+    if (isOpen && initialLocation) {
+      const mapped = mapLocationToForm(initialLocation);
+      siteIdRef.current = initialLocation.id;
+      versionRef.current = initialLocation.version;
+      setStep1Data(mapped.basicInfo);
+      setStep2Data(mapped.location);
+      setAttendanceSettings(mapped.attendanceRules);
+      setStep3Data(mapped.trustedNetworks[0] ?? clearTrustedNetworkFormValue());
+      setLocationWarnings(initialLocation.warnings ?? []);
+      setNetworkWarnings([]);
     }
+
     if (!isOpen) {
-      // Reset on close so next open starts clean
       setCurrentStep(1);
+      siteIdRef.current = initialLocation?.id ?? null;
+      versionRef.current = initialLocation?.version ?? null;
       setStep1Errors({});
       setStep2Errors({});
       setStep3Errors({});
-      if (!isEdit) {
+      setLocationWarnings([]);
+      setNetworkWarnings([]);
+      setFormError('');
+
+      if (!initialLocation) {
         setStep1Data(EMPTY_STEP1);
-        setStep2Data(EMPTY_STEP2);
-        setStep3Data(EMPTY_STEP3);
+        setStep2Data(createEmptyStep2());
+        setAttendanceSettings(createEmptyAttendanceSettings());
+        setStep3Data(createEmptyStep3());
       }
     }
-  }, [isOpen, isEdit, initialLocation]);
+  }, [initialLocation, isOpen]);
 
-  const handleClose = () => {
-    setCurrentStep(1);
+  useEffect(
+    () => () => {
+      reverseGeocodeControllerRef.current?.abort();
+      detectNetworkControllerRef.current?.abort();
+      submitControllerRef.current?.abort();
+      detectLocationControllerRef.current?.abort();
+    },
+    [],
+  );
+
+  const clearStepErrors = () => {
     setStep1Errors({});
     setStep2Errors({});
     setStep3Errors({});
-    if (!isEdit) {
-      setStep1Data(EMPTY_STEP1);
-      setStep2Data(EMPTY_STEP2);
-      setStep3Data(EMPTY_STEP3);
+  };
+
+  const applyServerErrors = (error: unknown) => {
+    const mapped = mapServerErrorsToLocationForm(error);
+    setFormError(mapped.formError ?? formatApiError(error));
+    setStep1Errors((prev) => ({ ...prev, ...mapped.step1Errors }));
+    setStep2Errors((prev) => ({ ...prev, ...mapped.step2Errors }));
+    setStep3Errors((prev) => ({ ...prev, ...mapped.step3Errors }));
+  };
+
+  const syncAddressFromCoordinates = async (latitude: number, longitude: number) => {
+    const requestId = ++locationSyncRequestRef.current;
+    reverseGeocodeControllerRef.current?.abort();
+    const controller = new AbortController();
+    reverseGeocodeControllerRef.current = controller;
+    setIsReverseGeocoding(true);
+
+    try {
+      const address = await reverseGeocodeCoordinates(latitude, longitude, controller.signal);
+
+      if (requestId !== locationSyncRequestRef.current) {
+        return;
+      }
+
+      setStep2Data((prev) => ({
+        ...prev,
+        latitude,
+        longitude,
+        locationDetected: true,
+        addressLine1: address.addressLine1 ?? prev.addressLine1,
+        addressLine2: address.addressLine2 ?? prev.addressLine2,
+        city: address.city ?? prev.city,
+        stateRegion: address.stateRegion ?? prev.stateRegion,
+        postalCode: address.postalCode ?? prev.postalCode,
+      }));
+
+      if (address.countryCode) {
+        setStep1Data((prev) => (prev.country ? prev : { ...prev, country: address.countryCode ?? prev.country }));
+      }
+
+      setStep2Errors((prev) => ({
+        ...prev,
+        addressLine1: undefined,
+        city: undefined,
+        coordinates: undefined,
+      }));
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        return;
+      }
+
+      setLocationWarnings((prev) => [
+        ...prev.filter((warning) => warning.code !== 'REVERSE_GEOCODE_FAILED'),
+        {
+          code: 'REVERSE_GEOCODE_FAILED',
+          message: 'Address lookup failed, but the detected coordinates were kept so you can continue manually.',
+          field: 'location',
+        },
+      ]);
+    } finally {
+      if (requestId === locationSyncRequestRef.current) {
+        setIsReverseGeocoding(false);
+      }
     }
-    onClose();
   };
 
-  // ── Validation (identical to original)
-  const validateStep1 = (): boolean => {
-    const errs: LocationFormErrors = {};
-    if (!step1Data.siteType) errs.siteType = 'Site type is required';
-    if (!step1Data.siteName) errs.siteName = 'Site name is required';
-    if (!step1Data.siteCode) errs.siteCode = 'Site code is required';
-    if (!step1Data.country) errs.country = 'Country is required';
-    if (!step1Data.timezone) errs.timezone = 'Timezone is required';
-    setStep1Errors(errs);
-    return Object.keys(errs).length === 0;
+  const handleDetectLocation = async () => {
+    setFormError('');
+    setStep2Errors((prev) => ({ ...prev, detection: undefined, coordinates: undefined }));
+    detectLocationControllerRef.current?.abort();
+    const controller = new AbortController();
+    detectLocationControllerRef.current = controller;
+    setIsDetectingLocation(true);
+
+    try {
+      const browserLocation = await getBrowserGeolocation();
+      const assessment = isEdit && siteIdRef.current
+        ? normalizeLocationDetectionResponse(
+            browserLocation,
+            await detectLocationMutation.mutateAsync({
+              siteId: siteIdRef.current,
+              data: toLocationDetectionRequest(browserLocation),
+              signal: controller.signal,
+            }),
+          )
+        : buildLocalLocationAssessment(browserLocation, step2Data.advancedSettings.maxAccuracy);
+
+      setLocationWarnings(assessment.warnings);
+      setStep2Data((prev) => applyDetectedLocationToStep(prev, assessment));
+      await syncAddressFromCoordinates(assessment.latitude, assessment.longitude);
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        return;
+      }
+
+      setStep2Errors((prev) => ({
+        ...prev,
+        detection: buildConflictMessage(error) ?? getGeolocationErrorMessage(error),
+      }));
+    } finally {
+      setIsDetectingLocation(false);
+    }
   };
 
-  const validateStep2 = (): boolean => {
-    const errs: LocationStep2Errors = {};
-    if (!step2Data.addressLine1.trim()) errs.addressLine1 = 'Address is required';
-    if (!step2Data.city.trim()) errs.city = 'City is required';
-    setStep2Errors(errs);
-    return Object.keys(errs).length === 0;
+  const handlePinMoved = async (latitude: number, longitude: number) => {
+    setStep2Data((prev) => ({
+      ...prev,
+      latitude,
+      longitude,
+      locationDetected: true,
+      browserTimestampMs: Date.now(),
+    }));
+    await syncAddressFromCoordinates(latitude, longitude);
   };
 
-  const validateStep3 = (): boolean => {
-    const errs: LocationStep3Errors = {};
-    if (!step3Data.networkName.trim()) errs.networkName = 'Network name is required';
-    if (!step3Data.cidrBlock.trim()) errs.cidrBlock = 'CIDR block is required';
-    setStep3Errors(errs);
-    return Object.keys(errs).length === 0;
+  const handleDetectNetwork = async () => {
+    setFormError('');
+    setStep3Errors((prev) => ({ ...prev, detection: undefined }));
+    detectNetworkControllerRef.current?.abort();
+    const controller = new AbortController();
+    detectNetworkControllerRef.current = controller;
+
+    try {
+      const detection = await detectNetworkMutation.mutateAsync({ signal: controller.signal });
+      setNetworkWarnings([...(detection.warnings ?? []), ...(detection.blockingIssues ?? [])]);
+      setStep3Data((prev) => mapDetectNetworkResponseToFormValue(detection, prev));
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        return;
+      }
+
+      setStep3Errors((prev) => ({
+        ...prev,
+        detection: buildConflictMessage(error) ?? formatApiError(error),
+      }));
+    }
+  };
+
+  const handleClearDetectedNetwork = () => {
+    setStep3Data(clearTrustedNetworkFormValue());
+    setStep3Errors({});
+    setNetworkWarnings([]);
   };
 
   const handleNext = () => {
-    if (currentStep === 1 && validateStep1()) setCurrentStep(2);
-    else if (currentStep === 2 && validateStep2()) setCurrentStep(3);
-    else if (currentStep === 3 && validateStep3()) setCurrentStep(4);
+    setFormError('');
+
+    if (currentStep === 1) {
+      const errors = validateStep1(formValues);
+      setStep1Errors(errors);
+      if (Object.keys(errors).length === 0) {
+        setCurrentStep(2);
+      }
+      return;
+    }
+
+    if (currentStep === 2) {
+      const errors = validateStep2(formValues);
+      setStep2Errors(errors);
+      if (Object.keys(errors).length === 0) {
+        setCurrentStep(3);
+      }
+      return;
+    }
+
+    if (currentStep === 3) {
+      const errors = validateStep3(formValues);
+      if (step3Data.torExitNode && hasTrustedNetworkInput(step3Data)) {
+        errors.detection = 'Tor exit nodes cannot be saved as trusted networks.';
+      }
+      setStep3Errors(errors);
+      if (Object.keys(errors).length === 0) {
+        setCurrentStep(4);
+      }
+    }
+  };
+
+  const handleFinalSubmit = async () => {
+    setFormError('');
+    clearStepErrors();
+    submitControllerRef.current?.abort();
+    const controller = new AbortController();
+    submitControllerRef.current = controller;
+
+    const step1Validation = validateStep1(formValues);
+    const step2Validation = validateStep2(formValues);
+    const step3Validation = validateStep3(formValues);
+
+    if (Object.keys(step1Validation).length > 0) {
+      setStep1Errors(step1Validation);
+      setCurrentStep(1);
+      return;
+    }
+
+    if (Object.keys(step2Validation).length > 0) {
+      setStep2Errors(step2Validation);
+      setCurrentStep(2);
+      return;
+    }
+
+    if (Object.keys(step3Validation).length > 0) {
+      setStep3Errors(step3Validation);
+      setCurrentStep(3);
+      return;
+    }
+
+    try {
+      const payload = mapFormToCreateCompanySiteRequest(
+        formValues,
+        isEdit ? versionRef.current ?? 0 : null,
+      );
+
+      if (isEdit) {
+        const resolvedSiteId = siteIdRef.current;
+        if (!resolvedSiteId) {
+          setFormError('Site is missing. Please close the modal and try again.');
+          return;
+        }
+
+        const updatedSite = await updateSiteMutation.mutateAsync({
+          siteId: resolvedSiteId,
+          data: payload,
+          signal: controller.signal,
+        });
+        versionRef.current = updatedSite.version;
+      } else {
+        if (!companyId) {
+          setFormError('Company context is missing. Please sign in again and retry.');
+          return;
+        }
+
+        const createdSite = await createSiteMutation.mutateAsync({
+          companyId,
+          data: payload,
+          signal: controller.signal,
+        });
+        siteIdRef.current = createdSite.id;
+        versionRef.current = createdSite.version;
+      }
+
+      onCompleted?.();
+      onClose();
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        return;
+      }
+
+      applyServerErrors(error);
+    }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) setCurrentStep((p) => p - 1);
+    if (currentStep > 1 && !isSubmitting) {
+      setCurrentStep((previous) => previous - 1);
+    }
   };
 
-  const handleFinalSubmit = () => {
-    console.log(`[LocationFormModal] ${isEdit ? 'Update' : 'Activate'} location:`, {
-      step1Data,
-      step2Data,
-      step3Data,
-    });
-    onSubmit?.({ step1: step1Data, step2: step2Data, step3: step3Data });
-    handleClose();
+  const handleClose = () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    onClose();
   };
 
-  const getBubbleStyle = (stepId: number) => {
-    if (currentStep > stepId) return 'completed';
-    if (currentStep === stepId) return 'active';
-    return 'inactive';
-  };
-
-  const STEPS_CFG = [
+  const getBubbleStyle = (stepId: number) =>
+    currentStep > stepId ? 'completed' : currentStep === stepId ? 'active' : 'inactive';
+  const steps = [
     { id: 1, label: 'Basic Info' },
     { id: 2, label: 'Location' },
     { id: 3, label: 'Network' },
-    { id: 4, label: isEdit ? 'Review' : 'Activate' },
+    { id: 4, label: 'Review' },
   ];
-
   const labelClasses = 'text-[13px] font-semibold text-[#364153] leading-[20px] mb-1';
   const inputOverrideClasses =
     'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] placeholder:text-[rgba(10,10,10,0.5)]';
@@ -276,53 +484,51 @@ export function LocationFormModal({
       containerClassName="p-0"
       showDefaultStyles={false}
     >
-      <div className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)] border border-gray-100">
-        {/* ─── Header ─── */}
-        <div className="pt-5 px-6 pb-4 border-b border-[#E5E7EB]">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[18px] font-bold text-[#101828]">
-              {isEdit ? 'Edit Location' : 'Add New Location'}
-            </h2>
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)]">
+        <div className="border-b border-[#E5E7EB] px-6 pt-5 pb-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[18px] font-bold text-[#101828]">{isEdit ? 'Edit Location' : 'Add New Location'}</h2>
             <button
               onClick={handleClose}
-              className="text-[#6A7282] hover:text-[#101828] transition-colors"
+              disabled={isSubmitting}
+              className="text-[#6A7282] transition-colors hover:text-[#101828] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <X size={18} />
             </button>
           </div>
-
-          {/* ─── Stepper ─── */}
           <div className="flex items-center justify-between px-2">
-            {STEPS_CFG.map((step, index) => {
+            {steps.map((step, index) => {
               const style = getBubbleStyle(step.id);
               const connectorBlue = currentStep > step.id || currentStep === step.id + 1;
 
               return (
                 <React.Fragment key={step.id}>
-                  <div className="flex flex-col items-center shrink-0">
+                  <div className="flex shrink-0 flex-col items-center">
                     <div
-                      className={`w-8 h-8 rounded-[8px] flex items-center justify-center text-[13px] font-semibold transition-all ${style === 'completed'
+                      className={`flex h-8 w-8 items-center justify-center rounded-[8px] text-[13px] font-semibold transition-all ${
+                        style === 'completed'
                           ? 'bg-emerald-500 text-white'
                           : style === 'active'
                             ? 'bg-[#155DFC] text-white shadow-sm'
                             : 'bg-[#E5E7EB] text-[#6A7282]'
-                        }`}
+                      }`}
                     >
                       {style === 'completed' ? <Check size={14} strokeWidth={2.5} /> : step.id}
                     </div>
                     <span
-                      className={`mt-1.5 text-[11px] font-medium transition-colors ${style === 'active' ? 'text-[#155DFC]' : 'text-[#6A7282]'
-                        }`}
+                      className={`mt-1.5 text-[11px] font-medium transition-colors ${
+                        style === 'active' ? 'text-[#155DFC]' : 'text-[#6A7282]'
+                      }`}
                     >
                       {step.label}
                     </span>
                   </div>
-
-                  {index < STEPS_CFG.length - 1 && (
-                    <div className="flex-1 h-[1px] mx-3 mb-4 transition-colors duration-300">
+                  {index < steps.length - 1 && (
+                    <div className="mx-3 mb-4 h-[1px] flex-1 transition-colors duration-300">
                       <div
-                        className={`h-full transition-all duration-500 ${connectorBlue ? 'bg-[#155DFC]' : 'bg-[#E5E7EB]'
-                          }`}
+                        className={`h-full transition-all duration-500 ${
+                          connectorBlue ? 'bg-[#155DFC]' : 'bg-[#E5E7EB]'
+                        }`}
                       />
                     </div>
                   )}
@@ -332,16 +538,17 @@ export function LocationFormModal({
           </div>
         </div>
 
-        {/* ─── Form Body ─── */}
         <div
-          className={`px-6 py-4 overflow-y-auto ${currentStep === 1
-              ? 'max-h-[52vh]'
-              : currentStep === 4
-                ? 'max-h-[70vh]'
-                : 'max-h-[62vh]'
-            }`}
+          className={`overflow-y-auto px-6 py-4 ${
+            currentStep === 1 ? 'max-h-[58vh]' : currentStep === 4 ? 'max-h-[70vh]' : 'max-h-[62vh]'
+          }`}
         >
-          {/* Step 1 – Basic Info */}
+          {formError && (
+            <div className="mb-4 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
+              {formError}
+            </div>
+          )}
+
           {currentStep === 1 && (
             <div className="space-y-3">
               <Select
@@ -349,16 +556,13 @@ export function LocationFormModal({
                 label="Site Type"
                 required
                 value={step1Data.siteType}
-                onChange={(e) =>
-                  setStep1Data({ ...step1Data, siteType: e.target.value as SiteType })
-                }
+                onChange={(e) => setStep1Data((prev) => ({ ...prev, siteType: e.target.value as SiteType }))}
                 error={step1Errors.siteType}
                 className={labelClasses}
                 style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
                 options={[
                   { value: '', label: 'Select site type' },
-                  { value: 'OFFICE', label: 'Office' },
-                  { value: 'HQ', label: 'Headquarters' },
+                  { value: 'HQ', label: 'HQ' },
                   { value: 'BRANCH', label: 'Branch' },
                   { value: 'WAREHOUSE', label: 'Warehouse' },
                   { value: 'STORE', label: 'Store' },
@@ -366,15 +570,14 @@ export function LocationFormModal({
                   { value: 'FIELD_ZONE', label: 'Field Zone' },
                 ]}
               />
-
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   id="siteName"
                   label="Site Name"
                   required
-                  placeholder="Main Office"
+                  placeholder="Tirana Headquarters"
                   value={step1Data.siteName}
-                  onChange={(e) => setStep1Data({ ...step1Data, siteName: e.target.value })}
+                  onChange={(e) => setStep1Data((prev) => ({ ...prev, siteName: e.target.value }))}
                   error={step1Errors.siteName}
                   className={inputOverrideClasses}
                 />
@@ -382,21 +585,22 @@ export function LocationFormModal({
                   id="siteCode"
                   label="Site Code"
                   required
-                  placeholder="HQ-001"
+                  placeholder="HQ-TIR"
                   value={step1Data.siteCode}
-                  onChange={(e) => setStep1Data({ ...step1Data, siteCode: e.target.value })}
+                  onChange={(e) =>
+                    setStep1Data((prev) => ({ ...prev, siteCode: e.target.value.toUpperCase() }))
+                  }
                   error={step1Errors.siteCode}
                   className={inputOverrideClasses}
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <Select
                   id="country"
                   label="Country"
                   required
                   value={step1Data.country}
-                  onChange={(e) => setStep1Data({ ...step1Data, country: e.target.value })}
+                  onChange={(e) => setStep1Data((prev) => ({ ...prev, country: e.target.value }))}
                   error={step1Errors.country}
                   className={labelClasses}
                   style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
@@ -407,92 +611,145 @@ export function LocationFormModal({
                   label="Timezone"
                   required
                   value={step1Data.timezone}
-                  onChange={(e) => setStep1Data({ ...step1Data, timezone: e.target.value })}
+                  onChange={(e) => setStep1Data((prev) => ({ ...prev, timezone: e.target.value }))}
                   error={step1Errors.timezone}
                   className={labelClasses}
                   style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
                   options={[{ value: '', label: 'Select timezone' }, ...TIMEZONES]}
                 />
               </div>
-
               <Textarea
                 id="notes"
                 label="Notes"
                 placeholder="Additional information..."
                 value={step1Data.notes}
-                onChange={(e) => setStep1Data({ ...step1Data, notes: e.target.value })}
-                className="h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] !min-h-[70px] resize-none py-2"
+                onChange={(e) => setStep1Data((prev) => ({ ...prev, notes: e.target.value }))}
+                className="h-[40px] !min-h-[70px] resize-none rounded-[10px] border-[#E5E7EB] bg-[#F9FAFB] py-2 text-[14px]"
               />
+
+              <div className="grid grid-cols-2 gap-3 rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <Checkbox
+                  label="Location Required"
+                  checked={attendanceSettings.locationRequired}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setAttendanceSettings((prev) => ({ ...prev, locationRequired: checked }));
+                    if (!checked) {
+                      setStep2Errors({});
+                    }
+                  }}
+                />
+                <Checkbox
+                  label="QR Enabled"
+                  checked={attendanceSettings.qrEnabled}
+                  onChange={(event) =>
+                    setAttendanceSettings((prev) => ({ ...prev, qrEnabled: event.target.checked }))
+                  }
+                />
+                <Checkbox
+                  label="Check-In Enabled"
+                  checked={attendanceSettings.checkInEnabled}
+                  onChange={(event) =>
+                    setAttendanceSettings((prev) => ({
+                      ...prev,
+                      checkInEnabled: event.target.checked,
+                    }))
+                  }
+                />
+                <Checkbox
+                  label="Check-Out Enabled"
+                  checked={attendanceSettings.checkOutEnabled}
+                  onChange={(event) =>
+                    setAttendanceSettings((prev) => ({
+                      ...prev,
+                      checkOutEnabled: event.target.checked,
+                    }))
+                  }
+                />
+              </div>
             </div>
           )}
 
-          {/* Step 2 – Location */}
           {currentStep === 2 && (
             <AddLocationStepLocation
               data={step2Data}
               errors={step2Errors}
-              countryCenter={getCountryCenter(step1Data.country)}
+              warnings={locationWarnings}
+              locationRequired={attendanceSettings.locationRequired}
+              countryCenter={countryCenter}
+              isDetecting={isDetectingLocation}
+              isHydratingAddress={isReverseGeocoding}
               onChange={(updates) => setStep2Data((prev) => ({ ...prev, ...updates }))}
+              onDetect={handleDetectLocation}
+              onPinMoved={handlePinMoved}
             />
           )}
 
-          {/* Step 3 – Network */}
           {currentStep === 3 && (
             <AddLocationStepNetwork
               data={step3Data}
               errors={step3Errors}
+              warnings={networkWarnings}
+              isDetecting={isDetectingNetwork}
               onChange={(updates) => setStep3Data((prev) => ({ ...prev, ...updates }))}
+              onDetect={handleDetectNetwork}
+              onClear={handleClearDetectedNetwork}
             />
           )}
 
-          {/* Step 4 – Summary / Review */}
           {currentStep === 4 && (
             <AddLocationStepActivate
               step1={step1Data}
               step2={step2Data}
               step3={step3Data}
               mode={mode}
+              warnings={[...locationWarnings, ...networkWarnings]}
+              blockingIssues={[]}
+              readyToActivate={!isSubmitting}
+              isCheckingReadiness={false}
             />
           )}
         </div>
 
-        {/* ─── Footer ─── */}
-        <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-between bg-[#FDFDFD]">
+        <div className="flex items-center justify-between border-t border-[#E5E7EB] bg-[#FDFDFD] px-6 py-4">
           <button
-            disabled={currentStep === 1}
+            disabled={currentStep === 1 || isSubmitting}
             onClick={handleBack}
-            className={`flex items-center gap-1.5 text-[14px] font-semibold transition-all ${currentStep === 1
-                ? 'text-[#6A7282]/40 cursor-not-allowed'
-                : 'text-[#6A7282] hover:text-[#101828]'
-              }`}
+            className={`flex items-center gap-1.5 text-[14px] font-semibold transition-all ${
+              currentStep === 1
+                ? 'cursor-not-allowed text-[#6A7282]/40'
+                : 'text-[#6A7282] hover:text-[#101828] disabled:cursor-not-allowed disabled:opacity-60'
+            }`}
           >
             <ChevronRight className="rotate-180" size={16} />
             Back
           </button>
-
           {currentStep < 4 ? (
             <Button
               onClick={handleNext}
-              className="h-[40px] px-6 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#12B76A] text-white text-[14px] font-semibold flex items-center gap-2"
+              isLoading={false}
+              className="flex h-[40px] items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#12B76A] px-6 text-[14px] font-semibold text-white"
             >
               Next
               <ChevronRight size={16} />
             </Button>
           ) : isEdit ? (
             <Button
-              onClick={handleFinalSubmit}
-              className="h-[40px] px-6 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#1447E6] text-white text-[14px] font-semibold flex items-center gap-2"
+              onClick={() => void handleFinalSubmit()}
+              isLoading={isSubmitting}
+              className="flex h-[40px] items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#155DFC] to-[#1447E6] px-6 text-[14px] font-semibold text-white"
             >
               <Save size={16} />
-              Update Location
+              Save Location
             </Button>
           ) : (
             <Button
-              onClick={handleFinalSubmit}
-              className="h-[40px] px-6 rounded-[10px] bg-gradient-to-r from-[#00A63E] to-[#008236] text-white text-[14px] font-semibold flex items-center gap-2"
+              onClick={() => void handleFinalSubmit()}
+              isLoading={isSubmitting}
+              className="flex h-[40px] items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#00A63E] to-[#008236] px-6 text-[14px] font-semibold text-white"
             >
               <Check size={16} />
-              Activate Location
+              Create Site
             </Button>
           )}
         </div>

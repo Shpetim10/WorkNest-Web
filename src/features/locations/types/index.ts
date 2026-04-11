@@ -1,9 +1,10 @@
-export type SiteStatus = 'DRAFT' | 'ACTIVE' | 'DISABLED' | 'ARCHIVED';
-export type SiteType = 'OFFICE' | 'HQ' | 'BRANCH' | 'WAREHOUSE' | 'STORE' | 'CLIENT_SITE' | 'FIELD_ZONE';
+export type SiteStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'DISABLED' | 'ARCHIVED' | 'DRAFT' | 'INACTIVE';
+export type SiteType = string;
 export type GeofenceShapeType = 'CIRCLE' | 'POLYGON';
-export type NetworkType = 'PUBLIC_IP' | 'CIDR_RANGE' | 'VPN' | 'AUTO_DETECTED';
-export type DetectionConfidence = 'AUTO_HIGH' | 'AUTO_LOW' | 'MANUAL';
-export type IpVersion = 'IPv4' | 'IPv6';
+export type NetworkType = string;
+export type DetectionConfidence = string;
+export type IpVersion = string;
+export type LocationDetectionSource = 'BROWSER_GEOLOCATION' | 'MANUAL_ENTRY' | 'MAP_PIN';
 
 export interface Issue {
   code: string;
@@ -12,20 +13,21 @@ export interface Issue {
 }
 
 export interface TrustedNetwork {
-  id: string;
+  id?: string | null;
   siteId?: string;
   name?: string;
-  cidr?: string;
-  networkType?: NetworkType | string;
+  cidrBlock?: string;
+  networkType?: NetworkType;
   ipVersion?: IpVersion;
   detectedIp?: string;
-  confidence?: DetectionConfidence | string;
-  priority?: number;
+  confidence?: DetectionConfidence;
+  priorityOrder?: number | null;
   expiresAt?: string | null;
-  notes?: string;
-  active?: boolean;
+  notes?: string | null;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  version?: number | null;
 }
 
 export interface CompanySiteResponse {
@@ -36,26 +38,26 @@ export interface CompanySiteResponse {
   type: SiteType;
   status: SiteStatus;
   version: number;
-  addressLine1?: string;
-  addressLine2?: string;
-  city?: string;
-  stateRegion?: string;
-  postalCode?: string;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateRegion?: string | null;
+  postalCode?: string | null;
   countryCode: string;
   timezone: string;
-  latitude?: number;
-  longitude?: number;
-  geofenceShapeType?: GeofenceShapeType;
-  geofenceRadiusMeters?: number;
-  geofencePolygonGeoJson?: string;
-  entryBufferMeters?: number;
-  exitBufferMeters?: number;
-  maxLocationAccuracyMeters?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  geofenceShapeType?: GeofenceShapeType | null;
+  geofenceRadiusMeters?: number | null;
+  geofencePolygonGeoJson?: string | null;
+  entryBufferMeters?: number | null;
+  exitBufferMeters?: number | null;
+  maxLocationAccuracyMeters?: number | null;
   locationRequired: boolean;
   qrEnabled: boolean;
   checkInEnabled: boolean;
   checkOutEnabled: boolean;
-  notes?: string;
+  notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -81,30 +83,64 @@ export interface LocationDetectionRequest {
   browserTimestampMs: number;
 }
 
+export interface LocationAssessmentResult {
+  usable: boolean;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  coordinateAgeMs: number;
+  stale: boolean;
+  lowAccuracy: boolean;
+  suggestedRadiusMeters: number;
+  warnings: Issue[];
+}
+
 export interface LocationDetectionResponse {
+  usable?: boolean;
   latitude?: number;
   longitude?: number;
   accuracyMeters?: number;
-  suggestedRadiusMeters?: number;
+  coordinateAgeMs?: number;
   stale?: boolean;
   lowAccuracy?: boolean;
+  suggestedRadiusMeters?: number;
   warnings?: Issue[];
 }
 
-export interface NetworkDetectionResponse {
-  detectedIp?: string;
-  suggestedCidr?: string;
-  suggestedNetworkName?: string;
-  networkType?: NetworkType | string;
-  ipVersion?: IpVersion;
-  confidence?: DetectionConfidence | string;
-  torExitNode?: boolean;
-  vpnDetected?: boolean;
-  cgnatDetected?: boolean;
-  warnings?: Issue[];
+export interface ReverseGeocodeResult {
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateRegion?: string;
+  postalCode?: string;
+  countryCode?: string;
 }
+
+export interface DetectNetworkResponse {
+  detectedIp?: string;
+  name?: string;
+  networkType?: NetworkType;
+  cidrBlock?: string;
+  suggestedCidr?: string;
+  ipVersion?: IpVersion;
+  priorityOrder?: number | null;
+  notes?: string | null;
+  confidence?: DetectionConfidence;
+  cgnat?: boolean;
+  vpnOrDatacenter?: boolean;
+  torExitNode?: boolean;
+  overlapDetected?: boolean;
+  overlappingCidrs?: string[];
+  warnings?: Issue[];
+  blockingIssues?: Issue[];
+}
+
+export type NetworkDetectionResponse = DetectNetworkResponse;
 
 export interface ActivateSiteResponse {
+  siteId?: string;
+  dryRun?: boolean;
+  activated?: boolean;
   readyToActivate: boolean;
   status?: SiteStatus;
   blockingIssues: Issue[];
@@ -112,53 +148,54 @@ export interface ActivateSiteResponse {
   site?: CompanySiteResponse;
 }
 
-export interface CreateSiteDraftRequest {
-  code: string;
+export interface TrustedNetworkDraftRequest {
+  id: string | null;
   name: string;
-  type: SiteType;
-  countryCode: string;
-  timezone: string;
+  networkType: NetworkType;
+  cidrBlock: string;
+  ipVersion?: IpVersion;
+  isActive: boolean;
+  priorityOrder?: number | null;
+  expiresAt: string | null;
+  version: number | null;
+  notes: string | null;
 }
 
-export interface SaveBasicInfoRequest {
-  version: number;
-  code: string;
-  name: string;
-  type: SiteType;
+export interface SiteLocationRequest {
+  latitude: number | null;
+  longitude: number | null;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
   stateRegion?: string;
   postalCode?: string;
+  geofenceShapeType: GeofenceShapeType;
+  geofenceRadiusMeters?: number;
+  geofencePolygonGeoJson?: string;
+  entryBufferMeters?: number;
+  exitBufferMeters?: number;
+  maxLocationAccuracyMeters?: number;
+  locationDetectionSource: LocationDetectionSource;
+}
+
+export interface CreateCompanySiteRequest {
+  code: string;
+  name: string;
+  type: SiteType;
   countryCode: string;
   timezone: string;
   notes?: string;
+  locationRequired?: boolean;
+  qrEnabled?: boolean;
+  checkInEnabled?: boolean;
+  checkOutEnabled?: boolean;
+  location: SiteLocationRequest;
+  trustedNetworks?: TrustedNetworkDraftRequest[];
+  version: number | null;
 }
 
-export interface SaveLocationRequest {
-  version: number;
-  latitude: number;
-  longitude: number;
-  geofenceShapeType: GeofenceShapeType;
-  geofenceRadiusMeters: number;
-  entryBufferMeters: number;
-  exitBufferMeters: number;
-  maxLocationAccuracyMeters: number;
-  locationRequired: boolean;
-}
-
-export interface SaveTrustedNetworkRequest {
-  version: number;
-  name: string;
-  cidr: string;
-  networkType: NetworkType | string;
-  ipVersion: IpVersion;
-  detectedIp?: string;
-  confidence?: DetectionConfidence | string;
-  expiresAt?: string | null;
-  notes?: string;
-  priority?: number;
-}
+export type CompanySiteRequest = CreateCompanySiteRequest;
+export type CreateCompanySiteResponse = CompanySiteResponse;
 
 export interface LocationListItem {
   id: string;
@@ -180,6 +217,38 @@ export interface AdvancedSettings {
   entryBuffer: number;
   exitBuffer: number;
   maxAccuracy: number;
+}
+
+export interface AttendanceSettings {
+  locationRequired: boolean;
+  qrEnabled: boolean;
+  checkInEnabled: boolean;
+  checkOutEnabled: boolean;
+}
+
+export interface TrustedNetworkFormValue {
+  id: string | null;
+  name: string;
+  networkType: NetworkType;
+  cidrBlock: string;
+  ipVersion: IpVersion;
+  detectedIp: string;
+  confidence: DetectionConfidence;
+  torExitNode: boolean;
+  vpnDetected: boolean;
+  cgnatDetected: boolean;
+  setExpiry: boolean;
+  expiryDate: string;
+  notes: string;
+  priorityOrder: string;
+  version: number | null;
+}
+
+export interface CompanySiteFormValues {
+  basicInfo: LocationFormData;
+  location: LocationStep2Data;
+  attendanceRules: AttendanceSettings;
+  trustedNetworks: TrustedNetworkFormValue[];
 }
 
 export interface LocationFormData {
@@ -208,7 +277,9 @@ export interface LocationStep2Data {
   postalCode: string;
   latitude: number | null;
   longitude: number | null;
+  geofenceShapeType: GeofenceShapeType;
   geofenceRadius: number;
+  geofencePolygonGeoJson: string;
   detectedAccuracy: number | null;
   browserTimestampMs: number | null;
   locationDetected: boolean;
@@ -218,30 +289,20 @@ export interface LocationStep2Data {
 export interface LocationStep2Errors {
   addressLine1?: string;
   city?: string;
+  stateRegion?: string;
+  postalCode?: string;
   coordinates?: string;
+  geofenceRadius?: string;
+  geofencePolygonGeoJson?: string;
   detection?: string;
 }
 
-export interface LocationStep3Data {
-  trustedNetworkId: string | null;
-  detectedIp: string;
-  networkName: string;
-  cidrBlock: string;
-  networkType: NetworkType | string;
-  ipVersion: IpVersion;
-  confidence: DetectionConfidence | string;
-  torExitNode: boolean;
-  vpnDetected: boolean;
-  cgnatDetected: boolean;
-  setExpiry: boolean;
-  expiryDate: string;
-  networkNotes: string;
-  priorityOverride: string;
-}
+export interface LocationStep3Data extends TrustedNetworkFormValue {}
 
 export interface LocationStep3Errors {
   networkName?: string;
   cidrBlock?: string;
+  expiryDate?: string;
   detection?: string;
 }
 
@@ -256,16 +317,20 @@ export interface Location extends LocationListItem {
   longitude: number | null;
   geofenceShapeType: GeofenceShapeType;
   geofenceRadius: number;
+  geofencePolygonGeoJson: string;
   advancedLocationSettings: AdvancedSettings;
   notes: string;
   locationRequired: boolean;
+  qrEnabled: boolean;
+  checkInEnabled: boolean;
+  checkOutEnabled: boolean;
   trustedNetworks: TrustedNetwork[];
   detectedIp: string;
   networkName: string;
   cidrBlock: string;
-  networkType: NetworkType | string;
+  networkType: NetworkType;
   ipVersion: IpVersion;
-  confidence: DetectionConfidence | string;
+  confidence: DetectionConfidence;
   torExitNode: boolean;
   vpnDetected: boolean;
   cgnatDetected: boolean;

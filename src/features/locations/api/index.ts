@@ -1,56 +1,85 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosRequestConfig } from 'axios';
 import { apiClient } from '@/common/network/api-client';
-import { ApiResponse, ApiErrorResponse } from '@/common/types/api';
+import { ApiErrorResponse, ApiResponse } from '@/common/types/api';
 import {
   ActivateSiteResponse,
+  CompanySiteRequest,
   CompanySiteResponse,
-  CreateSiteDraftRequest,
+  CreateCompanySiteResponse,
+  DetectNetworkResponse,
   Issue,
   Location,
   LocationDetectionRequest,
   LocationDetectionResponse,
   LocationListItem,
-  NetworkDetectionResponse,
-  SaveBasicInfoRequest,
-  SaveLocationRequest,
-  SaveTrustedNetworkRequest,
   SiteSetupStatus,
   TrustedNetwork,
 } from '../types';
 
 const COUNTRY_NAMES = new Intl.DisplayNames(['en'], { type: 'region' });
+const EMPTY_ISSUES: Issue[] = [];
+
+export const SITES_LIST_UNAVAILABLE_MESSAGE =
+  'The company sites endpoint is returning a server error right now. You can still create and configure locations, but the existing list cannot be loaded until the backend issue is fixed.';
 
 export const locationKeys = {
   all: ['locations'] as const,
   lists: () => [...locationKeys.all, 'list'] as const,
   list: (companyId: string) => [...locationKeys.lists(), companyId] as const,
+  details: () => [...locationKeys.all, 'detail'] as const,
+  detail: (siteId: string) => [...locationKeys.details(), siteId] as const,
   setupStatuses: () => [...locationKeys.all, 'setup-status'] as const,
   setupStatus: (siteId: string) => [...locationKeys.setupStatuses(), siteId] as const,
 };
 
-const EMPTY_ISSUES: Issue[] = [];
-export const SITES_LIST_UNAVAILABLE_MESSAGE =
-  'The company sites endpoint is returning a server error right now. You can still create and configure locations, but the existing list cannot be loaded until the backend issue is fixed.';
+export interface LocationsQueryResult {
+  items: LocationListItem[];
+  listUnavailable: boolean;
+}
+
+export interface ApiRequestOptions {
+  signal?: AbortSignal;
+}
 
 function unwrapApiResponse<T>(payload: T | ApiResponse<T>): T {
   if (payload && typeof payload === 'object' && 'data' in (payload as ApiResponse<T>)) {
     return (payload as ApiResponse<T>).data;
   }
+
   return payload as T;
 }
 
-async function getPayload<T>(path: string): Promise<T> {
-  const response = await apiClient.get<T | ApiResponse<T>>(path);
+function buildAxiosConfig(options?: ApiRequestOptions): AxiosRequestConfig | undefined {
+  if (!options?.signal) {
+    return undefined;
+  }
+
+  return {
+    signal: options.signal,
+  };
+}
+
+async function getPayload<T>(path: string, options?: ApiRequestOptions): Promise<T> {
+  const response = await apiClient.get<T | ApiResponse<T>>(path, buildAxiosConfig(options));
   return unwrapApiResponse(response.data);
 }
 
-async function postPayload<TResponse, TRequest>(path: string, body?: TRequest): Promise<TResponse> {
-  const response = await apiClient.post<TResponse | ApiResponse<TResponse>>(path, body);
+async function postPayload<TResponse, TRequest>(
+  path: string,
+  body?: TRequest,
+  options?: ApiRequestOptions,
+): Promise<TResponse> {
+  const response = await apiClient.post<TResponse | ApiResponse<TResponse>>(path, body, buildAxiosConfig(options));
   return unwrapApiResponse(response.data);
 }
 
-async function putPayload<TResponse, TRequest>(path: string, body: TRequest): Promise<TResponse> {
-  const response = await apiClient.put<TResponse | ApiResponse<TResponse>>(path, body);
+async function putPayload<TResponse, TRequest>(
+  path: string,
+  body: TRequest,
+  options?: ApiRequestOptions,
+): Promise<TResponse> {
+  const response = await apiClient.put<TResponse | ApiResponse<TResponse>>(path, body, buildAxiosConfig(options));
   return unwrapApiResponse(response.data);
 }
 
@@ -60,24 +89,6 @@ function normalizeNetwork(siteStatus: SiteSetupStatus): TrustedNetwork | undefin
 
 function formatCountry(countryCode: string): string {
   return COUNTRY_NAMES.of(countryCode) ?? countryCode;
-}
-
-function mapSiteToListItem(status: SiteSetupStatus): LocationListItem {
-  return {
-    id: status.site.id,
-    siteName: status.site.name,
-    siteCode: status.site.code,
-    siteType: status.site.type,
-    country: formatCountry(status.site.countryCode),
-    countryCode: status.site.countryCode,
-    status: status.status,
-    createdAt: status.site.createdAt ?? '',
-    version: status.version,
-    timezone: status.site.timezone,
-    readyToActivate: status.readyToActivate,
-    blockingIssues: status.blockingIssues ?? EMPTY_ISSUES,
-    warnings: status.warnings ?? EMPTY_ISSUES,
-  };
 }
 
 function mapCompanySiteToListItem(site: CompanySiteResponse): LocationListItem {
@@ -102,7 +113,10 @@ export function mapSetupStatusToLocation(status: SiteSetupStatus): Location {
   const network = normalizeNetwork(status);
 
   return {
-    ...mapSiteToListItem(status),
+    ...mapCompanySiteToListItem(status.site),
+    readyToActivate: status.readyToActivate,
+    blockingIssues: status.blockingIssues ?? EMPTY_ISSUES,
+    warnings: status.warnings ?? EMPTY_ISSUES,
     companyId: status.site.companyId,
     addressLine1: status.site.addressLine1 ?? '',
     addressLine2: status.site.addressLine2 ?? '',
@@ -113,6 +127,7 @@ export function mapSetupStatusToLocation(status: SiteSetupStatus): Location {
     longitude: status.site.longitude ?? null,
     geofenceShapeType: status.site.geofenceShapeType ?? 'CIRCLE',
     geofenceRadius: status.site.geofenceRadiusMeters ?? 100,
+    geofencePolygonGeoJson: status.site.geofencePolygonGeoJson ?? '',
     advancedLocationSettings: {
       entryBuffer: status.site.entryBufferMeters ?? 30,
       exitBuffer: status.site.exitBufferMeters ?? 30,
@@ -120,12 +135,15 @@ export function mapSetupStatusToLocation(status: SiteSetupStatus): Location {
     },
     notes: status.site.notes ?? '',
     locationRequired: status.site.locationRequired,
+    qrEnabled: status.site.qrEnabled,
+    checkInEnabled: status.site.checkInEnabled,
+    checkOutEnabled: status.site.checkOutEnabled,
     trustedNetworks: status.trustedNetworks ?? [],
     detectedIp: network?.detectedIp ?? '',
     networkName: network?.name ?? '',
-    cidrBlock: network?.cidr ?? '',
-    networkType: network?.networkType ?? 'AUTO_DETECTED',
-    ipVersion: network?.ipVersion ?? 'IPv4',
+    cidrBlock: network?.cidrBlock ?? '',
+    networkType: network?.networkType ?? 'OFFICE_NETWORK',
+    ipVersion: network?.ipVersion ?? 'IPV4',
     confidence: network?.confidence ?? 'MANUAL',
     torExitNode: false,
     vpnDetected: false,
@@ -133,11 +151,11 @@ export function mapSetupStatusToLocation(status: SiteSetupStatus): Location {
     setExpiry: Boolean(network?.expiresAt),
     expiryDate: network?.expiresAt ? network.expiresAt.slice(0, 10) : '',
     networkNotes: network?.notes ?? '',
-    priorityOverride: network?.priority ? String(network.priority) : '1',
+    priorityOverride: network?.priorityOrder != null ? String(network.priorityOrder) : '',
   };
 }
 
-async function fetchCompanySites(companyId: string): Promise<CompanySiteResponse[]> {
+async function fetchCompanySites(companyId: string): Promise<{ sites: CompanySiteResponse[]; listUnavailable: boolean }> {
   const response = await apiClient.get<CompanySiteResponse[] | ApiResponse<CompanySiteResponse[]>>(
     `/companies/${companyId}/sites`,
     {
@@ -146,124 +164,147 @@ async function fetchCompanySites(companyId: string): Promise<CompanySiteResponse
   );
 
   if (response.status >= 500) {
-    return [];
+    return { sites: [], listUnavailable: true };
   }
 
-  return unwrapApiResponse(response.data);
+  return { sites: unwrapApiResponse(response.data), listUnavailable: false };
 }
 
-export const useLocations = (companyId: string | null) => {
-  return useQuery<LocationListItem[]>({
+export async function fetchLocationSetupStatus(siteId: string, options?: ApiRequestOptions): Promise<SiteSetupStatus> {
+  return getPayload<SiteSetupStatus>(`/sites/${siteId}/setup-status`, options);
+}
+
+export async function fetchSite(siteId: string, options?: ApiRequestOptions): Promise<CompanySiteResponse> {
+  return getPayload<CompanySiteResponse>(`/sites/${siteId}`, options);
+}
+
+export async function createCompanySite(
+  companyId: string,
+  data: CompanySiteRequest,
+  options?: ApiRequestOptions,
+): Promise<CreateCompanySiteResponse> {
+  return postPayload<CreateCompanySiteResponse, CompanySiteRequest>(`/companies/${companyId}/sites`, data, options);
+}
+
+export async function updateCompanySite(
+  siteId: string,
+  data: CompanySiteRequest,
+  options?: ApiRequestOptions,
+): Promise<CompanySiteResponse> {
+  return putPayload<CompanySiteResponse, CompanySiteRequest>(`/sites/${siteId}`, data, options);
+}
+
+export async function assessExistingSiteLocation(
+  siteId: string,
+  data: LocationDetectionRequest,
+  options?: ApiRequestOptions,
+): Promise<LocationDetectionResponse> {
+  return postPayload<LocationDetectionResponse, LocationDetectionRequest>(`/sites/${siteId}/detect-location`, data, options);
+}
+
+export async function detectSiteNetwork(options?: ApiRequestOptions): Promise<DetectNetworkResponse> {
+  return postPayload<DetectNetworkResponse, undefined>('/site-network/detect', undefined, options);
+}
+
+export const useLocations = (companyId: string | null) =>
+  useQuery<LocationsQueryResult>({
     queryKey: companyId ? locationKeys.list(companyId) : [...locationKeys.lists(), 'anonymous'],
     queryFn: async () => {
       if (!companyId) {
-        return [];
+        return { items: [], listUnavailable: false };
       }
-      const sites = await fetchCompanySites(companyId);
-      return sites.map(mapCompanySiteToListItem);
+
+      const result = await fetchCompanySites(companyId);
+      return {
+        items: result.sites.map(mapCompanySiteToListItem),
+        listUnavailable: result.listUnavailable,
+      };
     },
     enabled: Boolean(companyId),
     retry: false,
   });
-};
 
-export const useLocationSetupStatus = (siteId: string | null) => {
-  return useQuery<SiteSetupStatus>({
+export const useLocationSetupStatus = (siteId: string | null) =>
+  useQuery<SiteSetupStatus>({
     queryKey: siteId ? locationKeys.setupStatus(siteId) : [...locationKeys.setupStatuses(), 'empty'],
     queryFn: async () => {
       if (!siteId) {
         throw new Error('Site ID is required');
       }
-      return getPayload<SiteSetupStatus>(`/sites/${siteId}/setup-status`);
+
+      return fetchLocationSetupStatus(siteId);
+    },
+    enabled: Boolean(siteId),
+    staleTime: 0,
+  });
+
+export const useSite = (siteId: string | null) =>
+  useQuery<CompanySiteResponse>({
+    queryKey: siteId ? locationKeys.detail(siteId) : [...locationKeys.details(), 'empty'],
+    queryFn: async () => {
+      if (!siteId) {
+        throw new Error('Site ID is required');
+      }
+
+      return fetchSite(siteId);
     },
     enabled: Boolean(siteId),
   });
-};
 
-export const useCreateSiteDraft = () => {
+export const useCreateSite = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<CompanySiteResponse, ApiErrorResponse, { companyId: string; data: CreateSiteDraftRequest }>({
-    mutationFn: async ({ companyId, data }) =>
-      postPayload<CompanySiteResponse, CreateSiteDraftRequest>(`/companies/${companyId}/sites`, data),
+  return useMutation<
+    CreateCompanySiteResponse,
+    ApiErrorResponse,
+    { companyId: string; data: CompanySiteRequest; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ companyId, data, signal }) => createCompanySite(companyId, data, { signal }),
     onSuccess: (_, { companyId }) => {
       queryClient.invalidateQueries({ queryKey: locationKeys.list(companyId) });
     },
   });
 };
 
-export const useSaveBasicInfo = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<CompanySiteResponse, ApiErrorResponse, { siteId: string; data: SaveBasicInfoRequest }>({
-    mutationFn: async ({ siteId, data }) =>
-      putPayload<CompanySiteResponse, SaveBasicInfoRequest>(`/sites/${siteId}/basic-info`, data),
-    onSuccess: (_, { siteId }) => {
-      queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
-      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
-    },
-  });
-};
-
-export const useDetectLocation = () => {
-  return useMutation<LocationDetectionResponse, ApiErrorResponse, { siteId: string; data: LocationDetectionRequest }>({
-    mutationFn: async ({ siteId, data }) =>
-      postPayload<LocationDetectionResponse, LocationDetectionRequest>(`/sites/${siteId}/detect-location`, data),
-  });
-};
-
-export const useSaveLocation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<CompanySiteResponse, ApiErrorResponse, { siteId: string; data: SaveLocationRequest }>({
-    mutationFn: async ({ siteId, data }) =>
-      putPayload<CompanySiteResponse, SaveLocationRequest>(`/sites/${siteId}/location`, data),
-    onSuccess: (_, { siteId }) => {
-      queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
-      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
-    },
-  });
-};
-
-export const useDetectNetwork = () => {
-  return useMutation<NetworkDetectionResponse, ApiErrorResponse, { siteId: string }>({
-    mutationFn: async ({ siteId }) => postPayload<NetworkDetectionResponse, undefined>(`/sites/${siteId}/detect-network`),
-  });
-};
-
-export const useSaveTrustedNetwork = () => {
+export const useUpdateSite = () => {
   const queryClient = useQueryClient();
 
   return useMutation<
-    TrustedNetwork,
+    CompanySiteResponse,
     ApiErrorResponse,
-    { siteId: string; networkId: string; data: SaveTrustedNetworkRequest }
+    { siteId: string; data: CompanySiteRequest; signal?: AbortSignal }
   >({
-    mutationFn: async ({ siteId, networkId, data }) =>
-      putPayload<TrustedNetwork, SaveTrustedNetworkRequest>(
-        `/sites/${siteId}/trusted-networks/${networkId}`,
-        data,
-      ),
+    mutationFn: async ({ siteId, data, signal }) => updateCompanySite(siteId, data, { signal }),
     onSuccess: (_, { siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
       queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
       queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
     },
   });
 };
+
+export const useDetectLocation = () =>
+  useMutation<
+    LocationDetectionResponse,
+    ApiErrorResponse,
+    { siteId: string; data: LocationDetectionRequest; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ siteId, data, signal }) => assessExistingSiteLocation(siteId, data, { signal }),
+  });
+
+export const useDetectNetwork = () =>
+  useMutation<DetectNetworkResponse, ApiErrorResponse, { signal?: AbortSignal }>({
+    mutationFn: async ({ signal }) => detectSiteNetwork({ signal }),
+  });
 
 export const useActivateSite = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    ActivateSiteResponse,
-    ApiErrorResponse,
-    { siteId: string; dryRun?: boolean }
-  >({
+  return useMutation<ActivateSiteResponse, ApiErrorResponse, { siteId: string; dryRun?: boolean }>({
     mutationFn: async ({ siteId, dryRun = false }) =>
-      postPayload<ActivateSiteResponse, undefined>(
-        `/sites/${siteId}/activate${dryRun ? '?dryRun=true' : ''}`,
-      ),
+      postPayload<ActivateSiteResponse, undefined>(`/sites/${siteId}/activate${dryRun ? '?dryRun=true' : ''}`),
     onSuccess: (_, { siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
       queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
       queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
     },

@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { Check } from 'lucide-react';
-import { LocationFormData, LocationStep2Data, LocationStep3Data } from '../types';
+import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { Issue, LocationFormData, LocationStep2Data, LocationStep3Data } from '../types';
 import { LocationFormMode } from './LocationFormModal';
 
 interface AddLocationStepActivateProps {
@@ -10,37 +10,27 @@ interface AddLocationStepActivateProps {
   step2: LocationStep2Data;
   step3: LocationStep3Data;
   mode?: LocationFormMode;
+  warnings?: Issue[];
+  blockingIssues?: Issue[];
+  readyToActivate?: boolean;
+  isCheckingReadiness?: boolean;
 }
 
-interface SummaryRowProps {
-  label: string;
-  value: string;
-  mono?: boolean;
-}
-
-function SummaryRow({ label, value, mono = false }: SummaryRowProps) {
+function SummaryRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-center justify-between py-[5px]">
       <span className="text-[13px] font-normal text-[#4A5565]">{label}</span>
-      <span
-        className={`text-[14px] font-medium text-[#101828] ${mono ? 'font-mono tracking-tight' : ''
-          }`}
-      >
-        {value || '—'}
+      <span className={`text-[14px] font-medium text-[#101828] ${mono ? 'font-mono tracking-tight' : ''}`}>
+        {value || '-'}
       </span>
     </div>
   );
 }
 
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function Section({ title, children }: SectionProps) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[13px] font-semibold text-[#364153] mb-2">{title}</p>
+      <p className="mb-2 text-[13px] font-semibold text-[#364153]">{title}</p>
       <div className="space-y-0">{children}</div>
     </div>
   );
@@ -51,56 +41,101 @@ export function AddLocationStepActivate({
   step2,
   step3,
   mode = 'add',
+  warnings = [],
+  blockingIssues = [],
+  readyToActivate = false,
+  isCheckingReadiness = false,
 }: AddLocationStepActivateProps) {
   const isEdit = mode === 'edit';
+
   return (
-    <div className="space-y-3">
-      {/* Summary card */}
-      <div className="rounded-[16px] bg-[#F9FAFB] p-6 border border-gray-50/50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 blur-3xl -z-1" />
-        <p className="text-[16px] font-bold text-[#101828] mb-4">
-          {isEdit ? 'Review Changes – Ready to Update' : 'Summary – Ready to Activate'}
-        </p>
+    <div className="space-y-4">
+      <div className="relative overflow-hidden rounded-[16px] border border-gray-50/50 bg-[#F9FAFB] p-6">
+        <div className="absolute top-0 right-0 -z-1 h-32 w-32 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 blur-3xl" />
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-[16px] font-bold text-[#101828]">
+            {isEdit ? 'Review Changes' : 'Summary Before Activation'}
+          </p>
+          <div
+            className={`flex items-center gap-1.5 rounded-[8px] px-3 py-1 text-[12px] font-semibold ${
+              readyToActivate ? 'bg-[#ECFDF5] text-[#008236]' : 'bg-amber-50 text-amber-700'
+            }`}
+          >
+            {isCheckingReadiness ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : readyToActivate ? (
+              <Check size={14} strokeWidth={2.5} />
+            ) : (
+              <AlertTriangle size={14} strokeWidth={2.5} />
+            )}
+            {isCheckingReadiness ? 'Checking' : readyToActivate ? 'Ready' : 'Needs Attention'}
+          </div>
+        </div>
 
         <div className="space-y-4">
-          {/* Basic Information */}
           <Section title="Basic Information">
             <SummaryRow label="Site Name:" value={step1.siteName} />
             <SummaryRow label="Site Code:" value={step1.siteCode} mono />
             <SummaryRow label="Site Type:" value={step1.siteType} />
             <SummaryRow label="Country:" value={step1.country} />
+            <SummaryRow label="Timezone:" value={step1.timezone} />
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Location Configuration */}
           <Section title="Location Configuration">
             <SummaryRow label="Address:" value={step2.addressLine1} />
             <SummaryRow label="City:" value={step2.city} />
             <SummaryRow
-              label="Geofence Radius:"
-              value={step2.geofenceRadius ? `${step2.geofenceRadius}m` : '—'}
+              label="Coordinates:"
+              value={
+                step2.latitude != null && step2.longitude != null
+                  ? `${step2.latitude.toFixed(5)}, ${step2.longitude.toFixed(5)}`
+                  : '-'
+              }
             />
+            <SummaryRow label="Geofence Radius:" value={step2.geofenceRadius ? `${step2.geofenceRadius}m` : '-'} />
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Network Configuration */}
           <Section title="Network Configuration">
-            <SummaryRow label="Network Name:" value={step3.networkName} />
+            <SummaryRow label="Network Name:" value={step3.name} />
             <SummaryRow label="CIDR Block:" value={step3.cidrBlock} mono />
-            <SummaryRow label="IP Version:" value={step3.ipVersion} />
+            <SummaryRow label="Detected IP:" value={step3.detectedIp} mono />
+            <SummaryRow label="Confidence:" value={step3.confidence} />
           </Section>
         </div>
       </div>
 
-      {/* Validation success banner */}
-      <div className="flex items-center gap-2 px-4 py-3 rounded-[10px] bg-[#F0FDF4] border border-[#BBF7D0]">
-        <Check size={14} className="text-[#008236] shrink-0" strokeWidth={2.5} />
+      {blockingIssues.length > 0 && (
+        <div className="space-y-2 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+          {blockingIssues.map((issue) => (
+            <div key={issue.code} className="flex items-start gap-2 text-[13px] text-rose-700">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <span>{issue.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="space-y-2 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3">
+          {warnings.map((warning) => (
+            <div key={warning.code} className="flex items-start gap-2 text-[13px] text-amber-800">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <span>{warning.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 rounded-[10px] border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3">
+        <Check size={14} className="shrink-0 text-[#008236]" strokeWidth={2.5} />
         <span className="text-[13px] font-semibold text-[#008236]">
           {isEdit
-            ? 'All changes validated. Ready to update.'
-            : 'All validations passed! Ready to activate.'}
+            ? 'Saving sends one complete payload to the backend so the location stays consistent across every section.'
+            : 'Create site submits the full site payload once, including any reviewed location and trusted network values.'}
         </span>
       </div>
     </div>

@@ -100,6 +100,20 @@ apiClient.interceptors.response.use(
 
     // 401 Handler with Refresh Rotation
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // 0. Double-Check: Has a newer token been saved by another tab or request while this one was in flight?
+      const usedToken = originalRequest.headers?.Authorization?.toString().replace('Bearer ', '');
+      const freshToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
+      if (freshToken && usedToken && freshToken !== usedToken) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 [Auth] Multi-tab sync: Token already refreshed by another tab. Retrying original request.');
+        }
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+        }
+        return apiClient(originalRequest);
+      }
+
       // Don't attempt refresh if we're on the login page or if it was a final auth attempt
       const isLoginPage = typeof window !== 'undefined' && window.location.pathname.includes('/login');
       const isAuthRequest = originalRequest.url?.includes('/auth/login') || 
@@ -167,7 +181,7 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('auth_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('current_company_id');
-          // window.location.href = '/login?expired=true';
+          window.location.href = `/login?expired=true&originalUrl=${encodeURIComponent(window.location.pathname)}`;
         }
         
         return Promise.reject(refreshError);

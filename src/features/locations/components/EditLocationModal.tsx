@@ -7,6 +7,7 @@ interface EditLocationModalProps {
   isOpen: boolean;
   onClose: () => void;
   siteId: string | null;
+  initialStep?: number;
   onCompleted?: () => void;
 }
 
@@ -14,6 +15,7 @@ export function EditLocationModal({
   isOpen,
   onClose,
   siteId,
+  initialStep,
   onCompleted,
 }: EditLocationModalProps) {
   // Always fetch fresh setup status when the modal opens.
@@ -34,6 +36,7 @@ export function EditLocationModal({
       onClose={onClose}
       mode="edit"
       initialLocation={initialLocation}
+      initialStep={initialStep}
       onCompleted={onCompleted}
     />
   );

@@ -2,13 +2,15 @@
 
 import React, { useMemo, useState } from 'react';
 import { Card, Button } from '@/common/ui';
-import { Edit2, Eye, Filter, Loader2, MapPin, Plus, Power, Search } from 'lucide-react';
+import { Check, Edit2, Edit3, Eye, Filter, Globe, Loader2, MapPin, Network, Plus, Power, Search, Settings, Trash2 } from 'lucide-react';
 import { SITES_LIST_UNAVAILABLE_MESSAGE, useLocations } from '../api';
 import { LocationListItem, SiteStatus, SiteType } from '../types';
 import { AddLocationModal } from './AddLocationModal';
 import { LocationDetailsModal } from './LocationDetailsModal';
 import { EditLocationModal } from './EditLocationModal';
 import { DeactivateLocationModal } from './DeactivateLocationModal';
+import { ActivateLocationModal } from './ActivateLocationModal';
+import { DeleteLocationModal } from './DeleteLocationModal';
 
 const SITE_TYPE_OPTIONS: Array<SiteType | 'All'> = ['All', 'FIELD_ZONE', 'BRANCH', 'WAREHOUSE', 'HQ', 'CLIENT_SITE', 'STORE'];
 const SITE_STATUS_OPTIONS: Array<SiteStatus | 'All'> = ['All', 'PENDING_REVIEW', 'ACTIVE', 'DISABLED', 'ARCHIVED', 'DRAFT'];
@@ -98,6 +100,12 @@ export function LocationsView() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDeactivateLocation, setSelectedDeactivateLocation] = useState<LocationListItem | null>(null);
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [selectedActivateLocation, setSelectedActivateLocation] = useState<LocationListItem | null>(null);
+  const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [selectedDeleteLocation, setSelectedDeleteLocation] = useState<LocationListItem | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [editStep, setEditStep] = useState<number>(1);
 
   const filteredLocations = useMemo(() => {
     const locations = data?.items ?? [];
@@ -264,35 +272,128 @@ export function LocationsView() {
                     <td className="px-6 py-4 text-[13px] font-medium text-gray-400">{formatDate(location.createdAt)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
+                        {/* View Button */}
                         <button
                           onClick={(event) => {
                             event.stopPropagation();
                             setSelectedSiteId(location.id);
                             setIsDetailsModalOpen(true);
                           }}
+                          title="View Details"
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                         >
                           <Eye size={18} />
                         </button>
+
+                        {/* Edit Dropdown Trigger */}
+                        <div className="relative">
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setActiveDropdownId(activeDropdownId === location.id ? null : location.id);
+                            }}
+                            title="Edit Options"
+                            className={`rounded-lg p-2 transition-all ${
+                              activeDropdownId === location.id
+                                ? 'bg-blue-50 text-[#155DFC]'
+                                : 'text-gray-400 hover:bg-blue-50 hover:text-[#155DFC]'
+                            }`}
+                          >
+                            <Edit3 size={18} />
+                          </button>
+
+                          {activeDropdownId === location.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDropdownId(null);
+                                }}
+                              />
+                              <div className="absolute right-0 z-20 mt-1 w-48 origin-top-right rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditStep(1);
+                                    setSelectedEditSiteId(location.id);
+                                    setIsEditModalOpen(true);
+                                    setActiveDropdownId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#155DFC]"
+                                >
+                                  <Settings size={14} />
+                                  Edit Basic Details
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditStep(2);
+                                    setSelectedEditSiteId(location.id);
+                                    setIsEditModalOpen(true);
+                                    setActiveDropdownId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#155DFC]"
+                                >
+                                  <Globe size={14} />
+                                  Change Location
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditStep(3);
+                                    setSelectedEditSiteId(location.id);
+                                    setIsEditModalOpen(true);
+                                    setActiveDropdownId(null);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#155DFC]"
+                                >
+                                  <Network size={14} />
+                                  Change Network
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Status Action: Activate or Disable */}
+                        {location.status === 'ACTIVE' ? (
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedDeactivateLocation(location);
+                              setIsDeactivateModalOpen(true);
+                            }}
+                            title="Disable Site"
+                            className="rounded-lg p-2 text-gray-400 transition-all hover:bg-amber-50 hover:text-amber-500"
+                          >
+                            <Power size={18} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedActivateLocation(location);
+                              setIsActivateModalOpen(true);
+                            }}
+                            title="Activate Site"
+                            className="rounded-lg p-2 text-gray-400 transition-all hover:bg-emerald-50 hover:text-emerald-500"
+                          >
+                            <Check size={18} />
+                          </button>
+                        )}
+
+                        {/* Delete Button */}
                         <button
                           onClick={(event) => {
                             event.stopPropagation();
-                            setSelectedEditSiteId(location.id);
-                            setIsEditModalOpen(true);
+                            setSelectedDeleteLocation(location);
+                            setIsDeleteModalOpen(true);
                           }}
-                          className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedDeactivateLocation(location);
-                            setIsDeactivateModalOpen(true);
-                          }}
+                          title="Delete Site"
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-rose-50 hover:text-rose-500"
                         >
-                          <Power size={18} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
@@ -326,14 +427,32 @@ export function LocationsView() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         siteId={selectedEditSiteId}
+        initialStep={editStep}
         onCompleted={() => setIsEditModalOpen(false)}
       />
 
       <DeactivateLocationModal
         isOpen={isDeactivateModalOpen}
         onClose={() => setIsDeactivateModalOpen(false)}
-        onConfirm={() => setIsDeactivateModalOpen(false)}
+        siteId={selectedDeactivateLocation?.id || null}
+        companyId={companyId}
         locationName={selectedDeactivateLocation?.siteName || ''}
+      />
+
+      <ActivateLocationModal
+        isOpen={isActivateModalOpen}
+        onClose={() => setIsActivateModalOpen(false)}
+        siteId={selectedActivateLocation?.id || null}
+        companyId={companyId}
+        locationName={selectedActivateLocation?.siteName || ''}
+      />
+
+      <DeleteLocationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        siteId={selectedDeleteLocation?.id || null}
+        companyId={companyId}
+        locationName={selectedDeleteLocation?.siteName || ''}
       />
     </div>
   );

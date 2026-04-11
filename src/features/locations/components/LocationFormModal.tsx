@@ -56,6 +56,7 @@ interface LocationFormModalProps {
   mode: LocationFormMode;
   companyId?: string | null;
   initialLocation?: Location | null;
+  initialStep?: number;
   onCompleted?: () => void;
 }
 
@@ -109,10 +110,11 @@ export function LocationFormModal({
   mode,
   companyId,
   initialLocation,
+  initialStep = 1,
   onCompleted,
 }: LocationFormModalProps) {
   const isEdit = mode === 'edit';
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [step1Data, setStep1Data] = useState<LocationFormData>(EMPTY_STEP1);
   const [step1Errors, setStep1Errors] = useState<LocationFormErrors>({});
   const [step2Data, setStep2Data] = useState<LocationStep2Data>(createEmptyStep2);
@@ -166,7 +168,7 @@ export function LocationFormModal({
     }
 
     if (!isOpen) {
-      setCurrentStep(1);
+      setCurrentStep(initialStep);
       siteIdRef.current = initialLocation?.id ?? null;
       versionRef.current = initialLocation?.version ?? null;
       setStep1Errors({});

@@ -194,6 +194,39 @@ export async function updateCompanySite(
   return putPayload<CompanySiteResponse, CompanySiteRequest>(`/sites/${siteId}`, data, options);
 }
 
+export async function deleteCompanySite(
+  companyId: string,
+  siteId: string,
+  options?: ApiRequestOptions,
+): Promise<void> {
+  const path = `/companies/${companyId}/sites/${siteId}`;
+  await apiClient.delete(path, buildAxiosConfig(options));
+}
+
+export async function activateCompanySite(
+  companyId: string,
+  siteId: string,
+  options?: ApiRequestOptions,
+): Promise<ActivateSiteResponse> {
+  return postPayload<ActivateSiteResponse, undefined>(
+    `/companies/${companyId}/sites/${siteId}/activate`,
+    undefined,
+    options,
+  );
+}
+
+export async function disableCompanySite(
+  companyId: string,
+  siteId: string,
+  options?: ApiRequestOptions,
+): Promise<ActivateSiteResponse> {
+  return postPayload<ActivateSiteResponse, undefined>(
+    `/companies/${companyId}/sites/${siteId}/disable`,
+    undefined,
+    options,
+  );
+}
+
 export async function assessExistingSiteLocation(
   siteId: string,
   data: LocationDetectionRequest,
@@ -300,12 +333,50 @@ export const useDetectNetwork = () =>
 export const useActivateSite = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<ActivateSiteResponse, ApiErrorResponse, { siteId: string; dryRun?: boolean }>({
-    mutationFn: async ({ siteId, dryRun = false }) =>
-      postPayload<ActivateSiteResponse, undefined>(`/sites/${siteId}/activate${dryRun ? '?dryRun=true' : ''}`),
+  return useMutation<
+    ActivateSiteResponse,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; options?: ApiRequestOptions }
+  >({
+    mutationFn: async ({ companyId, siteId, options }) =>
+      activateCompanySite(companyId, siteId, options),
     onSuccess: (_, { siteId }) => {
       queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
       queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+    },
+  });
+};
+
+export const useDisableSite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ActivateSiteResponse,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; options?: ApiRequestOptions }
+  >({
+    mutationFn: async ({ companyId, siteId, options }) =>
+      disableCompanySite(companyId, siteId, options),
+    onSuccess: (_, { siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.setupStatus(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+    },
+  });
+};
+
+export const useDeleteSite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; options?: ApiRequestOptions }
+  >({
+    mutationFn: async ({ companyId, siteId, options }) =>
+      deleteCompanySite(companyId, siteId, options),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
     },
   });

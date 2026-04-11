@@ -365,8 +365,9 @@ export function LocationsView() {
                                     setOpenEditMenuRowId(null);
                                     setMenuAnchorRect(null);
                                   }}
-                                  className="flex h-10 w-full items-center px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
+                                  className="flex h-10 w-full items-center gap-2.5 px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
                                 >
+                                  <Settings size={16} className="text-[#155DFC]" />
                                   Details
                                 </button>
                                 <button
@@ -379,8 +380,9 @@ export function LocationsView() {
                                     setOpenEditMenuRowId(null);
                                     setMenuAnchorRect(null);
                                   }}
-                                  className="flex h-10 w-full items-center px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
+                                  className="flex h-10 w-full items-center gap-2.5 px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
                                 >
+                                  <MapPin size={16} className="text-[#155DFC]" />
                                   Location
                                 </button>
                                 <button
@@ -393,8 +395,9 @@ export function LocationsView() {
                                     setOpenEditMenuRowId(null);
                                     setMenuAnchorRect(null);
                                   }}
-                                  className="flex h-10 w-full items-center px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
+                                  className="flex h-10 w-full items-center gap-2.5 px-4 pr-6 text-left text-[14px] font-medium leading-[22px] text-gray-700 transition-colors hover:bg-[rgba(43,127,255,0.30)]"
                                 >
+                                  <Network size={16} className="text-[#155DFC]" />
                                   Network
                                 </button>
                               </div>
@@ -470,6 +473,7 @@ export function LocationsView() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         siteId={selectedEditSiteId}
+        companyId={companyId}
         initialStep={editStep}
         isStandalone={isStandaloneEdit}
         onCompleted={() => setIsEditModalOpen(false)}

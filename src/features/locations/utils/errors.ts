@@ -46,11 +46,11 @@ export function buildConflictMessage(error: unknown) {
     /VERSION|OPTIMISTIC/i.test(errorCode) ||
     /another tab|refresh/i.test(message);
 
-  if (!isVersionConflict) {
+  if (!isVersionConflict && errorCode !== 'STALE_SITE_DATA_CONFLICT') {
     return null;
   }
 
-  return 'Updated in another tab — please refresh.';
+  return 'Data is stale, please refresh.';
 }
 
 function mapFieldError(

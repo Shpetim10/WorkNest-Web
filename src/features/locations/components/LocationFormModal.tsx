@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Checkbox, Input, Modal, Select, Textarea } from '@/common/ui';
 import { Check, ChevronRight, Save, X } from 'lucide-react';
-import { useCreateSite, useDetectLocation, useDetectNetwork, useUpdateSite } from '../api';
+import { useCreateSite, useDetectLocation, useDetectNetwork, useUpdateSite, useUpdateMainDetails, useUpdateLocation, useUpdateTrustedNetwork } from '../api';
 import {
   CompanySiteFormValues,
   Issue,
@@ -45,6 +45,9 @@ import {
   hasTrustedNetworkInput,
   mapDetectNetworkResponseToFormValue,
   mapFormToCreateCompanySiteRequest,
+  mapForMainDetailsUpdate,
+  mapForLocationUpdate,
+  mapForNetworkUpdate,
   mapLocationToForm,
 } from '../utils/mappers';
 import { validateStep1, validateStep2, validateStep3 } from '../utils/validation';
@@ -136,6 +139,10 @@ export function LocationFormModal(props: LocationFormModalProps) {
   const updateSiteMutation = useUpdateSite();
   const detectLocationMutation = useDetectLocation();
   const detectNetworkMutation = useDetectNetwork();
+  
+  const updateMainDetailsMutation = useUpdateMainDetails();
+  const updateLocationMutation = useUpdateLocation();
+  const updateNetworkMutation = useUpdateTrustedNetwork();
 
   const siteIdRef = useRef<string | null>(initialLocation?.id ?? null);
   const versionRef = useRef<number | null>(initialLocation?.version ?? null);
@@ -152,7 +159,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
     }
   }, [isOpen, initialStep]);
 
-  const isSubmitting = createSiteMutation.isPending || updateSiteMutation.isPending;
+  const isSubmitting = createSiteMutation.isPending || updateSiteMutation.isPending || updateMainDetailsMutation.isPending || updateLocationMutation.isPending || updateNetworkMutation.isPending;
   const isDetectingNetwork = detectNetworkMutation.isPending;
   const countryCenter = step1Data.country
     ? COUNTRY_CENTROIDS[step1Data.country] ?? DEFAULT_MAP_VIEW
@@ -292,6 +299,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
         ? normalizeLocationDetectionResponse(
             browserLocation,
             await detectLocationMutation.mutateAsync({
+              companyId: initialLocation?.companyId || companyId || '',
               siteId: siteIdRef.current,
               data: toLocationDetectionRequest(browserLocation),
               signal: controller.signal,
@@ -397,24 +405,73 @@ export function LocationFormModal(props: LocationFormModalProps) {
     submitControllerRef.current = controller;
 
     if (isStandalone) {
-      if (currentStep === 1) {
-        const step1Validation = validateStep1(formValues);
-        if (Object.keys(step1Validation).length > 0) {
-          setStep1Errors(step1Validation);
+      const resolvedSiteId = siteIdRef.current;
+      const resolvedCompanyId = initialLocation?.companyId || companyId;
+
+      if (!resolvedSiteId || !resolvedCompanyId) {
+        setFormError('Site or company context is missing. Please close the modal and try again.');
+        return;
+      }
+
+      try {
+        if (currentStep === 1) {
+          const step1Validation = validateStep1(formValues);
+          if (Object.keys(step1Validation).length > 0) {
+            setStep1Errors(step1Validation);
+            return;
+          }
+          const payload = mapForMainDetailsUpdate(formValues, versionRef.current);
+          const updatedSite = await updateMainDetailsMutation.mutateAsync({
+            companyId: resolvedCompanyId,
+            siteId: resolvedSiteId,
+            data: payload,
+            signal: controller.signal,
+          });
+          versionRef.current = updatedSite.version;
+        } else if (currentStep === 2) {
+          const step2Validation = validateStep2(formValues);
+          if (Object.keys(step2Validation).length > 0) {
+            setStep2Errors(step2Validation);
+            return;
+          }
+          const payload = mapForLocationUpdate(formValues, versionRef.current);
+          const updatedSite = await updateLocationMutation.mutateAsync({
+            companyId: resolvedCompanyId,
+            siteId: resolvedSiteId,
+            data: payload,
+            signal: controller.signal,
+          });
+          versionRef.current = updatedSite.version;
+        } else if (currentStep === 3) {
+          const step3Validation = validateStep3(formValues);
+          if (Object.keys(step3Validation).length > 0) {
+            setStep3Errors(step3Validation);
+            return;
+          }
+          if (!step3Data.id) {
+             setFormError('Cannot update network without an ID. Please retry.');
+             return;
+          }
+          const payload = mapForNetworkUpdate(step3Data);
+          const updatedNetwork = await updateNetworkMutation.mutateAsync({
+            companyId: resolvedCompanyId,
+            siteId: resolvedSiteId,
+            networkId: step3Data.id,
+            data: payload,
+            signal: controller.signal,
+          });
+          setStep3Data(prev => ({ ...prev, version: updatedNetwork.version ?? prev.version }));
+        }
+        
+        onCompleted?.();
+        onClose();
+        return;
+      } catch (error) {
+        if ((error as Error)?.name === 'AbortError') {
           return;
         }
-      } else if (currentStep === 2) {
-        const step2Validation = validateStep2(formValues);
-        if (Object.keys(step2Validation).length > 0) {
-          setStep2Errors(step2Validation);
-          return;
-        }
-      } else if (currentStep === 3) {
-        const step3Validation = validateStep3(formValues);
-        if (Object.keys(step3Validation).length > 0) {
-          setStep3Errors(step3Validation);
-          return;
-        }
+        applyServerErrors(error);
+        return;
       }
     } else {
       const step1Validation = validateStep1(formValues);

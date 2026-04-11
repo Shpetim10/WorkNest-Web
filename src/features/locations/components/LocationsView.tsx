@@ -416,6 +416,7 @@ export function LocationsView() {
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         siteId={selectedSiteId}
+        companyId={companyId}
         onEdit={(siteId) => {
           setIsDetailsModalOpen(false);
           setSelectedEditSiteId(siteId);

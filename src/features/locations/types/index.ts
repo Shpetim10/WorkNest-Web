@@ -148,6 +148,12 @@ export interface ActivateSiteResponse {
   site?: CompanySiteResponse;
 }
 
+export interface CompanySiteDetails {
+  site: CompanySiteResponse;
+  countryName: string;
+  trustedNetworks: TrustedNetwork[];
+}
+
 export interface TrustedNetworkDraftRequest {
   id: string | null;
   name: string;

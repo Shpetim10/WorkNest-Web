@@ -14,6 +14,7 @@ import {
   LocationDetectionResponse,
   LocationListItem,
   SiteSetupStatus,
+  CompanySiteDetails,
   TrustedNetwork,
 } from '../types';
 
@@ -155,6 +156,53 @@ export function mapSetupStatusToLocation(status: SiteSetupStatus): Location {
   };
 }
 
+export function mapDetailsToLocation(details: CompanySiteDetails): Location {
+  const network = details.trustedNetworks[0] || null;
+
+  return {
+    ...mapCompanySiteToListItem(details.site),
+    country: details.countryName, // Use countryName from backend
+    readyToActivate: details.site.status === 'ACTIVE',
+    blockingIssues: EMPTY_ISSUES,
+    warnings: EMPTY_ISSUES,
+    companyId: details.site.companyId,
+    addressLine1: details.site.addressLine1 ?? '',
+    addressLine2: details.site.addressLine2 ?? '',
+    city: details.site.city ?? '',
+    stateRegion: details.site.stateRegion ?? '',
+    postalCode: details.site.postalCode ?? '',
+    latitude: details.site.latitude ?? null,
+    longitude: details.site.longitude ?? null,
+    geofenceShapeType: details.site.geofenceShapeType ?? 'CIRCLE',
+    geofenceRadius: details.site.geofenceRadiusMeters ?? 100,
+    geofencePolygonGeoJson: details.site.geofencePolygonGeoJson ?? '',
+    advancedLocationSettings: {
+      entryBuffer: details.site.entryBufferMeters ?? 30,
+      exitBuffer: details.site.exitBufferMeters ?? 30,
+      maxAccuracy: details.site.maxLocationAccuracyMeters ?? 50,
+    },
+    notes: details.site.notes ?? '',
+    locationRequired: details.site.locationRequired,
+    qrEnabled: details.site.qrEnabled,
+    checkInEnabled: details.site.checkInEnabled,
+    checkOutEnabled: details.site.checkOutEnabled,
+    trustedNetworks: details.trustedNetworks ?? [],
+    detectedIp: network?.detectedIp ?? '',
+    networkName: network?.name ?? '',
+    cidrBlock: network?.cidrBlock ?? '',
+    networkType: network?.networkType ?? 'OFFICE_NETWORK',
+    ipVersion: network?.ipVersion ?? 'IPV4',
+    confidence: network?.confidence ?? 'MANUAL',
+    torExitNode: false,
+    vpnDetected: false,
+    cgnatDetected: false,
+    setExpiry: Boolean(network?.expiresAt),
+    expiryDate: network?.expiresAt ? network.expiresAt.slice(0, 10) : '',
+    networkNotes: network?.notes ?? '',
+    priorityOverride: network?.priorityOrder != null ? String(network.priorityOrder) : '',
+  };
+}
+
 async function fetchCompanySites(companyId: string): Promise<{ sites: CompanySiteResponse[]; listUnavailable: boolean }> {
   const response = await apiClient.get<CompanySiteResponse[] | ApiResponse<CompanySiteResponse[]>>(
     `/companies/${companyId}/sites`,
@@ -172,6 +220,14 @@ async function fetchCompanySites(companyId: string): Promise<{ sites: CompanySit
 
 export async function fetchLocationSetupStatus(siteId: string, options?: ApiRequestOptions): Promise<SiteSetupStatus> {
   return getPayload<SiteSetupStatus>(`/sites/${siteId}/setup-status`, options);
+}
+
+export async function fetchSiteDetails(
+  companyId: string,
+  siteId: string,
+  options?: ApiRequestOptions,
+): Promise<CompanySiteDetails> {
+  return getPayload<CompanySiteDetails>(`/companies/${companyId}/sites/${siteId}`, options);
 }
 
 export async function fetchSite(siteId: string, options?: ApiRequestOptions): Promise<CompanySiteResponse> {
@@ -269,6 +325,20 @@ export const useLocationSetupStatus = (siteId: string | null) =>
     },
     enabled: Boolean(siteId),
     staleTime: 0,
+  });
+
+export const useSiteDetails = (companyId: string | null, siteId: string | null) =>
+  useQuery<CompanySiteDetails>({
+    queryKey: siteId ? locationKeys.detail(siteId) : [...locationKeys.details(), 'empty'],
+    queryFn: async () => {
+      if (!companyId || !siteId) {
+        throw new Error('Company ID and Site ID are required');
+      }
+
+      return fetchSiteDetails(companyId, siteId);
+    },
+    enabled: Boolean(companyId && siteId),
+    staleTime: 5 * 60 * 1000, // 5 minutes cache for details
   });
 
 export const useSite = (siteId: string | null) =>

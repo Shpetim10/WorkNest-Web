@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { Modal, Button } from '@/common/ui';
-import { mapSetupStatusToLocation, useLocationSetupStatus } from '../api';
+import { mapDetailsToLocation, useSiteDetails } from '../api';
 
 function DetailRow({
   label,
@@ -36,6 +36,7 @@ interface LocationDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   siteId: string | null;
+  companyId: string | null;
   onEdit?: (siteId: string) => void;
 }
 
@@ -43,10 +44,11 @@ export function LocationDetailsModal({
   isOpen,
   onClose,
   siteId,
+  companyId,
   onEdit,
 }: LocationDetailsModalProps) {
-  const { data, isLoading, isError } = useLocationSetupStatus(isOpen ? siteId : null);
-  const location = data ? mapSetupStatusToLocation(data) : null;
+  const { data, isLoading, isError } = useSiteDetails(companyId, isOpen ? siteId : null);
+  const location = data ? mapDetailsToLocation(data) : null;
 
   return (
     <Modal
@@ -165,41 +167,6 @@ export function LocationDetailsModal({
                   <DetailRow label="Confidence:" value={location.confidence} />
                 </div>
               </div>
-
-              {(location.blockingIssues.length > 0 || location.warnings.length > 0) && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-4">
-                    <div className="flex items-center gap-2">
-                      <Layers size={16} className="text-rose-600" />
-                      <p className="text-[13px] font-bold text-rose-700">Blocking Issues</p>
-                    </div>
-                    {location.blockingIssues.length === 0 ? (
-                      <p className="text-[13px] text-rose-700/70">No blocking issues.</p>
-                    ) : (
-                      location.blockingIssues.map((issue) => (
-                        <p key={issue.code} className="text-[13px] font-medium text-rose-700">
-                          {issue.message}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                  <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <div className="flex items-center gap-2">
-                      <Activity size={16} className="text-amber-700" />
-                      <p className="text-[13px] font-bold text-amber-800">Warnings</p>
-                    </div>
-                    {location.warnings.length === 0 ? (
-                      <p className="text-[13px] text-amber-800/70">No warnings.</p>
-                    ) : (
-                      location.warnings.map((warning) => (
-                        <p key={warning.code} className="text-[13px] font-medium text-amber-800">
-                          {warning.message}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>

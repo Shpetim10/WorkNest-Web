@@ -95,7 +95,7 @@ export function mapServerErrorsToLocationForm(error: unknown): LocationFormServe
     /duplicate/i.test(apiError?.message ?? '') ||
     /already exists/i.test(apiError?.message ?? '')
   ) {
-    mapped.step1Errors.siteCode ??= apiError.message;
+    mapped.step1Errors.siteCode ??= apiError?.message ?? 'Duplicate site code';
   }
 
   if (fieldErrors['trustedNetworks'] || /network/i.test(apiError?.message ?? '')) {

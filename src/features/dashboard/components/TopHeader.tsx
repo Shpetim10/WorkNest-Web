@@ -47,7 +47,7 @@ export function TopHeader() {
   };
 
   return (
-    <header className="h-[64px] w-full bg-white border-b border-[#f1f5f9] flex items-center justify-between px-8 sticky top-0 z-20">
+    <header className="h-[64px] w-full border-b border-[#E5E7EB] flex items-center justify-between px-8 sticky top-0 z-20" style={{ background: '#BEDBFF4D' }}>
       
       {/* Search Bar */}
       <div className="flex-1 max-w-[480px]">

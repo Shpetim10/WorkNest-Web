@@ -6,6 +6,7 @@ import {
   GeofenceShapeType,
   Location,
   LocationAssessmentResult,
+  LocationDetectionSource,
   LocationFormData,
   LocationStep2Data,
   NetworkType,
@@ -72,11 +73,11 @@ function normalizeDate(value: string) {
 export function hasTrustedNetworkInput(network: TrustedNetworkFormValue) {
   return Boolean(
     network.name.trim() ||
-      network.cidrBlock.trim() ||
-      network.detectedIp.trim() ||
-      network.notes.trim() ||
-      network.expiryDate.trim() ||
-      network.id,
+    network.cidrBlock.trim() ||
+    network.detectedIp.trim() ||
+    network.notes.trim() ||
+    network.expiryDate.trim() ||
+    network.id,
   );
 }
 
@@ -202,8 +203,8 @@ export function mapFormToCreateCompanySiteRequest(
   const networkPayload = values.trustedNetworks
     .filter(hasTrustedNetworkInput)
     .map<TrustedNetworkDraftRequest>((network) => {
-      const priority = network.priorityOrder.trim() 
-        ? Math.max(1, Number(network.priorityOrder.trim())) 
+      const priority = network.priorityOrder.trim()
+        ? Math.max(1, Number(network.priorityOrder.trim()))
         : 1;
 
       return {
@@ -221,8 +222,8 @@ export function mapFormToCreateCompanySiteRequest(
     });
 
   // Determine original capture method based on form state
-  const detectionSource: LocationDetectionSource = values.location.locationDetected 
-    ? 'BROWSER_GEOLOCATION' 
+  const detectionSource: LocationDetectionSource = values.location.locationDetected
+    ? 'BROWSER_GEOLOCATION'
     : 'MANUAL_ENTRY';
 
   return {
@@ -278,8 +279,8 @@ export function mapForMainDetailsUpdate(values: CompanySiteFormValues, version: 
 }
 
 export function mapForLocationUpdate(values: CompanySiteFormValues, version: number | null) {
-  const detectionSource: LocationDetectionSource = values.location.locationDetected 
-    ? 'BROWSER_GEOLOCATION' 
+  const detectionSource: LocationDetectionSource = values.location.locationDetected
+    ? 'BROWSER_GEOLOCATION'
     : 'MANUAL_ENTRY';
 
   return {

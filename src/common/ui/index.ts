@@ -6,3 +6,4 @@ export * from './Textarea';
 export * from './Modal';
 export * from './Select';
 export * from './Stepper';
+export * from './TablePagination';

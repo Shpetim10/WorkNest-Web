@@ -3,18 +3,20 @@ import { refreshAuthTokens } from '@/features/auth/api/refresh';
 
 /**
  * WorkNest Robust API Client
- * 
+ *
  * Features:
  * 1. Automatic /api/v1 prefixing for all local requests.
  * 2. Normalization of baseURL to domain-root to avoid Axios path-merging quirks.
  * 3. Consistent detection of public auth routes (forgot password, activation, etc).
  * 4. Automatic injection of JWT and Multi-tenant headers.
- * 5. Silent Refresh Token Rotation for expired sessions.
+ * 5. Silent Refresh Token Rotation for expired sessions with queue-based
+ *    concurrency control and full loop-prevention guards.
  */
 
 const API_PREFIX = '/api/v1';
 
-// Extract base domain from environment variable
+// Derive the bare domain so we can prepend /api/v1 ourselves without
+// triggering Axios URL-merging quirks.
 const rawBaseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 const BASE_URL = rawBaseURL.replace(/\/api\/v1\/?$/, '');
 
@@ -22,61 +24,98 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
   timeout: 15000,
 });
 
-// --- REFRESH TOKEN STATE ---
-let isRefreshing = false;
-let failedQueue: any[] = [];
+// ---------------------------------------------------------------------------
+// REFRESH TOKEN STATE
+// ---------------------------------------------------------------------------
 
-const processQueue = (error: any, token: string | null = null) => {
+/** True while a refresh request is in-flight. */
+let isRefreshing = false;
+
+/**
+ * Queue of { resolve, reject } callbacks for requests that arrived while a
+ * refresh was already in-flight.  Flushed once the refresh settles.
+ */
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+const processQueue = (error: unknown, token: string | null = null): void => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      // token is guaranteed non-null when error is null
+      prom.resolve(token as string);
     }
   });
   failedQueue = [];
 };
 
+// ---------------------------------------------------------------------------
+// HELPERS
+// ---------------------------------------------------------------------------
+
+function getLocalItem(key: string): string | null {
+  return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+}
+
+function setLocalItem(key: string, value: string): void {
+  if (typeof window !== 'undefined') localStorage.setItem(key, value);
+}
+
+function removeLocalItems(keys: string[]): void {
+  if (typeof window !== 'undefined') keys.forEach((k) => localStorage.removeItem(k));
+}
+
+const AUTH_STORAGE_KEYS = ['auth_token', 'refresh_token', 'current_company_id'] as const;
+
 /**
- * Unified Request Interceptor
+ * Routes that must NEVER have the Authorization header injected and must
+ * NEVER trigger a token refresh on 401.
  */
+const PUBLIC_AUTH_ENDPOINTS: string[] = [
+  `${API_PREFIX}/auth/login`,
+  `${API_PREFIX}/auth/refresh`,
+  `${API_PREFIX}/auth/logout`,
+  `${API_PREFIX}/auth/invitations/activate`,
+  `${API_PREFIX}/auth/forgot-password`,
+  `${API_PREFIX}/auth/reset-password`,
+];
+
+function isPublicAuthUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return PUBLIC_AUTH_ENDPOINTS.some((endpoint) => url.startsWith(endpoint));
+}
+
+// ---------------------------------------------------------------------------
+// REQUEST INTERCEPTOR
+// ---------------------------------------------------------------------------
+
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 1. PRE-PATH NORMALIZATION
+    // 1. Prepend /api/v1 to relative paths
     if (config.url && !config.url.startsWith('http') && !config.url.startsWith(API_PREFIX)) {
       const separator = config.url.startsWith('/') ? '' : '/';
       config.url = `${API_PREFIX}${separator}${config.url}`;
     }
 
-    // 2. PUBLIC ROUTE DETECTION
-    const publicAuthEndpoints = [
-      `${API_PREFIX}/auth/login`,
-      `${API_PREFIX}/auth/invitations/activate`,
-      `${API_PREFIX}/auth/forgot-password`,
-      `${API_PREFIX}/auth/reset-password`,
-    ];
-
-    const isPublicAuth = config.url && publicAuthEndpoints.some(endpoint => config.url?.startsWith(endpoint));
-
-    // 3. HEADER INJECTION
-    if (!isPublicAuth) {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    // 2. Inject auth / tenant headers for protected routes only
+    if (!isPublicAuthUrl(config.url)) {
+      const token = getLocalItem('auth_token');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
-      const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') : null;
+      const companyId = getLocalItem('current_company_id');
       if (companyId && config.headers) {
         config.headers['X-Company-ID'] = companyId;
       }
     }
 
-    // 4. DEBUG LOGGING
+    // 3. Debug logging (dev only)
     if (process.env.NODE_ENV === 'development') {
       const fullPath = axios.getUri(config);
       console.log(`🚀 [API REQUEST] ${config.method?.toUpperCase()} ${fullPath}`);
@@ -84,120 +123,160 @@ apiClient.interceptors.request.use(
 
     return config;
   },
-  (error: AxiosError) => Promise.reject(error)
+  (error: AxiosError) => Promise.reject(error),
 );
 
-/**
- * Unified Response Interceptor
- * Handles Global Error Logging, 401 Silent Refresh, and Queueing.
- */
+// ---------------------------------------------------------------------------
+// RESPONSE INTERCEPTOR — Silent Refresh Token Rotation
+// ---------------------------------------------------------------------------
+
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // 401 Handler with Refresh Rotation
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // 0. Double-Check: Has a newer token been saved by another tab or request while this one was in flight?
-      const usedToken = originalRequest.headers?.Authorization?.toString().replace('Bearer ', '');
-      const freshToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    // -----------------------------------------------------------------------
+    // 401 Handler
+    // -----------------------------------------------------------------------
+    if (error.response?.status === 401) {
+      // Guard 1: Never retry auth / public endpoints — avoids refresh loops.
+      if (isPublicAuthUrl(originalRequest.url)) {
+        return Promise.reject(error);
+      }
 
-      if (freshToken && usedToken && freshToken !== usedToken) {
+      // Guard 2: Never retry a request that we already retried — avoids
+      //          infinite loops when the new token is also rejected.
+      if (originalRequest._retry) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 [Auth] Multi-tab sync: Token already refreshed by another tab. Retrying original request.');
+          console.warn('⚠️ [Auth] Retry request also returned 401. Aborting to prevent loop.');
         }
+        return Promise.reject(error);
+      }
+
+      // Guard 3: Never attempt a refresh if already on the login page.
+      const isLoginPage =
+        typeof window !== 'undefined' && window.location.pathname.includes('/login');
+      if (isLoginPage) {
+        return Promise.reject(error);
+      }
+
+      // -----------------------------------------------------------------------
+      // Multi-tab sync: another tab may have refreshed the token while this
+      // request was in-flight.  If the stored token differs from the one that
+      // was used, just retry with the newer token — no refresh needed.
+      // -----------------------------------------------------------------------
+      const usedToken = originalRequest.headers?.Authorization?.toString().replace('Bearer ', '');
+      const storedToken = getLocalItem('auth_token');
+
+      if (storedToken && usedToken && storedToken !== usedToken) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            '🔄 [Auth] Multi-tab sync: token already refreshed by another tab. Retrying.',
+          );
+        }
+        // Mark as retried so a subsequent 401 does not loop.
+        originalRequest._retry = true;
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+          originalRequest.headers.Authorization = `Bearer ${storedToken}`;
         }
         return apiClient(originalRequest);
       }
 
-      // Don't attempt refresh if we're on the login page or if it was a final auth attempt
-      const isLoginPage = typeof window !== 'undefined' && window.location.pathname.includes('/login');
-      const isAuthRequest = originalRequest.url?.includes('/auth/login') || 
-                            originalRequest.url?.includes('/auth/refresh') ||
-                            originalRequest.url?.includes('/auth/logout');
-
-      if (isLoginPage || isAuthRequest) {
+      // -----------------------------------------------------------------------
+      // No refresh token available → bail out immediately.
+      // -----------------------------------------------------------------------
+      const refreshToken = getLocalItem('refresh_token');
+      if (!refreshToken) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ [Auth] No refresh token found. Forwarding 401 to caller.');
+        }
         return Promise.reject(error);
       }
 
+      // -----------------------------------------------------------------------
+      // Another request is already refreshing → queue this one and wait.
+      // -----------------------------------------------------------------------
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
+          // Mark the original request as retried BEFORE queuing so that if the
+          // resolved token is also invalid the retry will not re-enter this path.
+          originalRequest._retry = true;
           failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
+        }).then((newToken) => {
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
+          return apiClient(originalRequest);
+        });
       }
 
+      // -----------------------------------------------------------------------
+      // This request will own the refresh.
+      // -----------------------------------------------------------------------
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
-
-      if (!refreshToken) {
-        isRefreshing = false;
-        // Optionally redirect to login or clear store
-        return Promise.reject(error);
-      }
-
       try {
-        console.log('🔄 [Auth] Token expired. Attempting silent refresh...');
-        const refreshResponse = await refreshAuthTokens(refreshToken);
-        
-        const { accessToken, refreshToken: newRefreshToken, tenantContext } = refreshResponse;
-
-        // Update local storage
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('auth_token', accessToken);
-          localStorage.setItem('refresh_token', newRefreshToken);
-          if (tenantContext?.companyId) {
-            localStorage.setItem('current_company_id', tenantContext.companyId);
-          }
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 [Auth] Token expired. Attempting silent refresh...');
         }
 
-        console.log('✅ [Auth] Silent refresh successful. Retrying original request.');
-        
+        const refreshResponse = await refreshAuthTokens(refreshToken);
+        const { accessToken, refreshToken: newRefreshToken, tenantContext } = refreshResponse;
+
+        // Persist the new token pair
+        setLocalItem('auth_token', accessToken);
+        setLocalItem('refresh_token', newRefreshToken);
+
+        // Only update tenantContext if the server returned one; preserving the
+        // existing companyId when absent avoids accidental tenant mismatches.
+        if (tenantContext?.companyId) {
+          setLocalItem('current_company_id', tenantContext.companyId);
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [Auth] Silent refresh successful. Retrying original request.');
+        }
+
+        // Unblock all queued requests
         processQueue(null, accessToken);
-        
+
+        // Retry the original request with the fresh token
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
-        
         return apiClient(originalRequest);
       } catch (refreshError) {
-        console.error('❌ [Auth] Silent refresh failed. Session expired.');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ [Auth] Silent refresh failed. Clearing session.');
+        }
+
         processQueue(refreshError, null);
-        
-        // Clear local storage and redirect if needed
+
+        // Wipe local auth state and redirect to login
+        removeLocalItems([...AUTH_STORAGE_KEYS]);
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('current_company_id');
           window.location.href = `/login?expired=true&originalUrl=${encodeURIComponent(window.location.pathname)}`;
         }
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Standard error logging
-    console.error(`❌ [API ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+    // -----------------------------------------------------------------------
+    // Non-401 errors: log and forward
+    // -----------------------------------------------------------------------
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`❌ [API ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export { apiClient };

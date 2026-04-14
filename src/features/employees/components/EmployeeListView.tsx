@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Button, TablePagination } from '@/common/ui';
-import { Edit3, Eye, Plus, Search, Trash2, Loader2 } from 'lucide-react';
+import { Edit3, Eye, Plus, Search, Trash2, Loader2, Send } from 'lucide-react';
 import { EmployeeStatus, EmployeeDTO } from '../types';
 import { useEmployees } from '../api/get-employees';
+import { useResendInvitation } from '../api/resend-invitation';
 import { EmployeeFormModal } from './EmployeeFormModal';
 import { EmployeeViewModal } from './EmployeeViewModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
-const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Job Title', 'Status', 'Actions'];
+const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
 const ITEMS_PER_PAGE = 10;
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -23,8 +24,11 @@ function getDepartmentBadge(dept: string) {
   return map[dept] ?? 'bg-gray-100 text-gray-600';
 }
 
-function getInitials(firstName: string, lastName: string) {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+function getInitials(name?: string | null) {
+  if (!name) return '??';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  return name.charAt(0).toUpperCase() || '?';
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -46,9 +50,24 @@ export function EmployeeListView() {
 
   // Modal State
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [viewEmployee, setViewEmployee] = useState<EmployeeDTO | null>(null);
+  const [viewEmployeeId, setViewEmployeeId] = useState<string | null>(null);
   const [editEmployee, setEditEmployee] = useState<EmployeeDTO | null>(null);
   const [deleteEmployee, setDeleteEmployee] = useState<EmployeeDTO | null>(null);
+  
+  const resendMutation = useResendInvitation();
+
+  const handleResend = async (employeeId: string) => {
+    const companyId = localStorage.getItem('current_company_id');
+    if (!companyId) return;
+
+    try {
+      await resendMutation.mutateAsync({ companyId, employeeId });
+      alert('Invitation resent successfully!');
+    } catch (err: any) {
+      console.error('Failed to resend invitation:', err);
+      alert(err.response?.data?.message || 'Failed to resend invitation');
+    }
+  };
 
   const handleSaveEmployee = (updatedEmp: any) => {
     // In real app, this would be a mutation
@@ -62,8 +81,8 @@ export function EmployeeListView() {
     setDeleteEmployee(null);
   };
 
-  const employees = data?.content ?? [];
-  const totalPages = data?.totalPages ?? 0;
+  const employees = data?.data ?? [];
+  const totalPages = 1; // Backend example was non-paginated, so we stub to 1 for now
 
   return (
     <div className="animate-in slide-in-from-bottom-2 w-full space-y-8 duration-500 fade-in pb-10">
@@ -150,16 +169,16 @@ export function EmployeeListView() {
                 employees.map((employee) => (
                   <tr 
                     key={employee.id} 
-                    onClick={() => setViewEmployee(employee)}
+                    onClick={() => setViewEmployeeId(employee.id)}
                     className="group transition-colors hover:bg-gray-50/50 cursor-pointer"
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3 text-left">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#155DFC] to-[#01c951] text-[14px] font-bold text-white shadow-sm">
-                          {getInitials(employee.firstName, employee.lastName)}
+                          {getInitials(employee.name || `${employee.firstName} ${employee.lastName}`)}
                         </div>
                         <span className="text-[16px] font-semibold text-[#1E2939] font-[Inter,sans-serif] whitespace-nowrap">
-                          {employee.firstName} {employee.lastName}
+                          {employee.name || `${employee.firstName} ${employee.lastName}`}
                         </span>
                       </div>
                     </td>
@@ -171,6 +190,11 @@ export function EmployeeListView() {
                         {employee.departmentName}
                       </span>
                     </td>
+                    <td className="px-6 py-5">
+                      <span className="text-[14px] font-medium text-[#1E2939] font-[Inter,sans-serif]">
+                        {employee.companySiteName || "—"}
+                      </span>
+                    </td>
                     <td className="px-6 py-5 text-left">
                       <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{employee.jobTitle}</span>
                     </td>
@@ -179,17 +203,31 @@ export function EmployeeListView() {
                         className={`inline-flex items-center rounded-full px-3.5 py-1 text-[11px] font-bold font-[Inter,sans-serif] ${
                           employee.status === EmployeeStatus.ACTIVE 
                             ? 'bg-[#F0FDF4] text-[#008236]' 
+                            : employee.status === EmployeeStatus.PENDING
+                            ? 'bg-[#FFFBEB] text-[#B45309]'
                             : 'bg-[#FFF7ED] text-[#CA3500]'
                         }`}
                       >
                         <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
-                        {employee.status === EmployeeStatus.ACTIVE ? 'Active' : 'On Leave'}
+                        {employee.status === EmployeeStatus.ACTIVE ? 'Active' : 
+                         employee.status === EmployeeStatus.PENDING ? 'Pending' : 
+                         employee.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
+                        {employee.status === EmployeeStatus.PENDING && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleResend(employee.id); }}
+                            disabled={resendMutation.isPending}
+                            title="Resend Invitation"
+                            className="rounded-lg p-2 text-gray-400 transition-all hover:bg-orange-50 hover:text-[#B45309] disabled:opacity-50"
+                          >
+                            {resendMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                          </button>
+                        )}
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setViewEmployee(employee); }}
+                          onClick={(e) => { e.stopPropagation(); setViewEmployeeId(employee.id); }}
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                         >
                           <Eye size={18} />
@@ -245,13 +283,11 @@ export function EmployeeListView() {
       )}
 
       {/* View Modal */}
-      {viewEmployee && (
-        <EmployeeViewModal
-          isOpen={!!viewEmployee}
-          onClose={() => setViewEmployee(null)}
-          employee={viewEmployee}
-        />
-      )}
+      <EmployeeViewModal
+        isOpen={!!viewEmployeeId}
+        onClose={() => setViewEmployeeId(null)}
+        employeeId={viewEmployeeId}
+      />
 
       {/* Delete Confirmation Modal */}
       {deleteEmployee && (

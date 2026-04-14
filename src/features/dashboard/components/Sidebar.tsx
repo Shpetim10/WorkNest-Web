@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
     href: '#',
     hasChevron: true,
     subItems: [
-      { name: 'Employee List', href: '/dashboard/employees/list' },
+      { name: 'Employee List', href: '/dashboard/employees' },
       { name: 'Staff List', href: '/dashboard/employees/staff' },
       { name: 'Assign Employees', href: '/dashboard/employees/assign' },
     ],

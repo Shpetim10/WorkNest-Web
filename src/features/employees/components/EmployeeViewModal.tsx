@@ -2,24 +2,29 @@
 
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, User, Mail, Phone, Building2, Calendar, ShieldCheck, UserCog } from 'lucide-react';
+import { X, User, Mail, Phone, Building2, Calendar, ShieldCheck, UserCog, MapPin } from 'lucide-react';
 import { EmployeeStatus, EmployeeDTO } from '../types';
+
+import { useEmployee } from '../api/get-employee-details';
+import { Loader2 } from 'lucide-react';
 
 interface EmployeeViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  employee: EmployeeDTO | null;
+  employeeId: string | null;
 }
 
 const DETAIL_ROW_CLASS = "flex flex-col gap-1.5 p-4 rounded-xl border border-gray-100 bg-gray-50/30 transition-colors hover:bg-[#F8FAFF] hover:border-[#155DFC]/20";
 const LABEL_CLASS = "flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-gray-400";
 const VALUE_CLASS = "text-[15px] font-semibold text-[#1E2939]";
 
-function getInitials(firstName: string, lastName: string) {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+function getInitials(firstName?: string, lastName?: string) {
+  const f = firstName?.charAt(0) || '';
+  const l = lastName?.charAt(0) || '';
+  return `${f}${l}`.toUpperCase() || '??';
 }
 
-function formatDate(dateString: string) {
+function formatDate(dateString: string | undefined) {
   if (!dateString) return '-';
   try {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -32,7 +37,9 @@ function formatDate(dateString: string) {
   }
 }
 
-export function EmployeeViewModal({ isOpen, onClose, employee }: EmployeeViewModalProps) {
+export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewModalProps) {
+  const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const { data: employee, isLoading, isError } = useEmployee(companyId, employeeId);
   
   // Escape key closes the modal
   useEffect(() => {
@@ -42,10 +49,11 @@ export function EmployeeViewModal({ isOpen, onClose, employee }: EmployeeViewMod
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  if (!isOpen || !employee) return null;
+  if (!isOpen) return null;
 
-  const initials = getInitials(employee.firstName, employee.lastName);
-  const fullName = `${employee.firstName} ${employee.lastName}`;
+  // Header helpers (safe after data is loaded)
+  const initials = employee ? getInitials(employee.firstName, employee.lastName) : '??';
+  const fullName = employee ? `${employee.firstName} ${employee.lastName}` : 'Loading...';
 
   return createPortal(
     <>
@@ -67,15 +75,22 @@ export function EmployeeViewModal({ isOpen, onClose, employee }: EmployeeViewMod
               </div>
               <div className="space-y-1">
                 <h2 className="text-[24px] font-bold text-[#1E2939] tracking-tight">{fullName}</h2>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                    employee.status === EmployeeStatus.ACTIVE ? 'bg-[#F0FDF4] text-[#008236]' : 'bg-[#FFF7ED] text-[#CA3500]'
-                  }`}>
-                    <div className="mr-1 h-1 w-1 rounded-full bg-current" />
-                    {employee.status === EmployeeStatus.ACTIVE ? 'Active' : 'On Leave'}
-                  </span>
-                  <span className="text-[13px] font-medium text-gray-400 font-[Inter,sans-serif]">Employee ID: {employee.employeeId}</span>
-                </div>
+                {employee && (
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      employee.status === EmployeeStatus.ACTIVE 
+                        ? 'bg-[#F0FDF4] text-[#008236]' 
+                        : employee.status === EmployeeStatus.PENDING
+                        ? 'bg-[#FFFBEB] text-[#B45309]'
+                        : 'bg-[#FFF7ED] text-[#CA3500]'
+                    }`}>
+                      <div className="mr-1.5 h-1 w-1 rounded-full bg-current" />
+                      {employee.status === EmployeeStatus.ACTIVE ? 'Active' : 
+                       employee.status === EmployeeStatus.PENDING ? 'Pending' : 
+                       employee.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <button onClick={onClose} className="p-2.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all active:scale-95">
@@ -85,47 +100,83 @@ export function EmployeeViewModal({ isOpen, onClose, employee }: EmployeeViewMod
 
           {/* Details Body */}
           <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-            <div className="grid grid-cols-2 gap-4">
-              
-              <div className={DETAIL_ROW_CLASS}>
-                <span className={LABEL_CLASS}><User size={14} strokeWidth={2.5} /> Full Name</span>
-                <span className={VALUE_CLASS}>{fullName}</span>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-[#155DFC]" />
+                <p className="text-gray-400 font-medium">Fetching employee details...</p>
               </div>
-
-              <div className={DETAIL_ROW_CLASS}>
-                <span className={LABEL_CLASS}><Mail size={14} strokeWidth={2.5} /> Email Address</span>
-                <span className={VALUE_CLASS}>{employee.email}</span>
+            ) : isError || !employee ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                  <X size={24} />
+                </div>
+                <p className="text-gray-500 font-medium">Failed to load employee details</p>
               </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><User size={14} strokeWidth={2.5} /> Full Name</span>
+                  <span className={VALUE_CLASS}>{fullName}</span>
+                </div>
 
-              <div className={DETAIL_ROW_CLASS}>
-                <span className={LABEL_CLASS}><Building2 size={14} strokeWidth={2.5} /> Department</span>
-                <span className={VALUE_CLASS}>{employee.departmentName}</span>
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><Mail size={14} strokeWidth={2.5} /> Email Address</span>
+                  <span className={VALUE_CLASS}>{employee.email}</span>
+                </div>
+
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><Building2 size={14} strokeWidth={2.5} /> Department</span>
+                  <span className={VALUE_CLASS}>{employee.departmentName || '-'}</span>
+                </div>
+
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><UserCog size={14} strokeWidth={2.5} /> Job Title</span>
+                  <span className={VALUE_CLASS}>{employee.jobTitle}</span>
+                </div>
+
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><MapPin size={14} strokeWidth={2.5} /> Location</span>
+                  <span className={VALUE_CLASS}>{employee.companySiteName || '-'}</span>
+                </div>
+
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><Calendar size={14} strokeWidth={2.5} /> Hire Date</span>
+                  <span className={VALUE_CLASS}>{formatDate(employee.hireDate)}</span>
+                </div>
+
+                <div className={DETAIL_ROW_CLASS}>
+                  <span className={LABEL_CLASS}><ShieldCheck size={14} strokeWidth={2.5} /> Permissions</span>
+                  <span className={VALUE_CLASS}>Standard Employee</span>
+                </div>
+
+                <div className={`${DETAIL_ROW_CLASS} col-span-2`}>
+                  <span className={LABEL_CLASS}><UserCog size={14} strokeWidth={2.5} /> Assigned Supervisor</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-[#E8F1FF] flex items-center justify-center text-[#155DFC]">
+                        <User size={16} strokeWidth={2.5} />
+                      </div>
+                      <span className={VALUE_CLASS}>{employee.supervisorName || 'No supervisor assigned'}</span>
+                    </div>
+                    {employee.supervisorJobTitle && (
+                      <span className="text-[12px] font-bold text-[#155DFC] bg-[#E8F1FF] px-3 py-1 rounded-lg border border-[#155DFC]/10 uppercase tracking-tighter">
+                        {employee.supervisorJobTitle}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className={`${DETAIL_ROW_CLASS} col-span-2 mt-2 bg-[#F8FAFF]/50 border-[#155DFC]/10`}>
+                  <span className={LABEL_CLASS}><ShieldCheck size={14} strokeWidth={2.5} className="text-[#155DFC]" /> Profile Summary</span>
+                  <p className="text-[14px] font-medium text-gray-500 mt-2 leading-relaxed">
+                    This employee is currently <span className="text-[#155DFC] font-bold">{employee.status.toLowerCase().replace('_', ' ')}</span>. 
+                    They work as a <span className="font-bold text-[#1E2939]">{employee.jobTitle}</span> within the <span className="font-bold text-[#1E2939]">{employee.departmentName}</span> department, having joined on <span className="font-bold text-[#1E2939]">{formatDate(employee.hireDate)}</span>.
+                  </p>
+                </div>
+
               </div>
-
-              <div className={DETAIL_ROW_CLASS}>
-                <span className={LABEL_CLASS}><UserCog size={14} strokeWidth={2.5} /> Job Title</span>
-                <span className={VALUE_CLASS}>{employee.jobTitle}</span>
-              </div>
-
-              <div className={DETAIL_ROW_CLASS}>
-                <span className={LABEL_CLASS}><Calendar size={14} strokeWidth={2.5} /> Hire Date</span>
-                <span className={VALUE_CLASS}>{formatDate(employee.hireDate)}</span>
-              </div>
-
-              <div className={DETAIL_ROW_CLASS}>
-                <span className={LABEL_CLASS}><ShieldCheck size={14} strokeWidth={2.5} /> Permissions</span>
-                <span className={VALUE_CLASS}>Standard Employee</span>
-              </div>
-
-              <div className={`${DETAIL_ROW_CLASS} col-span-2 mt-2 bg-[#F8FAFF]/50 border-[#155DFC]/10`}>
-                <span className={LABEL_CLASS}><ShieldCheck size={14} strokeWidth={2.5} className="text-[#155DFC]" /> Profile Summary</span>
-                <p className="text-[14px] font-medium text-gray-500 mt-2 leading-relaxed">
-                  This employee is currently <span className="text-[#155DFC] font-bold">{employee.status.toLowerCase().replace('_', ' ')}</span>. 
-                  They work as a <span className="font-bold text-[#1E2939]">{employee.jobTitle}</span> within the <span className="font-bold text-[#1E2939]">{employee.departmentName}</span> department, having joined on <span className="font-bold text-[#1E2939]">{formatDate(employee.hireDate)}</span>.
-                </p>
-              </div>
-
-            </div>
+            )}
           </div>
 
           {/* Footer */}

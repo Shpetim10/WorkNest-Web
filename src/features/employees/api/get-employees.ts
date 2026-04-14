@@ -14,18 +14,20 @@ export const employeeKeys = {
   detail: (id: string) => [...employeeKeys.details(), id] as const,
 };
 
+import { ApiResponse } from '@/common/types/api';
+
 /**
- * Hook to fetch a paginated list of employees
+ * Hook to fetch a list of employees for the current company
  */
 export const useEmployees = (filters: EmployeeFilters) => {
-  return useQuery<PaginatedResponse<EmployeeDTO>>({
+  return useQuery<ApiResponse<EmployeeDTO[]>>({
     queryKey: employeeKeys.list(filters),
     queryFn: async () => {
-      const response = await apiClient.get<PaginatedResponse<EmployeeDTO>>('/employees', {
-        params: {
-          ...filters,
-          page: (filters.page || 1) - 1, // API is 0-indexed, UI is 1-indexed
-        },
+      const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') : null;
+      if (!companyId) throw new Error('Company Context Missing');
+
+      const response = await apiClient.get<ApiResponse<EmployeeDTO[]>>(`/companies/${companyId}/employees`, {
+        params: filters,
       });
       return response.data;
     },

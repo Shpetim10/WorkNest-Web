@@ -34,13 +34,7 @@ export function DepartmentDetailsModal({ isOpen, onClose, departmentId, initialD
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return new Date(dateString).toISOString().split('T')[0];
     } catch (e) {
       return dateString;
     }
@@ -64,18 +58,19 @@ export function DepartmentDetailsModal({ isOpen, onClose, departmentId, initialD
           {/* Name */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Name</p>
-            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{displayData.name}</p>
+            <p className="font-[Inter,sans-serif] text-[14px] font-semibold leading-[24px] text-[#1E2939] break-words">{displayData.name}</p>
           </div>
 
           {/* Status */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Status</p>
             <div className="flex">
-              <span className={`px-4 py-1.5 rounded-full text-[13px] font-bold ${
+              <span className={`px-2.5 py-1 rounded-full text-[12px] font-medium leading-[16px] break-words font-[Inter,sans-serif] flex items-center w-fit ${
                 displayData.status === 'ACTIVE' 
-                  ? 'bg-emerald-50 text-emerald-600' 
-                  : 'bg-gray-100 text-gray-400'
+                  ? 'bg-[#F0FDF4] text-[#008236]' 
+                  : 'bg-[#FFF7ED] text-[#CA3500]'
               }`}>
+                <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
                 {displayData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
               </span>
             </div>
@@ -84,22 +79,24 @@ export function DepartmentDetailsModal({ isOpen, onClose, departmentId, initialD
           {/* Created At */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Created At</p>
-            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{formatDate(displayData.createdAt)}</p>
+            <p className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#6A7282] break-words">{formatDate(displayData.createdAt)}</p>
           </div>
 
           {/* Updated At */}
           <div className="space-y-1.5">
             <p className="text-[14px] font-medium text-gray-400">Updated At</p>
-            <p className="text-[16px] font-bold text-[#1E2939] leading-tight">{formatDate(displayData.updatedAt)}</p>
+            <p className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#6A7282] break-words">{formatDate(displayData.updatedAt)}</p>
           </div>
         </div>
 
         {/* Description */}
-        <div className="space-y-1.5 pt-2">
+        <div className="space-y-2 pt-2">
           <p className="text-[14px] font-medium text-gray-400">Description</p>
-          <p className="text-[16px] font-medium text-gray-700 leading-relaxed max-w-[580px]">
-            {displayData.description || 'No description provided.'}
-          </p>
+          <div className="max-h-[240px] overflow-y-auto pr-2">
+            <p className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] break-words whitespace-pre-wrap">
+              {displayData.description || 'No description provided.'}
+            </p>
+          </div>
         </div>
 
         {/* Footer - Close Button */}

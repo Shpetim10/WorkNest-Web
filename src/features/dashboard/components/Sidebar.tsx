@@ -67,7 +67,7 @@ const NAV_ITEMS: NavItem[] = [
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const SIDEBAR_BG       = 'rgba(43, 127, 255, 0.20)';
 const ACTIVE_BG        = 'rgba(0, 201, 80, 0.87)';
-const ACTIVE_SHADOW    = '0 4px 14px rgba(0, 201, 80, 0.40)';
+const ACTIVE_SHADOW    = '0px 2px 4px -2px rgba(43, 127, 255, 0.30), 0px 10px 15px -1px #00A63E';
 const MAIN_TEXT_COLOR  = '#364153';
 const SUB_TEXT_COLOR   = '#4A5565';
 const BULLET_INACTIVE  = '#99A1AF';

@@ -149,6 +149,7 @@ export function AddLocationStepLocation({
         id="addressLine1"
         label="Address Line 1"
         required={locationRequired}
+        maxLength={255}
         placeholder="Street address"
         value={data.addressLine1}
         onChange={(e) => onChange({ addressLine1: e.target.value })}
@@ -158,6 +159,7 @@ export function AddLocationStepLocation({
       <Input
         id="addressLine2"
         label="Address Line 2"
+        maxLength={255}
         placeholder="Apartment, suite, etc."
         value={data.addressLine2}
         onChange={(e) => onChange({ addressLine2: e.target.value })}
@@ -168,6 +170,7 @@ export function AddLocationStepLocation({
           id="city"
           label="City"
           required={locationRequired}
+          maxLength={255}
           placeholder="City name"
           value={data.city}
           onChange={(e) => onChange({ city: e.target.value })}
@@ -177,6 +180,7 @@ export function AddLocationStepLocation({
         <Input
           id="stateRegion"
           label="State / Region"
+          maxLength={255}
           placeholder="Region"
           value={data.stateRegion}
           onChange={(e) => onChange({ stateRegion: e.target.value })}
@@ -186,6 +190,7 @@ export function AddLocationStepLocation({
       <Input
         id="postalCode"
         label="Postal Code"
+        maxLength={255}
         placeholder="1001"
         value={data.postalCode}
         onChange={(e) => onChange({ postalCode: e.target.value })}

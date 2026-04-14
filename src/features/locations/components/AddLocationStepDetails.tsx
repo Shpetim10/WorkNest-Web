@@ -54,6 +54,7 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
           id="siteName"
           label="Site Name"
           required
+          maxLength={120}
           placeholder="Tirana Headquarters"
           value={data.siteName}
           onChange={(e) => onChange({ siteName: e.target.value })}
@@ -64,6 +65,7 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
           id="siteCode"
           label="Site Code"
           required
+          maxLength={80}
           placeholder="HQ-TIR"
           value={data.siteCode}
           onChange={(e) => onChange({ siteCode: e.target.value.toUpperCase() })}

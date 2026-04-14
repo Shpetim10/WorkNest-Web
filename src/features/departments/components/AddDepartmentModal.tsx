@@ -69,7 +69,7 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
         </div>
 
         {/* Row 2: Description */}
-        <div className="w-full">
+        <div className="w-full space-y-2">
           <Textarea
             id="dept-description"
             label="Description"
@@ -77,7 +77,15 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
             rows={2}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            maxLength={255}
           />
+          <div className="flex justify-end pr-1">
+            <span className={`text-[12px] font-medium transition-colors ${
+              formData.description.length >= 255 ? 'text-red-500' : 'text-gray-400'
+            }`}>
+              {formData.description.length} / 255
+            </span>
+          </div>
         </div>
 
         {/* Footer Buttons */}

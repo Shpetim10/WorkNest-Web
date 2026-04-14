@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Activity,
   Building2,
@@ -21,13 +21,15 @@ function DetailRow({
   isMono = false,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   isMono?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-[13px] font-normal text-[#4A5565]">{label}</span>
-      <span className={`text-[13px] font-medium text-[#101828] ${isMono ? 'font-mono' : ''}`}>{value}</span>
+    <div className="flex flex-col py-2.5 gap-1 border-b border-gray-50 last:border-0 sm:flex-row sm:items-start sm:gap-4">
+      <span className="text-[13px] font-medium text-[#64748B] shrink-0 sm:font-normal sm:w-32">{label}</span>
+      <div className={`font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] break-words flex-1 min-w-0 flex flex-col items-start sm:items-end sm:text-right ${isMono ? 'font-mono' : ''}`}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -45,8 +47,11 @@ export function LocationDetailsModal({
   siteId,
   companyId,
 }: LocationDetailsModalProps) {
-  const { data, isLoading, isError } = useSiteDetails(companyId, isOpen ? siteId : null);
-  const location = data ? mapDetailsToLocation(data) : null;
+  const { data: realData, isLoading, isError } = useSiteDetails(companyId, isOpen ? siteId : null);
+  
+  const location = useMemo(() => {
+    return realData ? mapDetailsToLocation(realData) : null;
+  }, [realData]);
 
   return (
     <Modal
@@ -62,32 +67,34 @@ export function LocationDetailsModal({
           style={{ background: 'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)' }}
         >
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#155DFC] to-[#3B82F6] shadow-lg shadow-blue-200">
+            <div className="flex flex-1 items-center gap-4 min-w-0">
+              <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#155DFC] to-[#3B82F6] shadow-lg shadow-blue-200">
                 <MapPin size={26} className="text-white" strokeWidth={2.5} />
               </div>
-              <div className="space-y-0.5">
-                <h2 className="text-[24px] font-bold leading-tight tracking-tight text-[#101828]">
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <h2 className="font-[Inter,sans-serif] text-[14px] font-semibold leading-[24px] text-[#1E2939] break-words">
                   {location?.siteName ?? 'Location details'}
                 </h2>
-                <p className="text-[14px] font-normal text-[#4A5565]">{location?.siteCode ?? 'Loading...'}</p>
+                <p className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] truncate" title={location?.siteCode}>
+                   {location?.siteCode ?? 'Loading...'}
+                </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-full p-1.5 text-[#6A7282] transition-colors hover:bg-gray-100"
+              className="ml-4 shrink-0 rounded-full p-1.5 text-[#6A7282] transition-colors hover:bg-gray-100"
             >
               <X size={20} />
             </button>
           </div>
         </div>
 
-        <div className="space-y-6 px-6 py-4">
+        <div className="space-y-6 px-6 py-4 max-h-[60vh] overflow-y-auto overflow-x-hidden">
           {isLoading ? (
             <div className="flex min-h-[280px] items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-[#155DFC]" />
             </div>
-          ) : isError || !location ? (
+          ) : (isError || !location) ? (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
               Failed to load the latest location details.
             </div>
@@ -99,37 +106,41 @@ export function LocationDetailsModal({
                   <h3 className="text-[16px] font-semibold text-[#101828]">Basic Information</h3>
                 </div>
                 <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-[13px] font-normal text-[#4A5565]">Site Type:</span>
-                    <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-[12px] font-bold text-[#1D4ED8]">
-                      {location.siteType}
-                    </span>
-                  </div>
+                  <DetailRow 
+                    label="Site Type:" 
+                    value={
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#EFF6FF] text-[#1D4ED8] text-[12px] font-medium leading-[16px] break-words font-[Inter,sans-serif] truncate max-w-[150px]">
+                        {location.siteType}
+                      </span>
+                    }
+                  />
                   <DetailRow label="Country:" value={location.country} />
                   <DetailRow label="Timezone:" value={location.timezone} />
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-[13px] font-normal text-[#4A5565]">Status:</span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
-                        location.status === 'ACTIVE'
-                          ? 'bg-[#ECFDF5] text-[#059669]'
-                          : location.status === 'DRAFT'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
+                  <DetailRow 
+                    label="Status:" 
+                    value={
                       <span
-                        className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-medium leading-[16px] break-words font-[Inter,sans-serif] truncate max-w-[150px] ${
                           location.status === 'ACTIVE'
-                            ? 'bg-[#10B981]'
+                            ? 'bg-[#ECFDF5] text-[#059669]'
                             : location.status === 'DRAFT'
-                              ? 'bg-amber-500'
-                              : 'bg-gray-400'
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-gray-100 text-gray-500'
                         }`}
-                      />
-                      {location.status}
-                    </span>
-                  </div>
+                      >
+                        <span
+                          className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                            location.status === 'ACTIVE'
+                              ? 'bg-[#10B981]'
+                              : location.status === 'DRAFT'
+                                ? 'bg-amber-500'
+                                : 'bg-gray-400'
+                          }`}
+                        />
+                        {location.status}
+                      </span>
+                    }
+                  />
                 </div>
               </div>
 
@@ -140,6 +151,7 @@ export function LocationDetailsModal({
                 </div>
                 <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
                   <DetailRow label="Address:" value={location.addressLine1 || '-'} />
+                  {location.addressLine2 && <DetailRow label="Address Line 2:" value={location.addressLine2} />}
                   <DetailRow label="City:" value={location.city || '-'} />
                   <DetailRow
                     label="Coordinates:"
@@ -163,6 +175,14 @@ export function LocationDetailsModal({
                   <DetailRow label="CIDR Block:" value={location.cidrBlock || '-'} isMono />
                   <DetailRow label="Detected IP:" value={location.detectedIp || '-'} isMono />
                   <DetailRow label="Confidence:" value={location.confidence} />
+                  {location.notes && (
+                    <div className="pt-2">
+                       <p className="text-[13px] font-medium text-[#64748B] mb-1">Notes</p>
+                       <p className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] break-words whitespace-pre-wrap bg-white/50 p-2 rounded-lg border border-gray-50">
+                          {location.notes}
+                       </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </>

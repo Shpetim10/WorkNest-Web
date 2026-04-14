@@ -12,7 +12,7 @@ import { DepartmentDetailsModal } from './DepartmentDetailsModal';
 const ITEMS_PER_PAGE = 10;
 
 export function DepartmentsView() {
-  const { data: departments, isLoading, isError, error } = useDepartments();
+  const { data: departments, isLoading, isError } = useDepartments();
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
@@ -62,11 +62,7 @@ export function DepartmentsView() {
   const formatDate = (dateString: string) => {
     if (!dateString) return '—';
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      return new Date(dateString).toISOString().split('T')[0];
     } catch (e) {
       return dateString;
     }
@@ -105,7 +101,7 @@ export function DepartmentsView() {
             placeholder="Search departments..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-gray-50/50 border border-gray-100 rounded-xl text-[13.5px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40 transition-all font-[Inter,sans-serif]"
+            className="w-full h-11 pl-11 pr-4 bg-gray-50/50 border border-gray-100 rounded-xl text-[16px] font-normal leading-[24px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40 transition-all font-[Inter,sans-serif]"
           />
         </div>
       </Card>
@@ -159,10 +155,10 @@ export function DepartmentsView() {
                 paginatedDepartments.map((dept) => (
                   <tr key={dept.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => handleAction(dept.id, 'view')}>
                     <td className="px-6 py-5">
-                      <span className="text-[16px] font-semibold text-[#1E2939] font-[Inter,sans-serif]">{dept.name}</span>
+                      <span className="font-[Inter,sans-serif] text-[14px] font-semibold leading-[24px] text-[#1E2939] break-words">{dept.name}</span>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`px-3.5 py-1 rounded-full text-[11px] font-bold font-[Inter,sans-serif] flex items-center w-fit ${
+                      <span className={`px-2.5 py-1 rounded-full text-[12px] font-medium leading-[16px] break-words font-[Inter,sans-serif] flex items-center w-fit ${
                         dept.status === 'ACTIVE' 
                           ? 'bg-[#F0FDF4] text-[#008236]' 
                           : 'bg-[#FFF7ED] text-[#CA3500]'
@@ -171,15 +167,17 @@ export function DepartmentsView() {
                         {dept.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif] line-clamp-1">{dept.description || '—'}</span>
+                    <td className="px-6 py-5 max-w-[300px]">
+                      <div className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] break-words line-clamp-1 overflow-hidden" title={dept.description}>
+                        {dept.description || '—'}
+                      </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#364153] font-[Inter,sans-serif]">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#F9F5FF] text-[#8200DB] font-[Inter,sans-serif] text-[12px] font-medium leading-[16px] break-words">
                         {dept.employeeCount} employees
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-[14px] text-[#4A5565] font-normal font-[Inter,sans-serif] whitespace-nowrap">
+                    <td className="px-6 py-5 font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#6A7282] break-words whitespace-nowrap">
                       {formatDate(dept.createdAt)}
                     </td>
                     <td className="px-6 py-5">

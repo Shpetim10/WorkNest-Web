@@ -20,11 +20,7 @@ const ITEMS_PER_PAGE = 10;
 function formatDate(dateString: string) {
   if (!dateString) return '-';
   try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return new Date(dateString).toISOString().split('T')[0];
   } catch {
     return dateString;
   }
@@ -64,7 +60,10 @@ export function LocationsView() {
     typeof window === 'undefined' ? null : localStorage.getItem('current_company_id'),
   );
   const { data, isLoading, isError } = useLocations(companyId);
-  const listUnavailable = data?.listUnavailable ?? false;
+  
+  const locationsData = data;
+
+  const listUnavailable = locationsData?.listUnavailable ?? false;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<SiteType | 'All'>('All');
   const [selectedStatus, setSelectedStatus] = useState<SiteStatus | 'All'>('All');
@@ -104,14 +103,14 @@ export function LocationsView() {
   }, [openEditMenuRowId]);
 
   const filteredLocations = useMemo(() => {
-    const locations = data?.items ?? [];
+    const locations = locationsData?.items ?? [];
     return locations.filter((location) => {
       const ms = location.siteName.toLowerCase().includes(searchQuery.toLowerCase()) || location.siteCode.toLowerCase().includes(searchQuery.toLowerCase());
       const mt = selectedType === 'All' || location.siteType === selectedType;
       const mst = selectedStatus === 'All' || location.status === selectedStatus;
       return ms && mt && mst;
     });
-  }, [data?.items, searchQuery, selectedStatus, selectedType]);
+  }, [locationsData?.items, searchQuery, selectedStatus, selectedType]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredLocations.length / ITEMS_PER_PAGE);
@@ -156,7 +155,7 @@ export function LocationsView() {
               placeholder="Search by site name or code..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 w-full rounded-xl border border-gray-100 bg-gray-50/50 pl-11 pr-4 text-[13.5px] font-medium text-gray-700 transition-all placeholder:text-gray-400 focus:border-[#155dfc]/40 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10"
+              className="h-11 w-full rounded-xl border border-gray-100 bg-gray-50/50 pl-11 pr-4 text-[16px] font-normal leading-[24px] text-gray-700 transition-all placeholder:text-gray-400 focus:border-[#155dfc]/40 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10 font-[Inter,sans-serif]"
             />
           </div>
 
@@ -246,33 +245,33 @@ export function LocationsView() {
                     onClick={() => { setSelectedSiteId(location.id); setIsDetailsModalOpen(true); }}
                     className="group cursor-pointer transition-colors hover:bg-gray-50/50"
                   >
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#155DFC]">
+                    <td className="px-6 py-5 max-w-[240px] overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#155DFC]">
                           <MapPin size={18} strokeWidth={2.5} />
                         </div>
-                        <span className="text-[16px] font-semibold text-[#1E2939] font-[Inter,sans-serif] whitespace-nowrap">{location.siteName}</span>
+                        <span className="font-[Inter,sans-serif] text-[14px] font-semibold leading-[24px] text-[#1E2939] truncate block" title={location.siteName}>{location.siteName}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{location.siteCode}</span>
+                    <td className="px-6 py-5 max-w-[120px] overflow-hidden">
+                      <span className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] truncate block" title={location.siteCode}>{location.siteCode}</span>
                     </td>
                     <td className="px-6 py-5">
                       <span className={`rounded-lg px-3 py-1.5 text-[12px] font-bold font-[Inter,sans-serif] ${getTypeBadgeStyles(location.siteType)}`}>
                         {location.siteType.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{location.country}</span>
+                    <td className="px-6 py-5 max-w-[150px] overflow-hidden">
+                      <span className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#1E2939] truncate block" title={location.country}>{location.country}</span>
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`inline-flex items-center rounded-full px-3.5 py-1 text-[11px] font-bold font-[Inter,sans-serif] ${getStatusBadgeStyles(location.status)}`}>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-medium leading-[16px] break-words font-[Inter,sans-serif] ${getStatusBadgeStyles(location.status)}`}>
                         <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-80" />
                         {statusLabel(location.status)}
                       </span>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{formatDate(location.createdAt)}</span>
+                      <span className="font-[Inter,sans-serif] text-[14px] font-normal leading-[20px] text-[#6A7282] break-words">{formatDate(location.createdAt)}</span>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">

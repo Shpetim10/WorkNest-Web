@@ -3,16 +3,21 @@ import { AxiosRequestConfig } from 'axios';
 import { apiClient } from '@/common/network/api-client';
 import { ApiErrorResponse, ApiResponse } from '@/common/types/api';
 import {
+  AttendancePolicyEnvelope,
+  AttendancePolicyUpdateRequest,
   ActivateSiteResponse,
   CompanySiteRequest,
   CompanySiteResponse,
   CreateCompanySiteResponse,
+  CreateQrTerminalRequest,
+  CurrentQrToken,
   DetectNetworkResponse,
   Issue,
   Location,
   LocationDetectionRequest,
   LocationDetectionResponse,
   LocationListItem,
+  QrTerminalSummary,
   SiteSetupStatus,
   CompanySiteDetails,
   TrustedNetwork,
@@ -30,6 +35,12 @@ export const locationKeys = {
   list: (companyId: string) => [...locationKeys.lists(), companyId] as const,
   details: () => [...locationKeys.all, 'detail'] as const,
   detail: (siteId: string) => [...locationKeys.details(), siteId] as const,
+  attendancePolicies: () => [...locationKeys.all, 'attendance-policy'] as const,
+  attendancePolicy: (siteId: string) => [...locationKeys.attendancePolicies(), siteId] as const,
+  companyAttendancePolicies: () => [...locationKeys.all, 'company-attendance-policy'] as const,
+  companyAttendancePolicy: (companyId: string) => [...locationKeys.companyAttendancePolicies(), companyId] as const,
+  qrTerminals: () => [...locationKeys.all, 'qr-terminals'] as const,
+  qrTerminalCurrent: (terminalId: string) => [...locationKeys.qrTerminals(), terminalId, 'current'] as const,
   setupStatuses: () => [...locationKeys.all, 'setup-status'] as const,
   setupStatus: (siteId: string) => [...locationKeys.setupStatuses(), siteId] as const,
 };
@@ -234,6 +245,56 @@ export async function fetchSite(siteId: string, options?: ApiRequestOptions): Pr
   return getPayload<CompanySiteResponse>(`/sites/${siteId}`, options);
 }
 
+export async function fetchAttendancePolicy(
+  companyId: string,
+  siteId: string,
+  options?: ApiRequestOptions,
+): Promise<AttendancePolicyEnvelope> {
+  return getPayload<AttendancePolicyEnvelope>(`/companies/${companyId}/sites/${siteId}/attendance-policy`, options);
+}
+
+export async function updateAttendancePolicy(
+  companyId: string,
+  siteId: string,
+  data: AttendancePolicyUpdateRequest,
+  options?: ApiRequestOptions,
+): Promise<AttendancePolicyEnvelope> {
+  return putPayload<AttendancePolicyEnvelope, AttendancePolicyUpdateRequest>(
+    `/companies/${companyId}/sites/${siteId}/attendance-policy`,
+    data,
+    options,
+  );
+}
+
+export async function fetchCompanyAttendancePolicy(
+  companyId: string,
+  options?: ApiRequestOptions,
+): Promise<AttendancePolicyEnvelope> {
+  return getPayload<AttendancePolicyEnvelope>(`/companies/${companyId}/attendance-policy`, options);
+}
+
+export async function createQrTerminal(
+  siteId: string,
+  data: CreateQrTerminalRequest,
+  options?: ApiRequestOptions,
+): Promise<QrTerminalSummary> {
+  return postPayload<QrTerminalSummary, CreateQrTerminalRequest>(`/sites/${siteId}/qr-terminals`, data, options);
+}
+
+export async function fetchCurrentQrToken(
+  terminalId: string,
+  options?: ApiRequestOptions,
+): Promise<CurrentQrToken> {
+  return getPayload<CurrentQrToken>(`/qr-terminals/${terminalId}/current`, options);
+}
+
+export async function refreshCurrentQrToken(
+  terminalId: string,
+  options?: ApiRequestOptions,
+): Promise<CurrentQrToken> {
+  return postPayload<CurrentQrToken, undefined>(`/qr-terminals/${terminalId}/refresh`, undefined, options);
+}
+
 export async function createCompanySite(
   companyId: string,
   data: CompanySiteRequest,
@@ -253,29 +314,29 @@ export async function updateCompanySite(
 export async function updateMainDetails(
   companyId: string,
   siteId: string,
-  data: any,
+  data: unknown,
   options?: ApiRequestOptions,
 ): Promise<CompanySiteResponse> {
-  return putPayload<CompanySiteResponse, any>(`/companies/${companyId}/sites/${siteId}/main-details`, data, options);
+  return putPayload<CompanySiteResponse, unknown>(`/companies/${companyId}/sites/${siteId}/main-details`, data, options);
 }
 
 export async function updateLocation(
   companyId: string,
   siteId: string,
-  data: any,
+  data: unknown,
   options?: ApiRequestOptions,
 ): Promise<CompanySiteResponse> {
-  return putPayload<CompanySiteResponse, any>(`/companies/${companyId}/sites/${siteId}/location`, data, options);
+  return putPayload<CompanySiteResponse, unknown>(`/companies/${companyId}/sites/${siteId}/location`, data, options);
 }
 
 export async function updateTrustedNetwork(
   companyId: string,
   siteId: string,
   networkId: string,
-  data: any,
+  data: unknown,
   options?: ApiRequestOptions,
 ): Promise<TrustedNetwork> {
-  return putPayload<TrustedNetwork, any>(`/companies/${companyId}/sites/${siteId}/networks/${networkId}`, data, options);
+  return putPayload<TrustedNetwork, unknown>(`/companies/${companyId}/sites/${siteId}/networks/${networkId}`, data, options);
 }
 
 export async function deleteCompanySite(
@@ -382,6 +443,46 @@ export const useSite = (siteId: string | null) =>
     enabled: Boolean(siteId),
   });
 
+export const useAttendancePolicy = (companyId: string | null, siteId: string | null) =>
+  useQuery<AttendancePolicyEnvelope>({
+    queryKey: siteId ? locationKeys.attendancePolicy(siteId) : [...locationKeys.attendancePolicies(), 'empty'],
+    queryFn: async () => {
+      if (!companyId || !siteId) {
+        throw new Error('Company ID and Site ID are required');
+      }
+
+      return fetchAttendancePolicy(companyId, siteId);
+    },
+    enabled: Boolean(companyId && siteId),
+  });
+
+export const useCompanyAttendancePolicy = (companyId: string | null) =>
+  useQuery<AttendancePolicyEnvelope>({
+    queryKey: companyId ? locationKeys.companyAttendancePolicy(companyId) : [...locationKeys.companyAttendancePolicies(), 'empty'],
+    queryFn: async () => {
+      if (!companyId) {
+        throw new Error('Company ID is required');
+      }
+
+      return fetchCompanyAttendancePolicy(companyId);
+    },
+    enabled: Boolean(companyId),
+  });
+
+export const useCurrentQrToken = (terminalId: string | null, enabled = true) =>
+  useQuery<CurrentQrToken>({
+    queryKey: terminalId ? locationKeys.qrTerminalCurrent(terminalId) : [...locationKeys.qrTerminals(), 'empty'],
+    queryFn: async () => {
+      if (!terminalId) {
+        throw new Error('Terminal ID is required');
+      }
+
+      return fetchCurrentQrToken(terminalId);
+    },
+    enabled: Boolean(terminalId) && enabled,
+    retry: 1,
+  });
+
 export const useCreateSite = () => {
   const queryClient = useQueryClient();
 
@@ -420,7 +521,7 @@ export const useUpdateMainDetails = () => {
   return useMutation<
     CompanySiteResponse,
     ApiErrorResponse,
-    { companyId: string; siteId: string; data: any; signal?: AbortSignal }
+    { companyId: string; siteId: string; data: unknown; signal?: AbortSignal }
   >({
     mutationFn: async ({ companyId, siteId, data, signal }) => updateMainDetails(companyId, siteId, data, { signal }),
     onSuccess: (_, { siteId }) => {
@@ -437,7 +538,7 @@ export const useUpdateLocation = () => {
   return useMutation<
     CompanySiteResponse,
     ApiErrorResponse,
-    { companyId: string; siteId: string; data: any; signal?: AbortSignal }
+    { companyId: string; siteId: string; data: unknown; signal?: AbortSignal }
   >({
     mutationFn: async ({ companyId, siteId, data, signal }) => updateLocation(companyId, siteId, data, { signal }),
     onSuccess: (_, { siteId }) => {
@@ -448,13 +549,53 @@ export const useUpdateLocation = () => {
   });
 };
 
+export const useUpdateAttendancePolicy = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    AttendancePolicyEnvelope,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; data: AttendancePolicyUpdateRequest; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ companyId, siteId, data, signal }) => updateAttendancePolicy(companyId, siteId, data, { signal }),
+    onSuccess: (_, { companyId, siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.attendancePolicy(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.companyAttendancePolicy(companyId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+    },
+  });
+};
+
+export const useCreateQrTerminal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    QrTerminalSummary,
+    ApiErrorResponse,
+    { companyId: string; siteId: string; data: CreateQrTerminalRequest; signal?: AbortSignal }
+  >({
+    mutationFn: async ({ siteId, data, signal }) => createQrTerminal(siteId, data, { signal }),
+    onSuccess: (_, { companyId, siteId }) => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.detail(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.attendancePolicy(siteId) });
+      queryClient.invalidateQueries({ queryKey: locationKeys.companyAttendancePolicy(companyId) });
+    },
+  });
+};
+
+export const useRefreshQrToken = () =>
+  useMutation<CurrentQrToken, ApiErrorResponse, { terminalId: string; signal?: AbortSignal }>({
+    mutationFn: async ({ terminalId, signal }) => refreshCurrentQrToken(terminalId, { signal }),
+  });
+
 export const useUpdateTrustedNetwork = () => {
   const queryClient = useQueryClient();
 
   return useMutation<
     TrustedNetwork,
     ApiErrorResponse,
-    { companyId: string; siteId: string; networkId: string; data: any; signal?: AbortSignal }
+    { companyId: string; siteId: string; networkId: string; data: unknown; signal?: AbortSignal }
   >({
     mutationFn: async ({ companyId, siteId, networkId, data, signal }) => updateTrustedNetwork(companyId, siteId, networkId, data, { signal }),
     onSuccess: (_, { siteId }) => {

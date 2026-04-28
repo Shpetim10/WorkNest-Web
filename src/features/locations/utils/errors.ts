@@ -17,6 +17,17 @@ function getApiError(error: unknown): ApiErrorResponse | undefined {
   return (error as AxiosError<ApiErrorResponse>)?.response?.data;
 }
 
+export function getApiErrorStatus(error: unknown): number | undefined {
+  return (
+    (error as AxiosError<ApiErrorResponse>)?.response?.status ??
+    ((error as { status?: number })?.status ?? undefined)
+  );
+}
+
+export function getApiErrorCode(error: unknown): string | undefined {
+  return getApiError(error)?.errorCode;
+}
+
 export function formatApiError(error: unknown) {
   const apiError = getApiError(error);
   if (apiError?.message) {
@@ -28,6 +39,44 @@ export function formatApiError(error: unknown) {
   }
 
   return 'Something went wrong.';
+}
+
+export function formatAttendanceFriendlyError(
+  error: unknown,
+  fallback = 'Something went wrong.',
+) {
+  const code = getApiErrorCode(error);
+  const status = getApiErrorStatus(error);
+
+  if (status === 401) {
+    return 'Your session has expired. Please sign in again.';
+  }
+
+  if (status === 403 || code === 'ACCESS_DENIED') {
+    return 'You do not have permission to manage attendance settings for this site.';
+  }
+
+  if (code === 'SITE_NOT_FOUND') {
+    return 'This site could not be found.';
+  }
+
+  if (code === 'TERMINAL_NOT_FOUND') {
+    return 'This QR terminal could not be found.';
+  }
+
+  if (code === 'TERMINAL_DISABLED') {
+    return 'This QR terminal is not active.';
+  }
+
+  if (status === 500) {
+    return fallback;
+  }
+
+  if (code === 'VALIDATION_ERROR') {
+    return 'Some fields are missing or invalid.';
+  }
+
+  return formatApiError(error) || fallback;
 }
 
 export function buildConflictMessage(error: unknown) {

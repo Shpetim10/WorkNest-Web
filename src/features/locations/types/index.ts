@@ -5,6 +5,8 @@ export type NetworkType = string;
 export type DetectionConfidence = string;
 export type IpVersion = string;
 export type LocationDetectionSource = 'BROWSER_GEOLOCATION' | 'MANUAL_ENTRY' | 'MAP_PIN';
+export type AttendancePolicySource = 'COMPANY_DEFAULT' | 'SITE_OVERRIDE';
+export type QrTerminalStatus = 'ACTIVE' | 'DISABLED' | string;
 
 export interface Issue {
   code: string;
@@ -152,6 +154,71 @@ export interface CompanySiteDetails {
   site: CompanySiteResponse;
   countryName: string;
   trustedNetworks: TrustedNetwork[];
+  attendancePolicy?: AttendancePolicy | null;
+  linkedQrTerminals?: QrTerminalSummary[];
+}
+
+export interface AttendancePolicy {
+  policyId: string;
+  policySource: AttendancePolicySource;
+  requireQr: boolean;
+  requireLocation: boolean;
+  checkInEnabled: boolean;
+  checkOutEnabled: boolean;
+  useNetworkAsWarning: boolean;
+  rejectOutsideGeofence: boolean;
+  rejectPoorAccuracy: boolean;
+  allowManualCorrection: boolean;
+  allowManagerManualEntry: boolean;
+  missingCheckoutAutoCloseEnabled: boolean;
+  autoCheckoutAfterMinutes: number | null;
+  lateGraceMinutes: number;
+  earlyClockInWindowMinutes: number;
+}
+
+export interface AttendancePolicyEnvelope {
+  companyId: string;
+  siteId?: string;
+  policy: AttendancePolicy;
+}
+
+export interface AttendancePolicyUpdateRequest {
+  requireQr: boolean;
+  requireLocation: boolean;
+  checkInEnabled: boolean;
+  checkOutEnabled: boolean;
+  useNetworkAsWarning: boolean;
+  rejectOutsideGeofence: boolean;
+  rejectPoorAccuracy: boolean;
+  allowManualCorrection: boolean;
+  allowManagerManualEntry: boolean;
+  missingCheckoutAutoCloseEnabled: boolean;
+  autoCheckoutAfterMinutes: number | null;
+  lateGraceMinutes: number;
+  earlyClockInWindowMinutes: number;
+}
+
+export interface QrTerminalSummary {
+  id: string;
+  name: string;
+  status: QrTerminalStatus;
+  rotationSeconds: number;
+  autoCreated: boolean;
+  lastHeartbeatAt: string | null;
+}
+
+export interface CreateQrTerminalRequest {
+  name: string;
+  rotationSeconds: number;
+}
+
+export interface CurrentQrToken {
+  terminalId: string;
+  siteId: string;
+  token: string;
+  issuedAt: string;
+  expiresAt: string;
+  rotationSeconds: number;
 }
 
 export interface TrustedNetworkDraftRequest {
@@ -303,7 +370,7 @@ export interface LocationStep2Errors {
   detection?: string;
 }
 
-export interface LocationStep3Data extends TrustedNetworkFormValue {}
+export type LocationStep3Data = TrustedNetworkFormValue;
 
 export interface LocationStep3Errors {
   networkName?: string;

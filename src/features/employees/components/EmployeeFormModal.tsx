@@ -312,6 +312,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
             companyId,
             firstName: values.firstName.trim(),
             lastName: values.lastName.trim(),
+            email: values.email.trim(),
             jobTitle: values.jobTitle.trim(),
             departmentId: values.departmentName || undefined,
             companySiteId: values.location || undefined,

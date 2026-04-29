@@ -8,6 +8,7 @@ export interface UpdateEmployeeRequest {
   companyId: string;
   firstName: string;
   lastName: string;
+  email: string;
   jobTitle: string;
   departmentId?: string;
   companySiteId?: string;

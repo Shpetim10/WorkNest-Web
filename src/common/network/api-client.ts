@@ -83,6 +83,8 @@ const PUBLIC_AUTH_ENDPOINTS: string[] = [
   `${API_PREFIX}/auth/invitations/activate`,
   `${API_PREFIX}/auth/forgot-password`,
   `${API_PREFIX}/auth/reset-password`,
+  `${API_PREFIX}/companies/register`,
+  `${API_PREFIX}/media/public/upload`,
 ];
 
 function isPublicAuthUrl(url: string | undefined): boolean {

@@ -18,6 +18,18 @@ export const departmentKeys = {
   lookup: () => [...departmentKeys.all, 'lookup'] as const,
 };
 
+function getCurrentCompanyId() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return localStorage.getItem('current_company_id');
+}
+
+function getDepartmentBasePath(companyId: string) {
+  return `/companies/${companyId}/departments`;
+}
+
 /**
  * Hook to fetch all departments for the current company
  */
@@ -25,9 +37,17 @@ export const useDepartments = () => {
   return useQuery<DepartmentListItem[]>({
     queryKey: departmentKeys.list(),
     queryFn: async () => {
-      const response = await apiClient.get<ApiResponse<DepartmentListItem[]>>('/departments');
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error('Current company ID is missing.');
+      }
+
+      const response = await apiClient.get<ApiResponse<DepartmentListItem[]>>(
+        getDepartmentBasePath(companyId)
+      );
       return response.data.data;
     },
+    enabled: typeof window !== 'undefined' && !!getCurrentCompanyId(),
   });
 };
 
@@ -38,10 +58,17 @@ export const useDepartment = (id: string | null) => {
   return useQuery<DepartmentDetails>({
     queryKey: departmentKeys.detail(id || ''),
     queryFn: async () => {
-      const response = await apiClient.get<ApiResponse<DepartmentDetails>>(`/departments/${id}`);
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error('Current company ID is missing.');
+      }
+
+      const response = await apiClient.get<ApiResponse<DepartmentDetails>>(
+        `${getDepartmentBasePath(companyId)}/${id}`
+      );
       return response.data.data;
     },
-    enabled: !!id,
+    enabled: !!id && typeof window !== 'undefined' && !!getCurrentCompanyId(),
   });
 };
 
@@ -52,9 +79,17 @@ export const useDepartmentLookup = () => {
   return useQuery<DepartmentLookupItem[]>({
     queryKey: departmentKeys.lookup(),
     queryFn: async () => {
-      const response = await apiClient.get<ApiResponse<DepartmentLookupItem[]>>('/departments/lookup');
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error('Current company ID is missing.');
+      }
+
+      const response = await apiClient.get<ApiResponse<DepartmentLookupItem[]>>(
+        `${getDepartmentBasePath(companyId)}/lookup`
+      );
       return response.data.data;
     },
+    enabled: typeof window !== 'undefined' && !!getCurrentCompanyId(),
   });
 };
 
@@ -65,7 +100,15 @@ export const useCreateDepartment = () => {
   const queryClient = useQueryClient();
   return useMutation<DepartmentDetails, ApiErrorResponse, CreateDepartmentRequest>({
     mutationFn: async (data) => {
-      const response = await apiClient.post<ApiResponse<DepartmentDetails>>('/departments', data);
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error('Current company ID is missing.');
+      }
+
+      const response = await apiClient.post<ApiResponse<DepartmentDetails>>(
+        getDepartmentBasePath(companyId),
+        data
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -82,7 +125,15 @@ export const useUpdateDepartment = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation<DepartmentDetails, ApiErrorResponse, UpdateDepartmentRequest>({
     mutationFn: async (data) => {
-      const response = await apiClient.put<ApiResponse<DepartmentDetails>>(`/departments/${id}`, data);
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error('Current company ID is missing.');
+      }
+
+      const response = await apiClient.put<ApiResponse<DepartmentDetails>>(
+        `${getDepartmentBasePath(companyId)}/${id}`,
+        data
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -100,7 +151,12 @@ export const useDeleteDepartment = () => {
   const queryClient = useQueryClient();
   return useMutation<void, ApiErrorResponse, string>({
     mutationFn: async (id) => {
-      await apiClient.delete(`/departments/${id}`);
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error('Current company ID is missing.');
+      }
+
+      await apiClient.delete(`${getDepartmentBasePath(companyId)}/${id}`);
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: departmentKeys.lists() });

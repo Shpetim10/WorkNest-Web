@@ -91,7 +91,7 @@ export function LocationDetailsModal({
         containerClassName="p-0"
         showDefaultStyles={false}
       >
-        <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)]">
+        <div className="flex max-h-[85vh] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)]">
           <div
             className="relative border-b border-[#E5E7EB] px-6 pt-6 pb-6"
             style={{ background: 'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)' }}
@@ -117,7 +117,7 @@ export function LocationDetailsModal({
             </div>
           </div>
 
-          <div className="space-y-6 px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {isLoading ? (
               <div className="flex min-h-[320px] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-[#155DFC]" />
@@ -127,7 +127,7 @@ export function LocationDetailsModal({
                 Failed to load the latest location details.
               </div>
             ) : (
-              <>
+              <div className="space-y-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Building2 size={18} className="text-[#155DFC]" />
@@ -318,7 +318,7 @@ export function LocationDetailsModal({
                   )}
                 </div>
               </div>
-            </>
+            </div>
             )}
           </div>
 

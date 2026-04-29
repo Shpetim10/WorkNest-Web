@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, Navigation } from 'lucide-react';
-import { Input } from '@/common/ui';
+import { Input, Select, Textarea } from '@/common/ui';
 import { Issue, LocationStep2Data, LocationStep2Errors } from '../types';
 import { LocationMap } from './LocationMap';
 
@@ -10,11 +10,12 @@ interface AddLocationStepLocationProps {
   data: LocationStep2Data;
   errors: LocationStep2Errors;
   warnings: Issue[];
-  locationRequired: boolean;
+  requireLocation: boolean;
   countryCenter: [number, number, number];
   isDetecting: boolean;
   isHydratingAddress: boolean;
   onChange: (updates: Partial<LocationStep2Data>) => void;
+  onBlurField: (path: string) => void;
   onDetect: () => void | Promise<void>;
   onPinMoved: (lat: number, lng: number) => void | Promise<void>;
 }
@@ -23,11 +24,12 @@ export function AddLocationStepLocation({
   data,
   errors,
   warnings,
-  locationRequired,
+  requireLocation,
   countryCenter,
   isDetecting,
   isHydratingAddress,
   onChange,
+  onBlurField,
   onDetect,
   onPinMoved,
 }: AddLocationStepLocationProps) {
@@ -90,7 +92,7 @@ export function AddLocationStepLocation({
         </div>
       )}
 
-      {!locationRequired && (
+      {!requireLocation && (
         <div className="rounded-[10px] border border-sky-200 bg-sky-50 px-4 py-3 text-[13px] text-sky-800">
           Location is optional for this site. You can still detect or enter coordinates now, or leave this section blank.
         </div>
@@ -127,31 +129,90 @@ export function AddLocationStepLocation({
         </div>
       </div>
 
-      <div>
-        <p className="mb-2 text-[13px] font-semibold leading-[20px] text-[#364153]">
-          Geofence Radius: <span className="text-[#155DFC]">{data.geofenceRadius}m</span>
-        </p>
-        <input
-          type="range"
-          min={30}
-          max={500}
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          id="latitude"
+          label="Latitude"
+          required
+          type="number"
+          min={-90}
+          max={90}
+          step="any"
+          value={data.latitude ?? ''}
+          onChange={(e) => onChange({ latitude: e.target.value === '' ? null : Number(e.target.value) })}
+          onBlur={() => onBlurField('location.latitude')}
+          error={errors.latitude}
+          className={inputBase}
+        />
+        <Input
+          id="longitude"
+          label="Longitude"
+          required
+          type="number"
+          min={-180}
+          max={180}
+          step="any"
+          value={data.longitude ?? ''}
+          onChange={(e) => onChange({ longitude: e.target.value === '' ? null : Number(e.target.value) })}
+          onBlur={() => onBlurField('location.longitude')}
+          error={errors.longitude}
+          className={inputBase}
+        />
+      </div>
+
+      <Select
+        id="geofenceShapeType"
+        label="Geofence Shape"
+        required
+        value={data.geofenceShapeType}
+        onChange={(e) =>
+          onChange({
+            geofenceShapeType: e.target.value as LocationStep2Data['geofenceShapeType'],
+          })
+        }
+        onBlur={() => onBlurField('location.geofenceShapeType')}
+        error={errors.geofenceShapeType}
+        className={labelBase}
+        style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
+        options={[
+          { value: 'CIRCLE', label: 'Circle' },
+          { value: 'POLYGON', label: 'Polygon' },
+        ]}
+      />
+
+      {data.geofenceShapeType === 'CIRCLE' ? (
+        <Input
+          id="geofenceRadius"
+          label="Geofence Radius (m)"
+          required
+          type="number"
+          min={10}
           value={data.geofenceRadius}
           onChange={(e) => onChange({ geofenceRadius: Number(e.target.value) })}
-          className="h-1.5 w-full cursor-pointer accent-[#155DFC]"
+          onBlur={() => onBlurField('location.geofenceRadius')}
+          error={errors.geofenceRadius}
+          className={inputBase}
         />
-        <div className="mt-1 flex justify-between">
-          <span className="text-[10px] text-[#6A7282]">30m</span>
-          <span className="text-[10px] text-[#6A7282]">500m</span>
-        </div>
-      </div>
+      ) : (
+        <Textarea
+          id="geofencePolygonGeoJson"
+          label="Polygon GeoJSON"
+          required
+          value={data.geofencePolygonGeoJson}
+          onChange={(e) => onChange({ geofencePolygonGeoJson: e.target.value })}
+          onBlur={() => onBlurField('location.geofencePolygonGeoJson')}
+          error={errors.geofencePolygonGeoJson}
+          className="!min-h-[120px] rounded-[10px] border-[#E5E7EB] bg-[#F9FAFB] py-2 text-[14px]"
+        />
+      )}
 
       <Input
         id="addressLine1"
         label="Address Line 1"
-        required={locationRequired}
         placeholder="Street address"
         value={data.addressLine1}
         onChange={(e) => onChange({ addressLine1: e.target.value })}
+        onBlur={() => onBlurField('location.addressLine1')}
         error={errors.addressLine1}
         className={inputBase}
       />
@@ -161,16 +222,19 @@ export function AddLocationStepLocation({
         placeholder="Apartment, suite, etc."
         value={data.addressLine2}
         onChange={(e) => onChange({ addressLine2: e.target.value })}
+        onBlur={() => onBlurField('location.addressLine2')}
+        error={errors.addressLine2}
         className={inputBase}
       />
+
       <div className="grid grid-cols-2 gap-4">
         <Input
           id="city"
           label="City"
-          required={locationRequired}
           placeholder="City name"
           value={data.city}
           onChange={(e) => onChange({ city: e.target.value })}
+          onBlur={() => onBlurField('location.city')}
           error={errors.city}
           className={inputBase}
         />
@@ -180,15 +244,20 @@ export function AddLocationStepLocation({
           placeholder="Region"
           value={data.stateRegion}
           onChange={(e) => onChange({ stateRegion: e.target.value })}
+          onBlur={() => onBlurField('location.stateRegion')}
+          error={errors.stateRegion}
           className={inputBase}
         />
       </div>
+
       <Input
         id="postalCode"
         label="Postal Code"
         placeholder="1001"
         value={data.postalCode}
         onChange={(e) => onChange({ postalCode: e.target.value })}
+        onBlur={() => onBlurField('location.postalCode')}
+        error={errors.postalCode}
         className={inputBase}
       />
 
@@ -207,57 +276,60 @@ export function AddLocationStepLocation({
 
         {advancedOpen && (
           <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={`block ${labelBase}`}>Entry Buffer (m)</label>
-              <input
-                type="number"
-                min={0}
-                value={data.advancedSettings.entryBuffer}
-                onChange={(e) =>
-                  onChange({
-                    advancedSettings: {
-                      ...data.advancedSettings,
-                      entryBuffer: Number(e.target.value),
-                    },
-                  })
-                }
-                className="h-[40px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-[14px] text-[#101828] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20"
-              />
-            </div>
-            <div>
-              <label className={`block ${labelBase}`}>Exit Buffer (m)</label>
-              <input
-                type="number"
-                min={0}
-                value={data.advancedSettings.exitBuffer}
-                onChange={(e) =>
-                  onChange({
-                    advancedSettings: {
-                      ...data.advancedSettings,
-                      exitBuffer: Number(e.target.value),
-                    },
-                  })
-                }
-                className="h-[40px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-[14px] text-[#101828] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20"
-              />
-            </div>
-            <div>
-              <label className={`block ${labelBase}`}>Max Accuracy (m)</label>
-              <input
-                type="number"
-                min={0}
-                value={data.advancedSettings.maxAccuracy}
-                onChange={(e) =>
-                  onChange({
-                    advancedSettings: {
-                      ...data.advancedSettings,
-                      maxAccuracy: Number(e.target.value),
-                    },
-                  })
-                }
-                className="h-[40px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-[14px] text-[#101828] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20"
-              />
-            </div>
+            <Input
+              id="entryBuffer"
+              label="Entry Buffer (m)"
+              type="number"
+              min={0}
+              value={data.advancedSettings.entryBuffer}
+              onChange={(e) =>
+                onChange({
+                  advancedSettings: {
+                    ...data.advancedSettings,
+                    entryBuffer: Number(e.target.value),
+                  },
+                })
+              }
+              onBlur={() => onBlurField('location.advancedSettings.entryBuffer')}
+              error={errors.entryBuffer}
+              className={inputBase}
+            />
+            <Input
+              id="exitBuffer"
+              label="Exit Buffer (m)"
+              type="number"
+              min={0}
+              value={data.advancedSettings.exitBuffer}
+              onChange={(e) =>
+                onChange({
+                  advancedSettings: {
+                    ...data.advancedSettings,
+                    exitBuffer: Number(e.target.value),
+                  },
+                })
+              }
+              onBlur={() => onBlurField('location.advancedSettings.exitBuffer')}
+              error={errors.exitBuffer}
+              className={inputBase}
+            />
+            <Input
+              id="maxAccuracy"
+              label="Max Accuracy (m)"
+              type="number"
+              min={1}
+              value={data.advancedSettings.maxAccuracy}
+              onChange={(e) =>
+                onChange({
+                  advancedSettings: {
+                    ...data.advancedSettings,
+                    maxAccuracy: Number(e.target.value),
+                  },
+                })
+              }
+              onBlur={() => onBlurField('location.advancedSettings.maxAccuracy')}
+              error={errors.maxAccuracy}
+              className={inputBase}
+            />
           </div>
         )}
       </div>

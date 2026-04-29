@@ -51,7 +51,16 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Attendance', icon: Clock, href: '#', hasChevron: true },
   { name: 'Leave', icon: Calendar, href: '#', hasChevron: true },
   { name: 'Payroll', icon: DollarSign, href: '#', hasChevron: true },
-  { name: 'Locations', icon: MapPin, href: '/dashboard/locations' },
+  {
+    name: 'Locations',
+    icon: MapPin,
+    href: '#',
+    hasChevron: true,
+    subItems: [
+      { name: 'Locations', href: '/dashboard/locations' },
+      { name: 'QR Terminal Display', href: '/dashboard/locations/terminals' },
+    ],
+  },
   { name: 'Departments', icon: Building2, href: '/dashboard/settings/departments' },
   { name: 'Reports', icon: FileText, href: '#' },
   { name: 'Announcements', icon: Megaphone, href: '#' },

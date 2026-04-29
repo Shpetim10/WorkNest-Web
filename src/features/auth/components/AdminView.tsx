@@ -1,12 +1,14 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import { User, Mail, ArrowLeft, ArrowRight, ChevronDown, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
 import { AuthLayout } from './AuthLayout';
 import { AuthHeader } from './AuthHeader';
 import { useRegistrationStore } from '../store/useRegistrationStore';
 import { usePublicMediaUpload, useRegisterCompany } from '../api/register-company';
+import { MediaCategory } from '../types/registration';
 
 // TODO: Replace with a real notification library like 'sonner' or 'react-hot-toast'
 const notify = {
@@ -69,7 +71,7 @@ export function AdminView() {
       if (logoFile) {
         const uploadResponse = await uploadLogoMutation.mutateAsync({ 
           file: logoFile, 
-          category: 'REGISTRATION_LOGO' as any 
+          category: MediaCategory.REGISTRATION_LOGO,
         });
         logoKey = uploadResponse.storageKey;
         logoPath = uploadResponse.storagePath;
@@ -103,11 +105,23 @@ export function AdminView() {
       router.push('/register/done');
       // Reset store after a delay to ensure the "done" page doesn't glitch if it uses any data
       setTimeout(resetStore, 1000);
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Something went wrong during registration';
+    } catch (error: unknown) {
+      let message = 'Something went wrong during registration';
+
+      if (axios.isAxiosError(error)) {
+        if (!error.response) {
+          message =
+            'Registration request could not reach the server. Check CORS/backend connectivity and try again.';
+        } else {
+          message = error.response.data?.message || message;
+        }
+      } else if (error instanceof Error && error.message) {
+        message = error.message;
+      }
+
       notify.error(message);
       
-      if (error.response?.data?.errors) {
+      if (axios.isAxiosError(error) && error.response?.data?.errors) {
         setErrors(error.response.data.errors);
       }
     }
@@ -247,4 +261,4 @@ export function AdminView() {
       </Card>
     </AuthLayout>
   );
-}
+}

@@ -1,4 +1,5 @@
 import {
+  AttendanceSettings,
   CompanySiteFormValues,
   CompanySiteRequest,
   CompanySiteResponse,
@@ -14,11 +15,20 @@ import {
   TrustedNetworkFormValue,
 } from '../types';
 
-export const DEFAULT_ATTENDANCE_SETTINGS = {
-  locationRequired: true,
-  qrEnabled: true,
+export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
+  requireQr: true,
+  requireLocation: true,
   checkInEnabled: true,
   checkOutEnabled: true,
+  useNetworkAsWarning: true,
+  rejectOutsideGeofence: true,
+  rejectPoorAccuracy: true,
+  allowManualCorrection: false,
+  allowManagerManualEntry: false,
+  missingCheckoutAutoCloseEnabled: false,
+  autoCheckoutAfterMinutes: null,
+  lateGraceMinutes: 0,
+  earlyClockInWindowMinutes: 0,
 };
 
 export const DEFAULT_LOCATION_STEP: LocationStep2Data = {
@@ -169,8 +179,9 @@ export function mapLocationToForm(location: Location) {
       advancedSettings: location.advancedLocationSettings,
     },
     attendanceRules: {
-      locationRequired: location.locationRequired,
-      qrEnabled: location.qrEnabled,
+      ...DEFAULT_ATTENDANCE_SETTINGS,
+      requireQr: location.qrEnabled,
+      requireLocation: location.locationRequired,
       checkInEnabled: location.checkInEnabled,
       checkOutEnabled: location.checkOutEnabled,
     },
@@ -227,15 +238,28 @@ export function mapFormToCreateCompanySiteRequest(
     : 'MANUAL_ENTRY';
 
   return {
-    code: values.basicInfo.siteCode.trim(),
+    code: values.basicInfo.siteCode.trim().toUpperCase(),
     name: values.basicInfo.siteName.trim(),
     type: values.basicInfo.siteType,
     countryCode: values.basicInfo.country.trim(),
     timezone: values.basicInfo.timezone.trim(),
-    checkInEnabled: values.attendanceRules.checkInEnabled,
-    checkOutEnabled: values.attendanceRules.checkOutEnabled,
-    qrEnabled: values.attendanceRules.qrEnabled,
-    locationRequired: values.attendanceRules.locationRequired,
+    attendancePolicy: {
+      requireQr: values.attendanceRules.requireQr,
+      requireLocation: values.attendanceRules.requireLocation,
+      checkInEnabled: values.attendanceRules.checkInEnabled,
+      checkOutEnabled: values.attendanceRules.checkOutEnabled,
+      useNetworkAsWarning: values.attendanceRules.useNetworkAsWarning,
+      rejectOutsideGeofence: values.attendanceRules.rejectOutsideGeofence,
+      rejectPoorAccuracy: values.attendanceRules.rejectPoorAccuracy,
+      allowManualCorrection: values.attendanceRules.allowManualCorrection,
+      allowManagerManualEntry: values.attendanceRules.allowManagerManualEntry,
+      missingCheckoutAutoCloseEnabled: values.attendanceRules.missingCheckoutAutoCloseEnabled,
+      autoCheckoutAfterMinutes: values.attendanceRules.missingCheckoutAutoCloseEnabled
+        ? values.attendanceRules.autoCheckoutAfterMinutes
+        : null,
+      lateGraceMinutes: values.attendanceRules.lateGraceMinutes,
+      earlyClockInWindowMinutes: values.attendanceRules.earlyClockInWindowMinutes,
+    },
     location: {
       latitude: values.location.latitude,
       longitude: values.location.longitude,
@@ -264,14 +288,14 @@ export function mapFormToCreateCompanySiteRequest(
 
 export function mapForMainDetailsUpdate(values: CompanySiteFormValues, version: number | null) {
   return {
-    code: values.basicInfo.siteCode.trim(),
+    code: values.basicInfo.siteCode.trim().toUpperCase(),
     name: values.basicInfo.siteName.trim(),
     type: values.basicInfo.siteType,
     status: 'ACTIVE', // Status isn't modified here normally but the API requires a value. It could be retrieved from original if needed.
     countryCode: values.basicInfo.country.trim(),
     timezone: values.basicInfo.timezone.trim(),
     notes: trimToUndefined(values.basicInfo.notes),
-    qrEnabled: values.attendanceRules.qrEnabled,
+    qrEnabled: values.attendanceRules.requireQr,
     checkInEnabled: values.attendanceRules.checkInEnabled,
     checkOutEnabled: values.attendanceRules.checkOutEnabled,
     version: version ?? 0,
@@ -279,10 +303,6 @@ export function mapForMainDetailsUpdate(values: CompanySiteFormValues, version: 
 }
 
 export function mapForLocationUpdate(values: CompanySiteFormValues, version: number | null) {
-  const detectionSource: LocationDetectionSource = values.location.locationDetected
-    ? 'BROWSER_GEOLOCATION'
-    : 'MANUAL_ENTRY';
-
   return {
     addressLine1: trimToUndefined(values.location.addressLine1),
     addressLine2: trimToUndefined(values.location.addressLine2),
@@ -303,7 +323,7 @@ export function mapForLocationUpdate(values: CompanySiteFormValues, version: num
     entryBufferMeters: values.location.advancedSettings.entryBuffer,
     exitBufferMeters: values.location.advancedSettings.exitBuffer,
     maxLocationAccuracyMeters: values.location.advancedSettings.maxAccuracy,
-    locationRequired: values.attendanceRules.locationRequired,
+    locationRequired: values.attendanceRules.requireLocation,
     version: version ?? 0,
   };
 }

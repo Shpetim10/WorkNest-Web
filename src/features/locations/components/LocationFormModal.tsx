@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Checkbox, Input, Modal, Select, Textarea } from '@/common/ui';
-import { Check, ChevronRight, Save, X } from 'lucide-react';
+import { Button, Modal } from '@/common/ui';
+import { Check, ChevronRight, X } from 'lucide-react';
 import { useCreateSite, useDetectLocation, useDetectNetwork, useUpdateSite, useUpdateMainDetails, useUpdateLocation, useUpdateTrustedNetwork } from '../api';
 import {
   CompanySiteFormValues,
@@ -14,11 +14,8 @@ import {
   LocationStep2Errors,
   LocationStep3Data,
   LocationStep3Errors,
-  SiteType,
 } from '../types';
-import { COUNTRIES } from '../constants/countries';
 import { COUNTRY_CENTROIDS, DEFAULT_MAP_VIEW } from '../constants/country-centroids';
-import { TIMEZONES } from '../constants/timezones';
 import { AddLocationStepActivate } from './AddLocationStepActivate';
 import { AddLocationStepDetails } from './AddLocationStepDetails';
 import { AddLocationStepLocation } from './AddLocationStepLocation';
@@ -50,7 +47,7 @@ import {
   mapForNetworkUpdate,
   mapLocationToForm,
 } from '../utils/mappers';
-import { validateStep1, validateStep2, validateStep3 } from '../utils/validation';
+import { getCompanySiteFormErrors, validateStep1, validateStep2, validateStep3 } from '../utils/validation';
 
 export type LocationFormMode = 'add' | 'edit';
 
@@ -87,6 +84,125 @@ function createEmptyAttendanceSettings() {
 
 function createEmptyStep3(): LocationStep3Data {
   return { ...EMPTY_TRUSTED_NETWORK };
+}
+
+const VISIBLE_FIELD_PATHS = [
+  'basicInfo.siteType',
+  'basicInfo.siteName',
+  'basicInfo.siteCode',
+  'basicInfo.country',
+  'basicInfo.timezone',
+  'attendanceRules.requireQr',
+  'attendanceRules.requireLocation',
+  'attendanceRules.checkInEnabled',
+  'attendanceRules.checkOutEnabled',
+  'attendanceRules.useNetworkAsWarning',
+  'attendanceRules.rejectOutsideGeofence',
+  'attendanceRules.rejectPoorAccuracy',
+  'attendanceRules.allowManualCorrection',
+  'attendanceRules.allowManagerManualEntry',
+  'attendanceRules.missingCheckoutAutoCloseEnabled',
+  'attendanceRules.autoCheckoutAfterMinutes',
+  'attendanceRules.lateGraceMinutes',
+  'attendanceRules.earlyClockInWindowMinutes',
+  'location.addressLine1',
+  'location.addressLine2',
+  'location.city',
+  'location.stateRegion',
+  'location.postalCode',
+  'location.latitude',
+  'location.longitude',
+  'location.geofenceShapeType',
+  'location.geofenceRadius',
+  'location.geofencePolygonGeoJson',
+  'location.advancedSettings.entryBuffer',
+  'location.advancedSettings.exitBuffer',
+  'location.advancedSettings.maxAccuracy',
+  'trustedNetworks[0].name',
+  'trustedNetworks[0].networkType',
+  'trustedNetworks[0].cidrBlock',
+  'trustedNetworks[0].ipVersion',
+  'trustedNetworks[0].priorityOrder',
+  'trustedNetworks[0].expiryDate',
+] as const;
+
+type TouchedFieldState = Partial<Record<(typeof VISIBLE_FIELD_PATHS)[number], true>>;
+
+function buildTouchedFieldState(paths: readonly string[]) {
+  return Object.fromEntries(paths.map((path) => [path, true])) as TouchedFieldState;
+}
+
+function pruneEmpty<T extends object>(errors: T) {
+  return Object.fromEntries(
+    Object.entries(errors).filter(([, message]) => Boolean(message)),
+  ) as T;
+}
+
+function buildTouchedStep1Errors(flatErrors: Record<string, string>, touched: Partial<Record<string, true>>) {
+  return pruneEmpty<LocationFormErrors>({
+    siteType: touched['basicInfo.siteType'] ? flatErrors['basicInfo.siteType'] : undefined,
+    siteName: touched['basicInfo.siteName'] ? flatErrors['basicInfo.siteName'] : undefined,
+    siteCode: touched['basicInfo.siteCode'] ? flatErrors['basicInfo.siteCode'] : undefined,
+    country: touched['basicInfo.country'] ? flatErrors['basicInfo.country'] : undefined,
+    timezone: touched['basicInfo.timezone'] ? flatErrors['basicInfo.timezone'] : undefined,
+    requireQr: touched['attendanceRules.requireQr'] ? flatErrors['attendanceRules.requireQr'] : undefined,
+    requireLocation: touched['attendanceRules.requireLocation'] ? flatErrors['attendanceRules.requireLocation'] : undefined,
+    checkInEnabled: touched['attendanceRules.checkInEnabled'] ? flatErrors['attendanceRules.checkInEnabled'] : undefined,
+    checkOutEnabled: touched['attendanceRules.checkOutEnabled'] ? flatErrors['attendanceRules.checkOutEnabled'] : undefined,
+    useNetworkAsWarning: touched['attendanceRules.useNetworkAsWarning'] ? flatErrors['attendanceRules.useNetworkAsWarning'] : undefined,
+    rejectOutsideGeofence: touched['attendanceRules.rejectOutsideGeofence'] ? flatErrors['attendanceRules.rejectOutsideGeofence'] : undefined,
+    rejectPoorAccuracy: touched['attendanceRules.rejectPoorAccuracy'] ? flatErrors['attendanceRules.rejectPoorAccuracy'] : undefined,
+    allowManualCorrection: touched['attendanceRules.allowManualCorrection'] ? flatErrors['attendanceRules.allowManualCorrection'] : undefined,
+    allowManagerManualEntry: touched['attendanceRules.allowManagerManualEntry'] ? flatErrors['attendanceRules.allowManagerManualEntry'] : undefined,
+    missingCheckoutAutoCloseEnabled: touched['attendanceRules.missingCheckoutAutoCloseEnabled'] ? flatErrors['attendanceRules.missingCheckoutAutoCloseEnabled'] : undefined,
+    autoCheckoutAfterMinutes: touched['attendanceRules.autoCheckoutAfterMinutes'] ? flatErrors['attendanceRules.autoCheckoutAfterMinutes'] : undefined,
+    lateGraceMinutes: touched['attendanceRules.lateGraceMinutes'] ? flatErrors['attendanceRules.lateGraceMinutes'] : undefined,
+    earlyClockInWindowMinutes: touched['attendanceRules.earlyClockInWindowMinutes'] ? flatErrors['attendanceRules.earlyClockInWindowMinutes'] : undefined,
+  });
+}
+
+function buildTouchedStep2Errors(flatErrors: Record<string, string>, touched: Partial<Record<string, true>>) {
+  const errors = pruneEmpty<LocationStep2Errors>({
+    addressLine1: touched['location.addressLine1'] ? flatErrors['location.addressLine1'] : undefined,
+    addressLine2: touched['location.addressLine2'] ? flatErrors['location.addressLine2'] : undefined,
+    city: touched['location.city'] ? flatErrors['location.city'] : undefined,
+    stateRegion: touched['location.stateRegion'] ? flatErrors['location.stateRegion'] : undefined,
+    postalCode: touched['location.postalCode'] ? flatErrors['location.postalCode'] : undefined,
+    latitude: touched['location.latitude'] ? flatErrors['location.latitude'] : undefined,
+    longitude: touched['location.longitude'] ? flatErrors['location.longitude'] : undefined,
+    geofenceShapeType: touched['location.geofenceShapeType'] ? flatErrors['location.geofenceShapeType'] : undefined,
+    geofenceRadius: touched['location.geofenceRadius'] ? flatErrors['location.geofenceRadius'] : undefined,
+    geofencePolygonGeoJson: touched['location.geofencePolygonGeoJson'] ? flatErrors['location.geofencePolygonGeoJson'] : undefined,
+    entryBuffer: touched['location.advancedSettings.entryBuffer'] ? flatErrors['location.advancedSettings.entryBuffer'] : undefined,
+    exitBuffer: touched['location.advancedSettings.exitBuffer'] ? flatErrors['location.advancedSettings.exitBuffer'] : undefined,
+    maxAccuracy: touched['location.advancedSettings.maxAccuracy'] ? flatErrors['location.advancedSettings.maxAccuracy'] : undefined,
+  });
+
+  if (errors.latitude || errors.longitude) {
+    errors.coordinates = errors.latitude ?? errors.longitude;
+  }
+
+  return errors;
+}
+
+function buildTouchedStep3Errors(flatErrors: Record<string, string>, touched: Partial<Record<string, true>>) {
+  return pruneEmpty<LocationStep3Errors>({
+    networkName: touched['trustedNetworks[0].name'] ? flatErrors['trustedNetworks[0].name'] : undefined,
+    networkType: touched['trustedNetworks[0].networkType'] ? flatErrors['trustedNetworks[0].networkType'] : undefined,
+    cidrBlock: touched['trustedNetworks[0].cidrBlock'] ? flatErrors['trustedNetworks[0].cidrBlock'] : undefined,
+    ipVersion: touched['trustedNetworks[0].ipVersion'] ? flatErrors['trustedNetworks[0].ipVersion'] : undefined,
+    priorityOrder: touched['trustedNetworks[0].priorityOrder'] ? flatErrors['trustedNetworks[0].priorityOrder'] : undefined,
+    expiryDate: touched['trustedNetworks[0].expiryDate'] ? flatErrors['trustedNetworks[0].expiryDate'] : undefined,
+  });
+}
+
+function parseNumericInput(value: string, { allowNull = false }: { allowNull?: boolean } = {}) {
+  if (!value.trim()) {
+    return allowNull ? null : Number.NaN;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 function getGeolocationErrorMessage(error: unknown) {
@@ -132,6 +248,8 @@ export function LocationFormModal(props: LocationFormModalProps) {
   const [locationWarnings, setLocationWarnings] = useState<Issue[]>([]);
   const [networkWarnings, setNetworkWarnings] = useState<Issue[]>([]);
   const [formError, setFormError] = useState('');
+  const [formDetails, setFormDetails] = useState<string[]>([]);
+  const [touchedFields, setTouchedFields] = useState<TouchedFieldState>({});
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
@@ -195,6 +313,8 @@ export function LocationFormModal(props: LocationFormModalProps) {
       setLocationWarnings([]);
       setNetworkWarnings([]);
       setFormError('');
+      setFormDetails([]);
+      setTouchedFields({});
 
       if (!initialLocation) {
         setStep1Data(EMPTY_STEP1);
@@ -221,12 +341,109 @@ export function LocationFormModal(props: LocationFormModalProps) {
     setStep3Errors({});
   };
 
+  const syncTouchedErrors = (
+    nextValues: CompanySiteFormValues,
+    nextTouched: Partial<Record<string, true>> = touchedFields,
+  ) => {
+    const flatErrors = getCompanySiteFormErrors(nextValues);
+    setStep1Errors(buildTouchedStep1Errors(flatErrors, nextTouched));
+    setStep2Errors((previous) => ({
+      ...buildTouchedStep2Errors(flatErrors, nextTouched),
+      detection: previous.detection,
+    }));
+    setStep3Errors((previous) => ({
+      ...buildTouchedStep3Errors(flatErrors, nextTouched),
+      detection: previous.detection,
+    }));
+    setFormDetails([]);
+  };
+
+  const markFieldTouched = (path: string) => {
+    setTouchedFields((previous) => {
+      const nextTouched = { ...previous, [path]: true };
+      syncTouchedErrors(formValues, nextTouched);
+      return nextTouched;
+    });
+  };
+
+  const revealAllValidationErrors = () => {
+    const nextTouched = buildTouchedFieldState(VISIBLE_FIELD_PATHS);
+    setTouchedFields(nextTouched);
+    syncTouchedErrors(formValues, nextTouched);
+  };
+
   const applyServerErrors = (error: unknown) => {
     const mapped = mapServerErrorsToLocationForm(error);
     setFormError(mapped.formError ?? formatApiError(error));
-    setStep1Errors((prev) => ({ ...prev, ...mapped.step1Errors }));
-    setStep2Errors((prev) => ({ ...prev, ...mapped.step2Errors }));
-    setStep3Errors((prev) => ({ ...prev, ...mapped.step3Errors }));
+    setFormDetails(mapped.formDetails);
+    setTouchedFields(buildTouchedFieldState(VISIBLE_FIELD_PATHS));
+    setStep1Errors(mapped.step1Errors);
+    setStep2Errors(mapped.step2Errors);
+    setStep3Errors(mapped.step3Errors);
+  };
+
+  const updateStep1Data = (updates: Partial<LocationFormData>) => {
+    setFormError('');
+    setFormDetails([]);
+    setStep1Data((previous) => {
+      const next = { ...previous, ...updates };
+      syncTouchedErrors(
+        buildCompanySiteFormValues(next, step2Data, attendanceSettings, [step3Data]),
+      );
+      return next;
+    });
+  };
+
+  const updateAttendanceSettings = (updates: Partial<CompanySiteFormValues['attendanceRules']>) => {
+    setFormError('');
+    setFormDetails([]);
+    setAttendanceSettings((previous) => {
+      const next = {
+        ...previous,
+        ...updates,
+      };
+
+      if (updates.missingCheckoutAutoCloseEnabled === false) {
+        next.autoCheckoutAfterMinutes = null;
+      }
+
+      syncTouchedErrors(
+        buildCompanySiteFormValues(step1Data, step2Data, next, [step3Data]),
+      );
+      return next;
+    });
+  };
+
+  const updateAttendanceNumberField = (
+    field: 'autoCheckoutAfterMinutes' | 'lateGraceMinutes' | 'earlyClockInWindowMinutes',
+    value: string,
+  ) => {
+    const parsed = parseNumericInput(value, { allowNull: field === 'autoCheckoutAfterMinutes' });
+    updateAttendanceSettings({ [field]: parsed } as Partial<CompanySiteFormValues['attendanceRules']>);
+  };
+
+  const updateStep2Data = (updates: Partial<LocationStep2Data>) => {
+    setFormError('');
+    setFormDetails([]);
+    setStep2Data((previous) => {
+      const next = { ...previous, ...updates };
+      syncTouchedErrors(
+        buildCompanySiteFormValues(step1Data, next, attendanceSettings, [step3Data]),
+      );
+      return next;
+    });
+  };
+
+  const updateStep3Data = (updates: Partial<LocationStep3Data>) => {
+    setFormError('');
+    setFormDetails([]);
+    setStep3Data((previous) => {
+      const next = { ...previous, ...updates };
+      syncTouchedErrors(
+        buildCompanySiteFormValues(step1Data, step2Data, attendanceSettings, [next]),
+      );
+      return next;
+    });
   };
 
   const syncAddressFromCoordinates = async (latitude: number, longitude: number) => {
@@ -243,17 +460,23 @@ export function LocationFormModal(props: LocationFormModalProps) {
         return;
       }
 
-      setStep2Data((prev) => ({
-        ...prev,
-        latitude,
-        longitude,
-        locationDetected: true,
-        addressLine1: address.addressLine1 ?? prev.addressLine1,
-        addressLine2: address.addressLine2 ?? prev.addressLine2,
-        city: address.city ?? prev.city,
-        stateRegion: address.stateRegion ?? prev.stateRegion,
-        postalCode: address.postalCode ?? prev.postalCode,
-      }));
+      setStep2Data((prev) => {
+        const next = {
+          ...prev,
+          latitude,
+          longitude,
+          locationDetected: true,
+          addressLine1: address.addressLine1 ?? prev.addressLine1,
+          addressLine2: address.addressLine2 ?? prev.addressLine2,
+          city: address.city ?? prev.city,
+          stateRegion: address.stateRegion ?? prev.stateRegion,
+          postalCode: address.postalCode ?? prev.postalCode,
+        };
+        syncTouchedErrors(
+          buildCompanySiteFormValues(step1Data, next, attendanceSettings, [step3Data]),
+        );
+        return next;
+      });
 
       if (address.countryCode) {
         setStep1Data((prev) => (prev.country ? prev : { ...prev, country: address.countryCode ?? prev.country }));
@@ -287,6 +510,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
 
   const handleDetectLocation = async () => {
     setFormError('');
+    setFormDetails([]);
     setStep2Errors((prev) => ({ ...prev, detection: undefined, coordinates: undefined }));
     detectLocationControllerRef.current?.abort();
     const controller = new AbortController();
@@ -308,7 +532,13 @@ export function LocationFormModal(props: LocationFormModalProps) {
         : buildLocalLocationAssessment(browserLocation, step2Data.advancedSettings.maxAccuracy);
 
       setLocationWarnings(assessment.warnings);
-      setStep2Data((prev) => applyDetectedLocationToStep(prev, assessment));
+      setStep2Data((prev) => {
+        const next = applyDetectedLocationToStep(prev, assessment);
+        syncTouchedErrors(
+          buildCompanySiteFormValues(step1Data, next, attendanceSettings, [step3Data]),
+        );
+        return next;
+      });
       await syncAddressFromCoordinates(assessment.latitude, assessment.longitude);
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') {
@@ -325,18 +555,18 @@ export function LocationFormModal(props: LocationFormModalProps) {
   };
 
   const handlePinMoved = async (latitude: number, longitude: number) => {
-    setStep2Data((prev) => ({
-      ...prev,
+    updateStep2Data({
       latitude,
       longitude,
       locationDetected: true,
       browserTimestampMs: Date.now(),
-    }));
+    });
     await syncAddressFromCoordinates(latitude, longitude);
   };
 
   const handleDetectNetwork = async () => {
     setFormError('');
+    setFormDetails([]);
     setStep3Errors((prev) => ({ ...prev, detection: undefined }));
     detectNetworkControllerRef.current?.abort();
     const controller = new AbortController();
@@ -345,7 +575,13 @@ export function LocationFormModal(props: LocationFormModalProps) {
     try {
       const detection = await detectNetworkMutation.mutateAsync({ signal: controller.signal });
       setNetworkWarnings([...(detection.warnings ?? []), ...(detection.blockingIssues ?? [])]);
-      setStep3Data((prev) => mapDetectNetworkResponseToFormValue(detection, prev));
+      setStep3Data((prev) => {
+        const next = mapDetectNetworkResponseToFormValue(detection, prev);
+        syncTouchedErrors(
+          buildCompanySiteFormValues(step1Data, step2Data, attendanceSettings, [next]),
+        );
+        return next;
+      });
     } catch (error) {
       if ((error as Error)?.name === 'AbortError') {
         return;
@@ -359,19 +595,32 @@ export function LocationFormModal(props: LocationFormModalProps) {
   };
 
   const handleClearDetectedNetwork = () => {
-    setStep3Data(clearTrustedNetworkFormValue());
+    const clearedNetwork = clearTrustedNetworkFormValue();
+    setFormDetails([]);
     setStep3Errors({});
+    setStep3Data(clearedNetwork);
+    syncTouchedErrors(
+      buildCompanySiteFormValues(
+        step1Data,
+        step2Data,
+        attendanceSettings,
+        [clearedNetwork],
+      ),
+    );
     setNetworkWarnings([]);
   };
 
   const handleNext = () => {
     setFormError('');
+    setFormDetails([]);
 
     if (currentStep === 1) {
       const errors = validateStep1(formValues);
       setStep1Errors(errors);
       if (Object.keys(errors).length === 0) {
         setCurrentStep(2);
+      } else {
+        revealAllValidationErrors();
       }
       return;
     }
@@ -381,6 +630,8 @@ export function LocationFormModal(props: LocationFormModalProps) {
       setStep2Errors(errors);
       if (Object.keys(errors).length === 0) {
         setCurrentStep(3);
+      } else {
+        revealAllValidationErrors();
       }
       return;
     }
@@ -393,13 +644,17 @@ export function LocationFormModal(props: LocationFormModalProps) {
       setStep3Errors(errors);
       if (Object.keys(errors).length === 0) {
         setCurrentStep(4);
+      } else {
+        revealAllValidationErrors();
       }
     }
   };
 
   const handleFinalSubmit = async () => {
     setFormError('');
+    setFormDetails([]);
     clearStepErrors();
+    revealAllValidationErrors();
     submitControllerRef.current?.abort();
     const controller = new AbortController();
     submitControllerRef.current = controller;
@@ -444,6 +699,9 @@ export function LocationFormModal(props: LocationFormModalProps) {
           versionRef.current = updatedSite.version;
         } else if (currentStep === 3) {
           const step3Validation = validateStep3(formValues);
+          if (step3Data.torExitNode && hasTrustedNetworkInput(step3Data)) {
+            step3Validation.detection = 'Tor exit nodes cannot be saved as trusted networks.';
+          }
           if (Object.keys(step3Validation).length > 0) {
             setStep3Errors(step3Validation);
             return;
@@ -477,6 +735,9 @@ export function LocationFormModal(props: LocationFormModalProps) {
       const step1Validation = validateStep1(formValues);
       const step2Validation = validateStep2(formValues);
       const step3Validation = validateStep3(formValues);
+      if (step3Data.torExitNode && hasTrustedNetworkInput(step3Data)) {
+        step3Validation.detection = 'Tor exit nodes cannot be saved as trusted networks.';
+      }
 
       if (Object.keys(step1Validation).length > 0) {
         setStep1Errors(step1Validation);
@@ -564,9 +825,6 @@ export function LocationFormModal(props: LocationFormModalProps) {
     { id: 3, label: 'Network' },
     { id: 4, label: 'Review' },
   ];
-  const labelClasses = 'text-[14px] font-semibold text-[#364153] leading-[20px] mb-1';
-  const inputOverrideClasses =
-    'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[16px] text-[#0A0A0A] placeholder:text-[rgba(10,10,10,0.5)] placeholder:leading-[24px] font-inter';
 
   return (
     <Modal
@@ -647,7 +905,14 @@ export function LocationFormModal(props: LocationFormModalProps) {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {formError && (
             <div className="mb-4 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
-              {formError}
+              <p>{formError}</p>
+              {formDetails.length > 0 && (
+                <div className="mt-2 space-y-1 text-[12px] font-normal text-rose-700">
+                  {formDetails.map((detail) => (
+                    <p key={detail}>{detail}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -656,10 +921,10 @@ export function LocationFormModal(props: LocationFormModalProps) {
               data={step1Data}
               errors={step1Errors}
               attendanceSettings={attendanceSettings}
-              onChange={(updates) => setStep1Data((prev) => ({ ...prev, ...updates }))}
-              onAttendanceChange={(updates) =>
-                setAttendanceSettings((prev) => ({ ...prev, ...updates }))
-              }
+              onChange={updateStep1Data}
+              onAttendanceChange={updateAttendanceSettings}
+              onAttendanceNumberChange={updateAttendanceNumberField}
+              onBlurField={markFieldTouched}
             />
           )}
 
@@ -668,11 +933,12 @@ export function LocationFormModal(props: LocationFormModalProps) {
               data={step2Data}
               errors={step2Errors}
               warnings={locationWarnings}
-              locationRequired={attendanceSettings.locationRequired}
+              requireLocation={attendanceSettings.requireLocation}
               countryCenter={countryCenter}
               isDetecting={isDetectingLocation}
               isHydratingAddress={isReverseGeocoding}
-              onChange={(updates) => setStep2Data((prev) => ({ ...prev, ...updates }))}
+              onChange={updateStep2Data}
+              onBlurField={markFieldTouched}
               onDetect={handleDetectLocation}
               onPinMoved={handlePinMoved}
             />
@@ -684,7 +950,8 @@ export function LocationFormModal(props: LocationFormModalProps) {
               errors={step3Errors}
               warnings={networkWarnings}
               isDetecting={isDetectingNetwork}
-              onChange={(updates) => setStep3Data((prev) => ({ ...prev, ...updates }))}
+              onChange={updateStep3Data}
+              onBlurField={markFieldTouched}
               onDetect={handleDetectNetwork}
               onClear={handleClearDetectedNetwork}
             />

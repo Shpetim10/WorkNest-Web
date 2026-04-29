@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import QRCode from 'qrcode';
 import { AlertCircle, Expand, Loader2, RefreshCw, Shrink } from 'lucide-react';
 import { Button } from '@/common/ui';
@@ -28,8 +27,9 @@ function formatCountdown(ms: number) {
 
 async function toQrDataUrl(token: string) {
   return QRCode.toDataURL(token, {
-    margin: 1,
-    width: 360,
+    errorCorrectionLevel: 'M',
+    margin: 2,
+    width: 520,
     color: {
       dark: '#111827',
       light: '#FFFFFF',
@@ -53,6 +53,7 @@ export function QrTerminalDisplayView({
 
   const mountedRef = useRef(true);
   const requestInFlightRef = useRef(false);
+  const qrDataRef = useRef<CurrentQrToken | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const expiryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -75,6 +76,7 @@ export function QrTerminalDisplayView({
     const image = await toQrDataUrl(tokenData.token);
     if (!mountedRef.current) return;
 
+    qrDataRef.current = tokenData;
     setQrData(tokenData);
     setQrImage(image);
     setErrorMessage('');
@@ -106,11 +108,14 @@ export function QrTerminalDisplayView({
 
         setQrData((prev) => {
           if (!prev) return null;
-          return new Date(prev.expiresAt).getTime() <= Date.now() ? null : prev;
+          const next = new Date(prev.expiresAt).getTime() <= Date.now() ? null : prev;
+          qrDataRef.current = next;
+          return next;
         });
         setQrImage((prev) => {
-          if (!qrData) return '';
-          return new Date(qrData.expiresAt).getTime() <= Date.now() ? '' : prev;
+          const currentQrData = qrDataRef.current;
+          if (!currentQrData) return '';
+          return new Date(currentQrData.expiresAt).getTime() <= Date.now() ? '' : prev;
         });
         setErrorMessage(
           mode === 'manual'
@@ -124,7 +129,7 @@ export function QrTerminalDisplayView({
         setRefreshing(false);
       }
     },
-    [applyToken, qrData, terminalId],
+    [applyToken, terminalId],
   );
 
   useEffect(() => {
@@ -256,13 +261,11 @@ export function QrTerminalDisplayView({
                 </div>
               ) : !isExpired && qrImage ? (
                 <>
-                  <Image
+                  <img
                     src={qrImage}
                     alt="Attendance QR code"
-                    width={380}
-                    height={380}
-                    unoptimized
-                    className="h-auto w-full max-w-[380px] rounded-[24px] border border-[#E5E7EB] bg-white p-4 shadow-sm"
+                    className="h-auto w-full max-w-[420px] rounded-[24px] border border-[#E5E7EB] bg-white p-5 shadow-sm"
+                    style={{ imageRendering: 'pixelated' }}
                   />
                   <div className="mt-6 rounded-full bg-[#ECFDF3] px-4 py-2 text-[13px] font-semibold text-[#027A48]">
                     Valid for {formatCountdown(remainingMs)}

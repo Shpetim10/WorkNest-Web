@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildLocalLocationAssessment, normalizeLocationDetectionResponse } from './detection';
-import { mapServerErrorsToLocationForm } from './errors';
+import { buildNestedFieldErrorTree, mapServerErrorsToLocationForm } from './errors';
 import {
   DEFAULT_ATTENDANCE_SETTINGS,
   DEFAULT_LOCATION_STEP,
@@ -95,6 +95,21 @@ test('create payload omits trusted networks when a detected network was removed 
 
   const payload = mapFormToCreateCompanySiteRequest(values, null);
 
+  assert.deepEqual(payload.attendancePolicy, {
+    requireQr: true,
+    requireLocation: true,
+    checkInEnabled: true,
+    checkOutEnabled: true,
+    useNetworkAsWarning: true,
+    rejectOutsideGeofence: true,
+    rejectPoorAccuracy: true,
+    allowManualCorrection: false,
+    allowManagerManualEntry: false,
+    missingCheckoutAutoCloseEnabled: false,
+    autoCheckoutAfterMinutes: null,
+    lateGraceMinutes: 0,
+    earlyClockInWindowMinutes: 0,
+  });
   assert.equal(payload.trustedNetworks, undefined);
 });
 
@@ -149,4 +164,53 @@ test('server validation errors map duplicate site code and duplicate network rul
 
   assert.equal(mapped.step1Errors.siteCode, 'Site code already exists');
   assert.equal(mapped.step3Errors.cidrBlock, 'CIDR block already exists for this site');
+});
+
+test('server validation errors map fieldErrors arrays into clear form messages', () => {
+  const mapped = mapServerErrorsToLocationForm({
+    response: {
+      status: 400,
+      data: {
+        timestamp: new Date().toISOString(),
+        message: 'Request validation failed',
+        path: '/api/v1/companies/company-1/sites',
+        code: 'VALIDATION_ERROR',
+        fieldErrors: [
+          {
+            field: 'attendancePolicy',
+            message: 'Attendance policy is required',
+          },
+        ],
+      },
+    },
+  });
+
+  assert.equal(mapped.formError, 'Request validation failed');
+  assert.deepEqual(mapped.formDetails, ['Attendance policy is required']);
+});
+
+test('backend field error paths build nested errors for dotted and indexed fields', () => {
+  const nested = buildNestedFieldErrorTree([
+    {
+      field: 'attendancePolicy.autoCheckoutAfterMinutes',
+      message:
+        'Auto check-out minutes is required when missing check-out auto-close is enabled.',
+    },
+    {
+      field: 'trustedNetworks[0].cidrBlock',
+      message: 'CIDR block already exists for this site',
+    },
+  ]);
+
+  assert.deepEqual(nested, {
+    attendanceRules: {
+      autoCheckoutAfterMinutes:
+        'Auto check-out minutes is required when missing check-out auto-close is enabled.',
+    },
+    trustedNetworks: [
+      {
+        cidrBlock: 'CIDR block already exists for this site',
+      },
+    ],
+  });
 });

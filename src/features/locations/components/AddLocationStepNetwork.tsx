@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, ChevronDown, ShieldCheck } from 'lucide-react';
-import { Input, Textarea, Select } from '@/common/ui';
+import { Input, Select, Textarea } from '@/common/ui';
 import { Issue, IpVersion, LocationStep3Data, LocationStep3Errors } from '../types';
 
 interface AddLocationStepNetworkProps {
@@ -11,6 +11,7 @@ interface AddLocationStepNetworkProps {
   warnings: Issue[];
   isDetecting: boolean;
   onChange: (updates: Partial<LocationStep3Data>) => void;
+  onBlurField: (path: string) => void;
   onDetect: () => void | Promise<void>;
   onClear: () => void;
 }
@@ -29,6 +30,7 @@ export function AddLocationStepNetwork({
   warnings,
   isDetecting,
   onChange,
+  onBlurField,
   onDetect,
   onClear,
 }: AddLocationStepNetworkProps) {
@@ -116,6 +118,7 @@ export function AddLocationStepNetwork({
         placeholder="Office Network"
         value={data.name}
         onChange={(e) => onChange({ name: e.target.value })}
+        onBlur={() => onBlurField('trustedNetworks[0].name')}
         error={errors.networkName}
         className={inputBase}
       />
@@ -130,6 +133,7 @@ export function AddLocationStepNetwork({
           placeholder="192.168.1.0/24"
           value={data.cidrBlock}
           onChange={(e) => onChange({ cidrBlock: e.target.value })}
+          onBlur={() => onBlurField('trustedNetworks[0].cidrBlock')}
           className={`h-[40px] w-full rounded-[10px] border bg-[#F9FAFB] px-3 font-mono text-[14px] placeholder:text-[rgba(10,10,10,0.5)] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20 ${
             errors.cidrBlock ? 'border-red-500 focus:ring-red-200' : 'border-[#E5E7EB]'
           }`}
@@ -142,9 +146,11 @@ export function AddLocationStepNetwork({
         label="Network Type"
         value={data.networkType}
         onChange={(e) => onChange({ networkType: e.target.value })}
+        onBlur={() => onBlurField('trustedNetworks[0].networkType')}
+        error={errors.networkType}
         className={labelBase}
         style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-          options={NETWORK_TYPE_OPTIONS}
+        options={NETWORK_TYPE_OPTIONS}
       />
 
       <div>
@@ -158,12 +164,14 @@ export function AddLocationStepNetwork({
                 value={version}
                 checked={data.ipVersion === version}
                 onChange={() => onChange({ ipVersion: version })}
+                onBlur={() => onBlurField('trustedNetworks[0].ipVersion')}
                 className="h-4 w-4 cursor-pointer accent-[#155DFC]"
               />
               <span className="text-[13px] font-medium text-[#364153]">{version}</span>
             </label>
           ))}
         </div>
+        {errors.ipVersion && <p className="mt-1 text-[12px] text-red-500">{errors.ipVersion}</p>}
       </div>
 
       <div>
@@ -181,12 +189,16 @@ export function AddLocationStepNetwork({
         </div>
 
         {data.setExpiry ? (
-          <input
-            type="date"
-            value={data.expiryDate}
-            onChange={(e) => onChange({ expiryDate: e.target.value })}
-            className="h-[40px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-[14px] text-[#101828] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20"
-          />
+          <>
+            <input
+              type="date"
+              value={data.expiryDate}
+              onChange={(e) => onChange({ expiryDate: e.target.value })}
+              onBlur={() => onBlurField('trustedNetworks[0].expiryDate')}
+              className="h-[40px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-[14px] text-[#101828] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20"
+            />
+            {errors.expiryDate && <p className="mt-1 text-[12px] text-red-500">{errors.expiryDate}</p>}
+          </>
         ) : (
           <div className="flex items-start gap-2.5 rounded-[8px] border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2.5">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[#D97706]" />
@@ -220,16 +232,18 @@ export function AddLocationStepNetwork({
         </button>
 
         {advancedOpen && (
-          <div>
-            <label className={`block ${labelBase}`}>Priority Override</label>
-            <input
-              type="number"
-              min={1}
-              value={data.priorityOrder}
-              onChange={(e) => onChange({ priorityOrder: e.target.value })}
-              className="h-[40px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-[14px] text-[#0A0A0A] transition-all focus:outline-none focus:ring-2 focus:ring-[#155DFC]/20"
-            />
-          </div>
+          <Input
+            id="priorityOrder"
+            label="Priority Override"
+            type="number"
+            min={1}
+            max={999}
+            value={data.priorityOrder}
+            onChange={(e) => onChange({ priorityOrder: e.target.value })}
+            onBlur={() => onBlurField('trustedNetworks[0].priorityOrder')}
+            error={errors.priorityOrder}
+            className={inputBase}
+          />
         )}
       </div>
     </div>

@@ -251,6 +251,8 @@ export interface SiteLocationRequest {
   locationDetectionSource: LocationDetectionSource;
 }
 
+export type AttendancePolicyRequest = AttendancePolicyUpdateRequest;
+
 export interface CreateCompanySiteRequest {
   code: string;
   name: string;
@@ -258,10 +260,7 @@ export interface CreateCompanySiteRequest {
   countryCode: string;
   timezone: string;
   notes?: string;
-  locationRequired?: boolean;
-  qrEnabled?: boolean;
-  checkInEnabled?: boolean;
-  checkOutEnabled?: boolean;
+  attendancePolicy: AttendancePolicyRequest;
   location: SiteLocationRequest;
   trustedNetworks?: TrustedNetworkDraftRequest[];
   version: number | null;
@@ -292,12 +291,7 @@ export interface AdvancedSettings {
   maxAccuracy: number;
 }
 
-export interface AttendanceSettings {
-  locationRequired: boolean;
-  qrEnabled: boolean;
-  checkInEnabled: boolean;
-  checkOutEnabled: boolean;
-}
+export type AttendanceSettings = AttendancePolicyUpdateRequest;
 
 export interface TrustedNetworkFormValue {
   id: string | null;
@@ -339,6 +333,19 @@ export interface LocationFormErrors {
   siteCode?: string;
   country?: string;
   timezone?: string;
+  requireQr?: string;
+  requireLocation?: string;
+  checkInEnabled?: string;
+  checkOutEnabled?: string;
+  useNetworkAsWarning?: string;
+  rejectOutsideGeofence?: string;
+  rejectPoorAccuracy?: string;
+  allowManualCorrection?: string;
+  allowManagerManualEntry?: string;
+  missingCheckoutAutoCloseEnabled?: string;
+  autoCheckoutAfterMinutes?: string;
+  lateGraceMinutes?: string;
+  earlyClockInWindowMinutes?: string;
   form?: string;
 }
 
@@ -361,12 +368,19 @@ export interface LocationStep2Data {
 
 export interface LocationStep2Errors {
   addressLine1?: string;
+  addressLine2?: string;
   city?: string;
   stateRegion?: string;
   postalCode?: string;
+  latitude?: string;
+  longitude?: string;
+  geofenceShapeType?: string;
   coordinates?: string;
   geofenceRadius?: string;
   geofencePolygonGeoJson?: string;
+  entryBuffer?: string;
+  exitBuffer?: string;
+  maxAccuracy?: string;
   detection?: string;
 }
 
@@ -374,7 +388,10 @@ export type LocationStep3Data = TrustedNetworkFormValue;
 
 export interface LocationStep3Errors {
   networkName?: string;
+  networkType?: string;
   cidrBlock?: string;
+  ipVersion?: string;
+  priorityOrder?: string;
   expiryDate?: string;
   detection?: string;
 }

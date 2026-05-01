@@ -15,6 +15,15 @@ export interface CreateStaffRequest {
   assignedEmployeeIds?: string[];
   permissionCodes?: string[];
   preferredLanguage?: string;
+  // Employment & Contract (optional step 2)
+  employmentType?: string | null;
+  contractDocumentKey?: string | null;
+  contractDocumentPath?: string | null;
+  contractExpiryDate?: string | null;
+  leaveDaysPerYear?: number | null;
+  paymentMethod?: string | null;
+  monthlySalary?: number | null;
+  hourlyRate?: number | null;
 }
 
 export interface ProvisioningResponse {

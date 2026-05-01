@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
-import { ApiResponse } from '@/types';
+import { ApiResponse } from '@/common/types/api';
 import { StaffDTO } from '../types';
 
 export const staffDetailKeys = {

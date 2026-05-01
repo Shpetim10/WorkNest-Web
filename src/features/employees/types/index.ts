@@ -1,6 +1,3 @@
-/**
- * Status of an employee in the system
- */
 export enum EmployeeStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
@@ -9,16 +6,25 @@ export enum EmployeeStatus {
   PENDING = 'PENDING',
 }
 
-/**
- * Employee Data Transfer Object
- */
+export enum EmploymentType {
+  FULL_TIME = 'FULL_TIME',
+  PART_TIME = 'PART_TIME',
+  CONTRACT = 'CONTRACT',
+  INTERN = 'INTERN',
+}
+
+export enum PaymentMethod {
+  FIXED_MONTHLY = 'FIXED_MONTHLY',
+  HOURLY = 'HOURLY',
+}
+
 export interface EmployeeDTO {
   id: string;
   userId?: string;
-  employeeId?: string; // Business ID (e.g., WN-001)
+  employeeId?: string;
   firstName?: string;
   lastName?: string;
-  name?: string; // Combined first/last
+  name?: string;
   email: string;
   jobTitle: string;
   departmentName: string;
@@ -31,11 +37,17 @@ export interface EmployeeDTO {
   supervisorName?: string;
   supervisorJobTitle?: string;
   companyId?: string;
+  // Employment & Contract
+  employmentType?: EmploymentType | null;
+  contractDocumentKey?: string | null;
+  contractDocumentPath?: string | null;
+  contractExpiryDate?: string | null;
+  leaveDaysPerYear?: number | null;
+  paymentMethod?: PaymentMethod | null;
+  monthlySalary?: number | null;
+  hourlyRate?: number | null;
 }
 
-/**
- * Filter criteria for employee search
- */
 export interface EmployeeFilters {
   search?: string;
   departmentId?: string;
@@ -44,9 +56,6 @@ export interface EmployeeFilters {
   size?: number;
 }
 
-/**
- * Summary DTO for assigned employees
- */
 export interface EmployeeSummaryDTO {
   employeeId: string;
   userId: string;
@@ -57,9 +66,6 @@ export interface EmployeeSummaryDTO {
   jobTitle: string;
 }
 
-/**
- * Staff Data Transfer Object
- */
 export interface StaffDTO {
   id: string;
   userId: string;
@@ -80,4 +86,13 @@ export interface StaffDTO {
   permissionCodes?: string[];
   assignedEmployeesCount?: number;
   assignedEmployees?: EmployeeSummaryDTO[];
+  // Employment & Contract
+  employmentType?: EmploymentType | null;
+  contractDocumentKey?: string | null;
+  contractDocumentPath?: string | null;
+  contractExpiryDate?: string | null;
+  leaveDaysPerYear?: number | null;
+  paymentMethod?: PaymentMethod | null;
+  monthlySalary?: number | null;
+  hourlyRate?: number | null;
 }

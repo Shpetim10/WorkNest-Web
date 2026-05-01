@@ -13,6 +13,15 @@ export interface ProvisionEmployeeRequest {
   companySiteId?: string;
   supervisorRoleAssignmentId?: string;
   startDate: string;
+  // Employment & Contract (optional step 2)
+  employmentType?: string | null;
+  contractDocumentKey?: string | null;
+  contractDocumentPath?: string | null;
+  contractExpiryDate?: string | null;
+  leaveDaysPerYear?: number | null;
+  paymentMethod?: string | null;
+  monthlySalary?: number | null;
+  hourlyRate?: number | null;
 }
 
 export interface ProvisionEmployeeResponse {

@@ -1,11 +1,15 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, User, Mail, Briefcase, Building2, Users2, ShieldCheck, CheckCircle2, MapPin } from 'lucide-react';
-
-import { useStaffDetails } from '../api/get-staff-details';
+import {
+  X, User, Mail, Briefcase, Building2, Users2, ShieldCheck,
+  CheckCircle2, MapPin, CreditCard, FileText, Sun, Calendar, Clock
+} from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { apiClient } from '@/common/network/api-client';
+import { PaymentMethod } from '../types';
+import { useStaffDetails } from '../api/get-staff-details';
 
 interface StaffViewModalProps {
   isOpen: boolean;
@@ -13,39 +17,118 @@ interface StaffViewModalProps {
   staffId: string | null;
 }
 
-const DETAIL_ROW_CLASS = "flex flex-col gap-1.5 p-4 rounded-xl border border-gray-50 bg-gray-50/30 transition-colors hover:bg-gray-50/50";
-const LABEL_CLASS = "flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-gray-400";
-const VALUE_CLASS = "text-[15px] font-semibold text-[#1E2939]";
+type ActiveTab = 'profile' | 'employment';
 
-const PERMISSION_GROUPS = [
-  'USER MANAGEMENT', 'ATTENDANCE', 'EMPLOYEE', 'ANNOUNCEMENTS', 'LEAVE', 'REPORTS', 'PAYROLL'
-];
+const DETAIL_ROW = "flex flex-col gap-1.5 p-4 rounded-xl border border-gray-50 bg-gray-50/30 transition-colors hover:bg-gray-50/50";
+const LABEL_CLS = "flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-gray-400";
+const VALUE_CLS = "text-[15px] font-semibold text-[#1E2939]";
 
+const PERMISSION_GROUPS = ['USER MANAGEMENT', 'ATTENDANCE', 'EMPLOYEE', 'ANNOUNCEMENTS', 'LEAVE', 'REPORTS', 'PAYROLL'];
 const GROUP_PREFIX_MAP: Record<string, string> = {
-  'USER MANAGEMENT': 'users',
-  'ATTENDANCE':      'attendance',
-  'EMPLOYEE':        'employees',
-  'ANNOUNCEMENTS':   'announcements',
-  'LEAVE':           'leave',
-  'REPORTS':         'reports',
-  'PAYROLL':         'payroll',
+  'USER MANAGEMENT': 'users', 'ATTENDANCE': 'attendance', 'EMPLOYEE': 'employees',
+  'ANNOUNCEMENTS': 'announcements', 'LEAVE': 'leave', 'REPORTS': 'reports', 'PAYROLL': 'payroll',
 };
+
+function formatDate(dateString: string | undefined | null) {
+  if (!dateString) return '—';
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return dateString; }
+}
+
+function formatEmploymentType(type: string | null | undefined) {
+  const map: Record<string, string> = {
+    FULL_TIME: 'Full-Time', PART_TIME: 'Part-Time', CONTRACT: 'Fixed-Term Contract', INTERN: 'Internship',
+  };
+  return type ? (map[type] || type) : '—';
+}
+
+function formatPaymentMethod(method: string | null | undefined) {
+  const map: Record<string, string> = { FIXED_MONTHLY: 'Fixed Monthly Salary', HOURLY: 'Hourly Rate' };
+  return method ? (map[method] || method) : '—';
+}
+
+function resolveContractUrl(path?: string | null) {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  const origin = apiBase.replace(/\/api\/v1\/?$/, '');
+  if (!origin) return path;
+
+  if (path.startsWith('/')) return `${origin}${path}`;
+  return `${origin}/${path}`;
+}
 
 export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
+  const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
+  const [isContractPreviewLoading, setIsContractPreviewLoading] = useState(false);
+  const [contractPreviewError, setContractPreviewError] = useState<string | null>(null);
   const { data: staff, isLoading, isError } = useStaffDetails(companyId, staffId);
 
   useEffect(() => {
     if (!isOpen) return;
+    setActiveTab('profile');
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
+  const initials = staff
+    ? (staff.name || `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || '??')
+        .split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase()
+    : '??';
+  const fullName = staff ? (staff.name || `${staff.firstName} ${staff.lastName}`) : 'Loading...';
+  const contractUrl = resolveContractUrl(staff?.contractDocumentPath);
+  const hasPdfContract = Boolean(contractUrl && contractUrl.toLowerCase().endsWith('.pdf'));
+
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrlToRevoke: string | null = null;
+
+    const loadPdfPreview = async () => {
+      if (!isOpen || !hasPdfContract || !contractUrl) {
+        setContractPreviewUrl(null);
+        setContractPreviewError(null);
+        setIsContractPreviewLoading(false);
+        return;
+      }
+
+      setIsContractPreviewLoading(true);
+      setContractPreviewError(null);
+      setContractPreviewUrl(null);
+
+      try {
+        const response = await apiClient.get<Blob>(contractUrl, { responseType: 'blob' });
+        if (!isMounted) return;
+        objectUrlToRevoke = URL.createObjectURL(response.data);
+        setContractPreviewUrl(objectUrlToRevoke);
+      } catch {
+        if (!isMounted) return;
+        setContractPreviewError('Unable to load contract preview.');
+      } finally {
+        if (isMounted) setIsContractPreviewLoading(false);
+      }
+    };
+
+    void loadPdfPreview();
+
+    return () => {
+      isMounted = false;
+      if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke);
+    };
+  }, [isOpen, contractUrl, hasPdfContract]);
+
   if (!isOpen) return null;
 
-  const initials = staff ? (staff.name || `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || '??').split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase() : '??';
-  const fullName = staff ? (staff.name || `${staff.firstName} ${staff.lastName}`) : 'Loading...';
+  const tabClass = (tab: ActiveTab) =>
+    `px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+      activeTab === tab
+        ? 'bg-[#155DFC] text-white shadow-md shadow-[#155DFC]/20'
+        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+    }`;
 
   return createPortal(
     <>
@@ -63,23 +146,18 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
               </div>
               <div className="space-y-0.5">
                 <h2 className="text-[22px] font-bold text-[#0A0A0A]">{fullName}</h2>
-                <div className="flex items-center gap-2">
-                  {staff && (
-                    <>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        staff.status === 'ACTIVE' 
-                        ? 'bg-[#E6FFFA] text-[#00C950]' 
-                        : staff.status === 'PENDING'
-                        ? 'bg-[#FFFBEB] text-[#B45309]'
-                        : 'bg-[#FFF7ED] text-[#CA3500]'
-                      }`}>
-                        {staff.status === 'ACTIVE' ? 'Active' : 
-                         staff.status === 'PENDING' ? 'Pending' : staff.status || 'Active'}
-                      </span>
-                      <span className="text-[13px] font-medium text-gray-400">• {staff.email}</span>
-                    </>
-                  )}
-                </div>
+                {staff && (
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      staff.status === 'ACTIVE' ? 'bg-[#E6FFFA] text-[#00C950]'
+                      : staff.status === 'PENDING' ? 'bg-[#FFFBEB] text-[#B45309]'
+                      : 'bg-[#FFF7ED] text-[#CA3500]'
+                    }`}>
+                      {staff.status === 'ACTIVE' ? 'Active' : staff.status === 'PENDING' ? 'Pending' : staff.status || 'Active'}
+                    </span>
+                    <span className="text-[13px] font-medium text-gray-400">• {staff.email}</span>
+                  </div>
+                )}
               </div>
             </div>
             <button onClick={onClose} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all">
@@ -87,8 +165,20 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
             </button>
           </div>
 
+          {/* Tab Toggle */}
+          {!isLoading && !isError && staff && (
+            <div className="flex items-center gap-2 px-8 pt-5 pb-0 shrink-0">
+              <button onClick={() => setActiveTab('profile')} className={tabClass('profile')}>
+                Profile & Permissions
+              </button>
+              <button onClick={() => setActiveTab('employment')} className={tabClass('employment')}>
+                Employment & Contract
+              </button>
+            </div>
+          )}
+
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6 custom-scrollbar">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-[#155DFC]" />
@@ -101,43 +191,33 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                 </div>
                 <p className="text-gray-500 font-medium font-[Inter,sans-serif]">Failed to load staff details</p>
               </div>
-            ) : (
+            ) : activeTab === 'profile' ? (
               <>
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><User size={14} /> Full Name</span>
-                    <span className={VALUE_CLASS}>{fullName}</span>
+                  <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><User size={14} /> Full Name</span>
+                    <span className={VALUE_CLS}>{fullName}</span>
                   </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><Mail size={14} /> Email Address</span>
-                    <span className={VALUE_CLASS}>{staff.email}</span>
+                  <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><Mail size={14} /> Email Address</span>
+                    <span className={VALUE_CLS}>{staff.email}</span>
                   </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><Briefcase size={14} /> Job Title</span>
-                    <span className={VALUE_CLASS}>{staff.jobTitle}</span>
+                  <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><Briefcase size={14} /> Job Title</span>
+                    <span className={VALUE_CLS}>{staff.jobTitle}</span>
                   </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><Building2 size={14} /> Department</span>
-                    <span className={VALUE_CLASS}>{staff.departmentName ?? '-'}</span>
+                  <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><Building2 size={14} /> Department</span>
+                    <span className={VALUE_CLS}>{staff.departmentName ?? '—'}</span>
                   </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><MapPin size={14} /> Location</span>
-                    <span className={VALUE_CLASS}>{staff.companySiteName ?? '-'}</span>
+                  <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><MapPin size={14} /> Location</span>
+                    <span className={VALUE_CLS}>{staff.companySiteName ?? '—'}</span>
                   </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><Users2 size={14} /> Role</span>
-                    <span className={VALUE_CLASS}>{staff.role}</span>
-                  </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><ShieldCheck size={14} /> Employment Status</span>
-                    <span className={`text-[15px] font-bold text-[#155DFC] font-[Inter,sans-serif]`}>
-                      {staff.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className={DETAIL_ROW_CLASS}>
-                    <span className={LABEL_CLASS}><Users2 size={14} /> Assigned Employees</span>
-                    <span className={VALUE_CLASS}>{staff.assignedEmployeesCount || 0} Employees</span>
+                  <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><Users2 size={14} /> Assigned Employees</span>
+                    <span className={VALUE_CLS}>{staff.assignedEmployeesCount || 0} Employees</span>
                   </div>
                 </div>
 
@@ -171,14 +251,14 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                   <div className="grid grid-cols-3 gap-3">
                     {PERMISSION_GROUPS.map(group => {
                       const prefix = GROUP_PREFIX_MAP[group];
-                      const isEnabled = staff.role === 'ADMIN' || staff.role === 'SUPERADMIN' || 
+                      const isEnabled = staff.role === 'ADMIN' || staff.role === 'SUPERADMIN' ||
                         (staff.permissionCodes && staff.permissionCodes.some(code => code.startsWith(prefix + '.')));
-
                       return (
                         <div
                           key={group}
-                          className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all ${isEnabled ? 'border-[#E8F1FF] bg-[#E8F1FF]/30 text-[#155DFC]' : 'border-gray-100 bg-gray-50/50 text-gray-400 opacity-60'
-                            }`}
+                          className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border transition-all ${
+                            isEnabled ? 'border-[#E8F1FF] bg-[#E8F1FF]/30 text-[#155DFC]' : 'border-gray-100 bg-gray-50/50 text-gray-400 opacity-60'
+                          }`}
                         >
                           <div className={`h-2 w-2 rounded-full ${isEnabled ? 'bg-[#155DFC]' : 'bg-gray-200'}`} />
                           <span className="text-[11px] font-bold uppercase tracking-tight font-[Inter,sans-serif]">{group}</span>
@@ -188,9 +268,77 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                   </div>
                 </div>
               </>
+            ) : (
+              /* Employment & Contract Tab */
+              <div className="grid grid-cols-2 gap-4">
+                <div className={DETAIL_ROW}>
+                  <span className={LABEL_CLS}><Briefcase size={14} /> Employment Type</span>
+                  <span className={VALUE_CLS}>{formatEmploymentType(staff.employmentType)}</span>
+                </div>
+                <div className={DETAIL_ROW}>
+                  <span className={LABEL_CLS}><Sun size={14} /> Paid Leave Days / Year</span>
+                  <span className={VALUE_CLS}>
+                    {staff.leaveDaysPerYear != null ? `${staff.leaveDaysPerYear} days` : '—'}
+                  </span>
+                </div>
+                <div className={`${DETAIL_ROW} col-span-2`}>
+                  <span className={LABEL_CLS}><Calendar size={14} /> Contract Expiry</span>
+                  <span className={VALUE_CLS}>{formatDate(staff.contractExpiryDate)}</span>
+                </div>
+                {staff.contractDocumentKey && (
+                  <div className={`${DETAIL_ROW} col-span-2`}>
+                    <span className={LABEL_CLS}><FileText size={14} /> PDF Contract Preview</span>
+                    {hasPdfContract && isContractPreviewLoading ? (
+                      <div className="flex items-center gap-2 text-[13px] font-medium text-gray-500">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading contract preview...
+                      </div>
+                    ) : hasPdfContract && contractPreviewUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => window.open(contractPreviewUrl, '_blank', 'noopener,noreferrer')}
+                        className="w-full overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left transition-all hover:border-[#155DFC]/40"
+                        title="Open full PDF in a new page"
+                      >
+                        <iframe
+                          src={contractPreviewUrl}
+                          title="Staff Contract PDF"
+                          className="h-[360px] w-full pointer-events-none"
+                        />
+                        <div className="px-3 py-2 text-[12px] font-semibold text-[#155DFC] bg-[#F8FAFF] border-t border-[#E5E7EB]">
+                          Open full PDF in new page
+                        </div>
+                      </button>
+                    ) : contractPreviewError ? (
+                      <p className="text-[13px] font-medium text-red-500">{contractPreviewError}</p>
+                    ) : (
+                      <p className="text-[13px] font-medium text-gray-500">
+                        Contract is on file, but no direct PDF URL is available to preview in-app yet.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className={`${DETAIL_ROW} col-span-2`}>
+                  <span className={LABEL_CLS}><CreditCard size={14} /> Payment Method</span>
+                  <div className="flex items-center justify-between">
+                    <span className={VALUE_CLS}>{formatPaymentMethod(staff.paymentMethod)}</span>
+                    {staff.paymentMethod === PaymentMethod.FIXED_MONTHLY && staff.monthlySalary != null && (
+                      <span className="text-[18px] font-bold text-[#155DFC]">
+                        €{staff.monthlySalary.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        <span className="text-[12px] font-semibold text-gray-400 ml-1">/month</span>
+                      </span>
+                    )}
+                    {staff.paymentMethod === PaymentMethod.HOURLY && staff.hourlyRate != null && (
+                      <span className="text-[18px] font-bold text-[#155DFC]">
+                        €{staff.hourlyRate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        <span className="text-[12px] font-semibold text-gray-400 ml-1">/hour</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-
 
           {/* Footer */}
           <div className="flex items-center justify-end px-8 py-5 border-t border-gray-50 shrink-0">
@@ -198,7 +346,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
               onClick={onClose}
               className="h-11 rounded-xl bg-gray-900 px-8 text-[14px] font-bold text-white shadow-md transition-all hover:bg-black hover:scale-[1.02]"
             >
-              Close Details
+              Close
             </button>
           </div>
         </div>

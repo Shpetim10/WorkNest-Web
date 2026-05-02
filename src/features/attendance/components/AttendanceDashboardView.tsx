@@ -367,7 +367,7 @@ export function AttendanceDashboardView() {
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4 pb-10">
       {/* Hero banner */}
       <div
         className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
@@ -529,7 +529,7 @@ export function AttendanceDashboardView() {
               return (
                 <tr
                   key={row.employeeId}
-                  className={`border-b border-gray-50 hover:bg-blue-50/30 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/40' : ''}`}
+                  className={`border-b border-[#E5E7EB] hover:bg-blue-50/30 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/40' : ''}`}
                 >
                   {/* Name */}
                   <td className="px-4 py-3.5">
@@ -633,7 +633,7 @@ export function AttendanceDashboardView() {
           isOpen
           onClose={() => setModal({ kind: 'none' })}
           employeeId={modal.row.employeeId}
-          date={appliedFilters.date || utcToday}
+          date={appliedFilters.date || initialTodayInCompanyTz}
         />
       )}
       {modal.kind === 'checkIn' && (

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Button, TablePagination } from '@/common/ui';
-import { Plus, Search, Edit2, Trash2, Eye, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, Loader2, Building2 } from 'lucide-react';
 import { useDepartments } from '../api';
 import { AddDepartmentModal } from './AddDepartmentModal';
 import { EditDepartmentModal } from './EditDepartmentModal';
@@ -73,60 +73,76 @@ export function DepartmentsView() {
   };
 
   return (
-    <div className="animate-in slide-in-from-bottom-2 w-full space-y-8 duration-500 fade-in pb-10">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
 
-      {/* Page Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="space-y-1">
-          <h1 className="font-[Inter,sans-serif] text-[35px] font-semibold leading-[36px] text-[#1E2939]">Departments</h1>
-          <p className="font-[Inter,sans-serif] text-[16px] font-normal leading-[24px] text-[#4A5565]">
-            Manage all departments of your company
-          </p>
+      {/* ── Page Header Card ───────────────────────────────────────────── */}
+      <div
+        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between cursor-pointer group"
+        onClick={() => setIsAddModalOpen(true)}
+        style={{
+          background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
+          minHeight: 120,
+          boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
+        }}
+      >
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+            <Building2 size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Departments</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              Manage all departments of your company
+            </p>
+          </div>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus size={18} strokeWidth={2.5} />}
-          iconPosition="left"
-          onClick={() => setIsAddModalOpen(true)}
-          className="h-11 min-w-[180px] rounded-xl bg-gradient-to-r from-[#155DFC] to-[#01c951] px-6 shadow-md hover:shadow-lg hover:shadow-[#155dfc]/20"
-        >
-          Add Department
-        </Button>
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
+          <Plus size={28} className="text-white" />
+        </div>
+        {/* Subtle hover overlay */}
+        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
       </div>
 
-      {/* Filters/Search section */}
-      <Card className="rounded-[24px] border-0 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <div className="relative w-full">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-            <Search size={18} strokeWidth={2} />
-          </div>
+      {/* ── Search / Filter Bar ────────────────────────────────────────── */}
+      <div 
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex items-center min-h-[48px]"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
+        <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search departments..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-gray-50/50 border border-gray-100 rounded-xl text-[13.5px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40 transition-all font-[Inter,sans-serif]"
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
-      </Card>
+      </div>
 
-      {/* Table Container */}
-      <Card className="overflow-hidden rounded-[24px] border border-[#155DFC]/30 p-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+      {/* ── Table Container ────────────────────────────────────────────── */}
+      <div 
+        className="bg-white rounded-2xl border border-[#2B7FFF] overflow-hidden mt-2"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#E8F1FF]/50 text-left">
+              <tr 
+                className="text-xs font-semibold text-white uppercase tracking-wide"
+                style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
+              >
                 {TABLE_HEADERS.map((header) => (
                   <th
                     key={header}
-                    className="px-6 py-4 text-[12px] font-semibold text-[#4A5565] leading-[16px] tracking-[0.06em] uppercase whitespace-nowrap font-[Inter,sans-serif]"
+                    className="px-4 py-3.5 text-left font-semibold"
                   >
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB] bg-white text-left">
+            <tbody className="bg-white text-left">
               {isLoading ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
@@ -156,33 +172,38 @@ export function DepartmentsView() {
                   </td>
                 </tr>
               ) : (
-                paginatedDepartments.map((dept) => (
-                  <tr key={dept.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => handleAction(dept.id, 'view')}>
-                    <td className="px-6 py-5">
-                      <span className="text-[16px] font-semibold text-[#1E2939] font-[Inter,sans-serif]">{dept.name}</span>
+                paginatedDepartments.map((dept, index) => (
+                  <tr 
+                    key={dept.id} 
+                    className={`border-b border-[#E5E7EB] hover:bg-blue-50/30 transition-colors group cursor-pointer ${
+                      index % 2 === 1 ? 'bg-gray-50/40' : ''
+                    }`} 
+                    onClick={() => handleAction(dept.id, 'view')}
+                  >
+                    <td className="px-4 py-3.5">
+                      <span className="text-[15px] font-medium text-gray-800 font-[Inter,sans-serif]">{dept.name}</span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className={`px-3.5 py-1 rounded-full text-[11px] font-bold font-[Inter,sans-serif] flex items-center w-fit ${
+                    <td className="px-4 py-3.5">
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium font-[Inter,sans-serif] flex items-center w-fit ${
                         dept.status === 'ACTIVE' 
-                          ? 'bg-[#F0FDF4] text-[#008236]' 
-                          : 'bg-[#FFF7ED] text-[#CA3500]'
+                          ? 'bg-[#00C95033] text-[#00C950]' 
+                          : 'bg-[#EF444433] text-[#EF4444]'
                       }`}>
-                        <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
                         {dept.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif] line-clamp-1">{dept.description || '—'}</span>
+                    <td className="px-4 py-3.5">
+                      <span className="text-[14px] font-normal text-gray-500 font-[Inter,sans-serif] line-clamp-1">{dept.description || '—'}</span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#364153] font-[Inter,sans-serif]">
+                    <td className="px-4 py-3.5">
+                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">
                         {dept.employeeCount} employees
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-[14px] text-[#4A5565] font-normal font-[Inter,sans-serif] whitespace-nowrap">
+                    <td className="px-4 py-3.5 text-[14px] text-gray-500 font-normal font-[Inter,sans-serif] whitespace-nowrap">
                       {formatDate(dept.createdAt)}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleAction(dept.id, 'view'); }}
@@ -213,7 +234,7 @@ export function DepartmentsView() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Pagination Footer */}
       <TablePagination 

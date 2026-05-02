@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, Input, Textarea, Button } from '@/common/ui';
+import { Settings } from 'lucide-react';
 
 export function CompanySettingsView() {
   const [formData, setFormData] = useState({
@@ -20,15 +21,34 @@ export function CompanySettingsView() {
   };
 
   return (
-    <div className="w-full max-w-[1000px] space-y-8 animate-in fade-in slide-in-from-bottom-3 duration-500">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
       
-      {/* Header section */}
-      <div className="space-y-1">
-        <h1 className="text-[28px] font-bold text-[#1a1c23] tracking-tight">Company Settings</h1>
-        <p className="text-[14.5px] text-gray-500 font-medium">Configure company information and preferences</p>
+      {/* ── Page Header Card ───────────────────────────────────────────── */}
+      <div
+        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
+        style={{
+          background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
+          minHeight: 120,
+          boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
+        }}
+      >
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+            <Settings size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Company Settings</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              Configure company information and preferences
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Card className="p-8 lg:p-10 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+      <div 
+        className="bg-white rounded-2xl border border-gray-100 p-8 lg:p-10"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
         <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
           <div className="space-y-6">
             <Input
@@ -59,13 +79,13 @@ export function CompanySettingsView() {
             <Button 
               variant="primary" 
               onClick={handleSave}
-              className="bg-gradient-to-r from-[#0066FF] to-[#00C853] hover:shadow-lg hover:shadow-blue-500/20"
+              className="h-11 px-8 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] text-white font-bold shadow-md hover:shadow-lg transition-all active:scale-95"
             >
               Save Changes
             </Button>
           </div>
         </form>
-      </Card>
+      </div>
 
     </div>
   );

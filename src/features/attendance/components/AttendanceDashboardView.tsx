@@ -102,6 +102,12 @@ function normalizeRole(rawRole: string | null): string {
   return (rawRole ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 }
 
+function isAdminRole(role: string): boolean {
+  // Keep explicit known roles first, then support common admin variants.
+  if (role === 'ADMIN' || role === 'SUPERADMIN') return true;
+  return role.includes('ADMIN');
+}
+
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
 function attendanceStateBadge(state: AttendanceState): { label: string; cls: string } {
@@ -153,11 +159,17 @@ function ActionDropdown({ row, onAction, isToday, isAdmin }: ActionDropdownProps
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const allowed = isToday || isAdmin;
-  const canCheckIn = allowed && row.attendanceState === AttendanceState.NOT_CHECKED_IN;
-  const canCheckOut = allowed && row.attendanceState === AttendanceState.CHECKED_IN;
-  const canDismiss = allowed && row.hasWarnings && !row.payrollLocked && !!row.dayRecordId;
-  const canAdjust = allowed && !!row.dayRecordId && !row.payrollLocked;
+  const isPastDate = !isToday;
+  // Manual check-in/out is never allowed for past dates.
+  const canCheckIn = !isPastDate && row.attendanceState === AttendanceState.NOT_CHECKED_IN;
+  const canCheckOut = !isPastDate && row.attendanceState === AttendanceState.CHECKED_IN;
+  // Past dates: only admin can dismiss/adjust. Today: keep existing behavior.
+  const canDismiss = isPastDate
+    ? isAdmin && row.hasWarnings && !row.payrollLocked && !!row.dayRecordId
+    : row.hasWarnings && !row.payrollLocked && !!row.dayRecordId;
+  const canAdjust = isPastDate
+    ? isAdmin && !!row.dayRecordId && !row.payrollLocked
+    : !!row.dayRecordId && !row.payrollLocked;
 
   useEffect(() => {
     if (!open) return;
@@ -240,7 +252,7 @@ export function AttendanceDashboardView() {
   const [isAdmin] = useState(() => {
     if (typeof window === 'undefined') return false;
     const role = normalizeRole(localStorage.getItem('platform_role'));
-    return ['ADMIN', 'SUPERADMIN'].includes(role);
+    return isAdminRole(role);
   });
   const [companyId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;

@@ -1,9 +1,12 @@
 import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { apiClient } from '@/common/network/api-client';
 import { LoginResponse, LoginRequest, SelectRoleRequest, SelectRoleResponse } from '../types';
 import { ApiResponse, ApiErrorResponse } from '@/common/types/api';
 import { useAuthStore } from '../store/authStore';
 import { setCookie } from '@/common/utils/cookies';
+import { fetchCompanySettings } from '@/features/company-settings/api/get-company-settings';
+import { persistCompanySettings } from '@/features/company-settings/storage';
 
 /**
  * Mutation hook for user login
@@ -19,28 +22,44 @@ export const useLogin = () => {
       try {
         const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', data);
         return response.data.data;
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const axiosError = error as AxiosError;
         // Detailed error logging specifically for this mutation
         console.error('❌ [Mutation Error] Login mutation failed:', {
           payload: data,
-          response: error.response?.data,
-          status: error.response?.status
+          response: axiosError.response?.data,
+          status: axiosError.response?.status
         });
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       // Store initial tokens (may be partial)
+      let companyId: string | null = null;
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
-        
+        localStorage.setItem('user_email', variables.email);
+
         if (data.tenantContext?.companyId) {
-          localStorage.setItem('current_company_id', data.tenantContext.companyId);
+          companyId = data.tenantContext.companyId;
+          localStorage.setItem('current_company_id', companyId);
+        }
+        if (data.role) {
+          localStorage.setItem('platform_role', data.role);
         }
         setCookie('auth_token', data.accessToken, 7);
       }
-      
+
+      if (companyId) {
+        try {
+          const settings = await fetchCompanySettings(companyId);
+          persistCompanySettings(settings);
+        } catch (error) {
+          console.warn('Failed to fetch company settings after login:', error);
+        }
+      }
+
       // Store primary response for role selection if needed
       setLoginResponse(data);
     },
@@ -56,16 +75,30 @@ export const useSelectRole = () => {
       const response = await apiClient.post<ApiResponse<SelectRoleResponse>>('/auth/select-role', data);
       return response.data.data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Substitute initial tokens with final workspace tokens
+      let companyId: string | null = null;
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
-        
+
         if (data.tenantContext?.companyId) {
-          localStorage.setItem('current_company_id', data.tenantContext.companyId);
+          companyId = data.tenantContext.companyId;
+          localStorage.setItem('current_company_id', companyId);
+        }
+        if (data.platformRole) {
+          localStorage.setItem('platform_role', data.platformRole);
         }
         setCookie('auth_token', data.accessToken, 7);
+      }
+
+      if (companyId) {
+        try {
+          const settings = await fetchCompanySettings(companyId);
+          persistCompanySettings(settings);
+        } catch (error) {
+          console.warn('Failed to fetch company settings after role selection:', error);
+        }
       }
     },
   });

@@ -13,6 +13,7 @@ import { useProvisionStaff } from '../api/provision-staff';
 import { useUpdateStaff } from '../api/update-staff';
 import { useStaffDetails } from '../api/get-staff-details';
 import { uploadContractDocument } from '../api/upload-media';
+import { getCurrencySymbol, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -184,6 +185,8 @@ function PermissionGroup({ groupName, items, toggled, onChange }: {
 // ─── Component ───────────────────────────────────────────────────────────────────
 export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: StaffFormModalProps) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const currencyCode = getStoredCompanyCurrency();
+  const currencySymbol = getCurrencySymbol(currencyCode, getStoredCompanyLocale());
   const [step, setStep] = useState(1);
   const [values, setValues] = useState<Step1Values>(EMPTY_STEP1);
   const [step2, setStep2] = useState<Step2Values>(EMPTY_STEP2);
@@ -744,7 +747,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                   <div className="space-y-2">
                     <label className={LABEL}>Monthly Salary</label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">€</span>
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                       <input type="number" min="0" step="0.01" placeholder="e.g. 5000.00" value={step2.monthlySalary} onChange={setS2('monthlySalary')} className={`${INPUT} pl-8`} />
                     </div>
                   </div>
@@ -757,7 +760,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                       Hourly Rate
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">€</span>
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                       <input type="number" min="0" step="0.01" placeholder="e.g. 25.00" value={step2.hourlyRate} onChange={setS2('hourlyRate')} className={`${INPUT} pl-8`} />
                     </div>
                     <p className="text-[12px] text-gray-400 font-medium">Rate per hour worked</p>

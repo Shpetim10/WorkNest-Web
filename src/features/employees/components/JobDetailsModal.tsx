@@ -11,6 +11,7 @@ import { useStaffDetails } from '../api/get-staff-details';
 import { useUpdateEmployeeJobDetails } from '../api/update-employee-job-details';
 import { useUpdateStaffJobDetails } from '../api/update-staff-job-details';
 import { uploadContractDocument } from '../api/upload-media';
+import { getCurrencySymbol, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const LABEL = 'block font-[Inter,sans-serif] text-[13px] font-bold uppercase tracking-wider text-[#4A5565] mb-2';
@@ -72,6 +73,8 @@ const EMPTY: FormValues = {
 // ─── Component ───────────────────────────────────────────────────────────────
 export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId }: JobDetailsModalProps) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const currencyCode = getStoredCompanyCurrency();
+  const currencySymbol = getCurrencySymbol(currencyCode, getStoredCompanyLocale());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [values, setValues] = useState<FormValues>(EMPTY);
@@ -354,7 +357,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                       Monthly Salary
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">€</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                       <input
                         type="number"
                         min="0"
@@ -375,7 +378,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                       Hourly Rate
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">€</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                       <input
                         type="number"
                         min="0"

@@ -13,6 +13,7 @@ import { useProvisionEmployee } from '../api/provision-employee';
 import { useUpdateEmployee } from '../api/update-employee';
 import { useEmployee } from '../api/get-employee-details';
 import { uploadContractDocument } from '../api/upload-media';
+import { getCurrencySymbol, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const LABEL_CLASS = 'block font-[Inter,sans-serif] text-[13px] font-bold uppercase tracking-wider text-[#4A5565] mb-2';
@@ -142,6 +143,8 @@ const EMPTY_STEP2: Step2Values = {
 // ─── Component ──────────────────────────────────────────────────────────────────
 export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }: EmployeeFormModalProps) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const currencyCode = getStoredCompanyCurrency();
+  const currencySymbol = getCurrencySymbol(currencyCode, getStoredCompanyLocale());
 
   const [step, setStep] = useState(1);
   const [step1, setStep1] = useState<Step1Values>(EMPTY_STEP1);
@@ -319,9 +322,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
     setStep(2);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function handleSubmit() {
     if (mode === 'add' && step < totalSteps) { handleNext(); return; }
 
     // Validate step 1 first (in edit mode)
@@ -421,6 +422,11 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
   const isBusy = provisionMutation.isPending || updateMutation.isPending || isUploadingFile;
 
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    void handleSubmit();
+  }
+
   const headerTitle = mode === 'add'
     ? (step === 1 ? 'Add Employee' : 'Employment & Contract')
     : 'Edit Employee';
@@ -455,7 +461,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col flex-1 min-h-0">
+          <form onSubmit={handleFormSubmit} noValidate className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 custom-scrollbar">
 
               {/* ─── Step 1: Basic Info ─────────────────────────────────────── */}
@@ -678,7 +684,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                     <div className="space-y-2">
                       <label className={LABEL_CLASS}>Monthly Salary</label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">€</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                         <input
                           type="number"
                           min="0"
@@ -699,7 +705,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                         Hourly Rate
                       </label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">€</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                         <input
                           type="number"
                           min="0"

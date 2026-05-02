@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  X, User, Mail, Briefcase, Building2, Users2, ShieldCheck,
-  CheckCircle2, MapPin, CreditCard, FileText, Sun, Calendar, Clock
+  X, User, Mail, Briefcase, Building2, Users2,
+  CheckCircle2, MapPin, CreditCard, FileText, Sun, Calendar
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/common/network/api-client';
 import { PaymentMethod } from '../types';
 import { useStaffDetails } from '../api/get-staff-details';
+import { formatCurrencyAmount, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
 
 interface StaffViewModalProps {
   isOpen: boolean;
@@ -62,6 +63,8 @@ function resolveContractUrl(path?: string | null) {
 
 export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const currencyCode = getStoredCompanyCurrency();
+  const currencyLocale = getStoredCompanyLocale();
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
   const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
   const [isContractPreviewLoading, setIsContractPreviewLoading] = useState(false);
@@ -216,6 +219,10 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                     <span className={VALUE_CLS}>{staff.companySiteName ?? '—'}</span>
                   </div>
                   <div className={DETAIL_ROW}>
+                    <span className={LABEL_CLS}><Calendar size={14} /> Hire Date</span>
+                    <span className={VALUE_CLS}>{formatDate(staff.startDate)}</span>
+                  </div>
+                  <div className={DETAIL_ROW}>
                     <span className={LABEL_CLS}><Users2 size={14} /> Assigned Employees</span>
                     <span className={VALUE_CLS}>{staff.assignedEmployeesCount || 0} Employees</span>
                   </div>
@@ -324,13 +331,13 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                     <span className={VALUE_CLS}>{formatPaymentMethod(staff.paymentMethod)}</span>
                     {staff.paymentMethod === PaymentMethod.FIXED_MONTHLY && staff.monthlySalary != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
-                        €{staff.monthlySalary.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatCurrencyAmount(staff.monthlySalary, currencyCode, currencyLocale)}
                         <span className="text-[12px] font-semibold text-gray-400 ml-1">/month</span>
                       </span>
                     )}
                     {staff.paymentMethod === PaymentMethod.HOURLY && staff.hourlyRate != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
-                        €{staff.hourlyRate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatCurrencyAmount(staff.hourlyRate, currencyCode, currencyLocale)}
                         <span className="text-[12px] font-semibold text-gray-400 ml-1">/hour</span>
                       </span>
                     )}

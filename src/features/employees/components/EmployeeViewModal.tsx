@@ -4,12 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X, User, Mail, Building2, Calendar, UserCog, MapPin,
-  Briefcase, CreditCard, FileText, Sun, Clock
+  Briefcase, CreditCard, FileText, Sun
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/common/network/api-client';
-import { EmployeeStatus, EmploymentType, PaymentMethod } from '../types';
+import { EmployeeStatus, PaymentMethod } from '../types';
 import { useEmployee } from '../api/get-employee-details';
+import { formatCurrencyAmount, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
 
 interface EmployeeViewModalProps {
   isOpen: boolean;
@@ -68,6 +69,8 @@ function resolveContractUrl(path?: string | null) {
 
 export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewModalProps) {
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
+  const currencyCode = getStoredCompanyCurrency();
+  const currencyLocale = getStoredCompanyLocale();
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
   const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
   const [isContractPreviewLoading, setIsContractPreviewLoading] = useState(false);
@@ -296,13 +299,13 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
                     <span className={VALUE_CLS}>{formatPaymentMethod(employee.paymentMethod)}</span>
                     {employee.paymentMethod === PaymentMethod.FIXED_MONTHLY && employee.monthlySalary != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
-                        €{employee.monthlySalary.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatCurrencyAmount(employee.monthlySalary, currencyCode, currencyLocale)}
                         <span className="text-[12px] font-semibold text-gray-400 ml-1">/month</span>
                       </span>
                     )}
                     {employee.paymentMethod === PaymentMethod.HOURLY && employee.hourlyRate != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
-                        €{employee.hourlyRate.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatCurrencyAmount(employee.hourlyRate, currencyCode, currencyLocale)}
                         <span className="text-[12px] font-semibold text-gray-400 ml-1">/hour</span>
                       </span>
                     )}

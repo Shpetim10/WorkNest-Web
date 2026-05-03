@@ -243,8 +243,6 @@ export function LocationDetailsModal({
                       <DetailRow label="Check-out Enabled:" value={attendancePolicy.checkOutEnabled ? 'Yes' : 'No'} />
                       <DetailRow label="Reject Outside Geofence:" value={attendancePolicy.rejectOutsideGeofence ? 'Yes' : 'No'} />
                       <DetailRow label="Reject Poor Accuracy:" value={attendancePolicy.rejectPoorAccuracy ? 'Yes' : 'No'} />
-                      <DetailRow label="Late Grace Minutes:" value={String(attendancePolicy.lateGraceMinutes)} />
-                      <DetailRow label="Early Clock-in Window:" value={String(attendancePolicy.earlyClockInWindowMinutes)} />
                       <DetailRow label="Allow Manager Manual Entry:" value={attendancePolicy.allowManagerManualEntry ? 'Yes' : 'No'} />
                     </div>
                   </>

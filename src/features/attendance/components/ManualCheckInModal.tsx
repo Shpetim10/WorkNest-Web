@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Input, Textarea } from '@/common/ui';
 import { useManualCheckIn } from '../api/manual-check-in';
+import { formatAttendanceFriendlyError } from '@/features/locations/utils/errors';
 
 interface Props {
   isOpen: boolean;
@@ -68,6 +69,7 @@ function localDatetimeToUTC(localDatetime: string, timezone: string): string {
 export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, timezone, isAdmin = false }: Props) {
   const [eventAt, setEventAt] = useState(() => toLocalDatetimeValue(new Date(), timezone));
   const [reason, setReason] = useState('');
+  const [formError, setFormError] = useState('');
   const mutation = useManualCheckIn();
 
   if (!isOpen) return null;
@@ -77,14 +79,24 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
 
   const handleSubmit = async () => {
     if (!isValidDate) return;
-    await mutation.mutateAsync({
-      employeeId,
-      data: {
-        eventAt: eventAt ? localDatetimeToUTC(eventAt, timezone) : undefined,
-        reason: reason || undefined,
-      },
-    });
-    onClose();
+    setFormError('');
+    try {
+      await mutation.mutateAsync({
+        employeeId,
+        data: {
+          eventAt: eventAt ? localDatetimeToUTC(eventAt, timezone) : undefined,
+          reason: reason || undefined,
+        },
+      });
+      onClose();
+    } catch (error) {
+      setFormError(
+        formatAttendanceFriendlyError(
+          error,
+          'We could not save this manual check-in. Please try again.',
+        ),
+      );
+    }
   };
 
   return createPortal(
@@ -105,6 +117,11 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
         </div>
 
         <div className="px-6 pt-5 pb-6 space-y-4">
+          {formError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+              {formError}
+            </div>
+          )}
           <div>
             <p className="text-xs font-semibold text-gray-500 mb-1.5">Employee</p>
             <div className="h-11 px-4 flex items-center bg-gray-50 rounded-xl border border-gray-100 text-sm text-gray-700">

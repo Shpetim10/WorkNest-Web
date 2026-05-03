@@ -275,7 +275,7 @@ export function LocationsView() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${getTypeBadgeStyles(location.siteType)}`}>
-                        {location.siteType.replace('_', ' ').toLowerCase()}
+                        {location.siteType.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-gray-600">

@@ -13,6 +13,7 @@ import {
   Lock,
   UserPlus,
   Filter,
+  ChevronDown,
 } from 'lucide-react';
 import { TablePagination } from '@/common/ui';
 import { useAttendanceDashboard } from '../api/get-attendance';
@@ -307,8 +308,8 @@ export function AttendanceDashboardView() {
   // Client-side search filter
   const filtered = search.trim()
     ? employees.filter((e) =>
-        e.employeeName.toLowerCase().includes(search.toLowerCase()),
-      )
+      e.employeeName.toLowerCase().includes(search.toLowerCase()),
+    )
     : employees;
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -372,7 +373,7 @@ export function AttendanceDashboardView() {
       <div
         className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
         style={{
-          background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 50%, #10B981 100%)',
+          background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)',
           minHeight: 120,
         }}
       >
@@ -418,37 +419,36 @@ export function AttendanceDashboardView() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 flex flex-wrap gap-3 items-center shadow-sm">
+      <div
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex flex-wrap gap-3 items-center min-h-[48px]"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search employee locally..."
-            className="w-full h-10 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
 
-        {/* Date */}
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          max={todayInCompanyTz}
-          className="h-10 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
-        />
-        <span className="text-xs font-medium text-gray-400">
-          {formatDateForDisplay(date, companyDateFormat)}
-        </span>
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Date */}
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            max={todayInCompanyTz}
+            className="h-8 px-3 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+          />
 
-        {/* Admin-only filters */}
-        {isAdmin && (
-          <>
+          <div className="relative">
             <select
               value={siteId}
               onChange={(e) => setSiteId(e.target.value)}
-              className="h-10 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+              className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
               <option value="">All sites</option>
               {locationsData?.items.map((s) => (
@@ -457,11 +457,14 @@ export function AttendanceDashboardView() {
                 </option>
               ))}
             </select>
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
 
+          <div className="relative">
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className="h-10 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+              className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
               <option value="">All departments</option>
               {departments?.map((d) => (
@@ -470,16 +473,16 @@ export function AttendanceDashboardView() {
                 </option>
               ))}
             </select>
-          </>
-        )}
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
 
-        <button
-          onClick={applyFilters}
-          className="h-10 px-5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Filter size={14} />
-          Apply
-        </button>
+          <button
+            onClick={applyFilters}
+            className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            Apply
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -488,7 +491,7 @@ export function AttendanceDashboardView() {
           <thead>
             <tr
               className="text-xs font-semibold text-white uppercase tracking-wide"
-              style={{ background: 'linear-gradient(90deg, #2563EB 0%, #0EA5E9 60%, #10B981 100%)' }}
+              style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
             >
               {['Name', 'Site', 'Department', 'Status', 'Check In', 'Check Out', 'Day Status', 'Worked', 'Warnings', 'Actions'].map(
                 (h) => (

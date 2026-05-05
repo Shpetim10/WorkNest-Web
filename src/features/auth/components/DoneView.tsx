@@ -13,7 +13,7 @@ export function DoneView() {
 
       <Card className="w-full max-w-[500px] p-6 md:p-8 flex flex-col items-center text-center relative z-20 mt-2">
         {/* Top Icon Area */}
-        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#2178ff] to-[#00b2ff] flex items-center justify-center shadow-[0_16px_32px_-8px_rgba(33,120,255,0.5)] mb-6 relative">
+        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#2B7FFF] to-[#00BBA7] flex items-center justify-center shadow-[0_16px_32px_-8px_rgba(33,120,255,0.5)] mb-6 relative">
           <svg
             width="44"
             height="44"

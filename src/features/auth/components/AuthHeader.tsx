@@ -15,7 +15,7 @@ export function AuthHeader({ currentStep }: AuthHeaderProps) {
       <div className="flex flex-col items-center gap-2 w-[60px] shrink-0">
         <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-[13px] font-bold ${
           isCompleted || isActive 
-            ? 'bg-gradient-to-r from-[#2178ff] to-[#01c951] text-white shadow-[0_6px_16px_-4px_rgba(21,93,252,0.5)]'
+            ? 'bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] text-white shadow-[0_6px_16px_-4px_rgba(43,127,255,0.5)]'
             : 'bg-[#e2e8f0] text-gray-500'
         }`}>
           {isCompleted ? <Check size={18} strokeWidth={3} /> : stepNum}
@@ -31,7 +31,7 @@ export function AuthHeader({ currentStep }: AuthHeaderProps) {
     const isCompleted = currentStep > stepNum;
     return (
       <div className={`flex-1 h-[2px] mt-[17px] mx-3 lg:mx-4 ${
-        isCompleted ? 'bg-gradient-to-r from-[#01c951] to-[#2178ff]' : 'bg-gray-200'
+        isCompleted ? 'bg-gradient-to-r from-[#00BBA7] to-[#2B7FFF]' : 'bg-gray-200'
       }`} />
     );
   };

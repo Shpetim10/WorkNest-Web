@@ -144,7 +144,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
           {/* Header */}
           <div className="flex items-center justify-between px-8 py-6 border-b border-gray-50 shrink-0">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#155DFC] to-[#155DFC] flex items-center justify-center text-white text-[20px] font-bold shadow-lg">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] flex items-center justify-center text-white text-[20px] font-bold shadow-lg">
                 {initials}
               </div>
               <div className="space-y-0.5">

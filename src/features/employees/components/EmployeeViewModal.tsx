@@ -150,7 +150,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
           {/* Header */}
           <div className="flex items-center justify-between px-8 py-7 border-b border-gray-50 shrink-0">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-[20px] bg-gradient-to-br from-[#155DFC] to-[#01c951] flex items-center justify-center text-white text-[22px] font-bold shadow-lg shadow-[#155DFC]/20">
+              <div className="h-16 w-16 rounded-[20px] bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] flex items-center justify-center text-white text-[22px] font-bold shadow-lg shadow-[#2B7FFF]/20">
                 {initials}
               </div>
               <div className="space-y-1">

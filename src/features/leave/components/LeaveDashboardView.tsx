@@ -247,7 +247,7 @@ export function LeaveDashboardView() {
                     <div className="flex items-center gap-3">
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
+                        style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                       >
                         {getInitials(row.employeeName)}
                       </div>

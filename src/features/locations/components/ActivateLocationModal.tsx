@@ -66,7 +66,7 @@ export function ActivateLocationModal({
           <Button
             onClick={() => void handleActivate()}
             isLoading={activateMutation.isPending}
-            className="flex-1 h-12 bg-gradient-to-r from-[#12B76A] to-[#01c951] hover:from-[#01c951] hover:to-[#00A63E] text-white text-[16px] font-medium rounded-[14px] shadow-lg shadow-emerald-200 transition-all border-none"
+            className="flex-1 h-12 bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] hover:opacity-90 text-white text-[16px] font-medium rounded-[14px] shadow-lg shadow-emerald-200 transition-all border-none"
           >
             Activate
           </Button>

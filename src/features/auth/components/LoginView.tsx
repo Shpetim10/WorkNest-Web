@@ -68,13 +68,13 @@ export function LoginView() {
         <div className="w-full max-w-[400px] mx-auto">
           {/* Logo */}
           <div className="mb-10">
-            <h1 className="font-sans font-bold text-[30px] leading-[36px] bg-gradient-to-r from-[#155DFC] to-[#00A63E] bg-clip-text text-transparent inline-block">
-              WorkNest
+            <h1 className="font-sans font-bold text-[30px] leading-[36px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text text-transparent inline-block">
+              WorkTrezz
             </h1>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-[#1a1c23] mb-2">Welcome Back</h2>
+            <h2 className="text-3xl font-bold text-[#1a1c23] mb-2">Welcome Back !</h2>
             <p className="text-gray-500 text-sm">Sign in to continue to your account</p>
           </div>
 
@@ -132,25 +132,25 @@ export function LoginView() {
       </div>
 
       {/* Right Panel - Branding/Gradient */}
-      <div className="hidden md:flex w-1/2 flex-col justify-center items-center bg-gradient-to-br from-[#2B7FFF] via-[#155DFC] to-[#00C950] text-white p-12 relative overflow-hidden">
+      <div className="hidden md:flex w-1/2 flex-col justify-center items-center bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] text-white p-12 relative overflow-hidden">
         {/* Very subtle subtle radial background element to enhance the gradient */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent opacity-50"></div>
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-[440px]">
-          {/* WorkNest Logo */}
+          {/* WorkTrezz Logo */}
           <div className="mb-6 flex justify-center">
             <Image
               src="/logo.png"
               alt="WorkNest Brand"
-              width={700}
-              height={300}
-              className="w-[420px] md:w-[520px] h-auto object-contain drop-shadow-lg"
+              width={430}
+              height={307}
+              className="w-[430px] h-auto object-contain drop-shadow-lg"
               priority
             />
           </div>
 
           <p className="font-sans font-normal text-[20px] leading-[28px] tracking-normal text-center text-white/90 max-w-[438px]">
-            Modern HR Management Platform for Growing Teams
+            Step into a better HR experience — where managing your team is easier, collaboration feels natural, and growth happens every day.
           </p>
         </div>
       </div>

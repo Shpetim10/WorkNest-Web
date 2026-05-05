@@ -46,7 +46,7 @@ export function AddLocationStepNetwork({
             type="button"
             onClick={() => void onDetect()}
             disabled={isDetecting}
-            className="flex h-[40px] items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-[#155DFC] to-[#1447E6] px-5 text-sm font-medium text-white shadow-md shadow-blue-200 transition-all hover:opacity-90 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex h-[40px] items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-5 text-sm font-medium text-white shadow-md shadow-blue-200 transition-all hover:opacity-90 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
             <ShieldCheck size={16} className="text-white" strokeWidth={2.5} />
             {isDetecting ? 'Detecting...' : 'Detect Network'}

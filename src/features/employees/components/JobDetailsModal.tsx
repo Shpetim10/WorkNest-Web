@@ -415,7 +415,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
               type="button"
               onClick={handleSubmit}
               disabled={isSaving || isUploadingFile || isLoading}
-              className="h-12 rounded-xl bg-gradient-to-r from-[#155DFC] to-[#01c951] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#155DFC]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isUploadingFile ? 'Uploading...' : isSaving ? 'Saving...' : 'Save Changes'}
             </button>

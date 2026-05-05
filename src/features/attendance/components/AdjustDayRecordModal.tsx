@@ -150,7 +150,7 @@ export function AdjustDayRecordModal({
         {/* Gradient header */}
         <div
           className="px-6 py-5 flex items-center justify-between"
-          style={{ background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 60%, #10B981 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
         >
           <h2 className="text-base font-bold text-white">Adjust Day Record</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">

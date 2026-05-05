@@ -16,7 +16,7 @@ export function EmailSentView() {
       <Card className="w-full max-w-[460px] p-12 flex flex-col items-center text-center relative z-10">
 
         {/* Blue Circle Icon */}
-        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#155DFC] to-[#4b8df8] shadow-lg shadow-blue-500/20 flex items-center justify-center mb-8">
+        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#2B7FFF] to-[#00BBA7] shadow-lg shadow-blue-500/20 flex items-center justify-center mb-8">
           <svg
             width="42"
             height="42"

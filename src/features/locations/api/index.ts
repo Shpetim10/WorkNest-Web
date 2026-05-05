@@ -163,7 +163,6 @@ export function mapSetupStatusToLocation(status: SiteSetupStatus): Location {
     setExpiry: Boolean(network?.expiresAt),
     expiryDate: network?.expiresAt ? network.expiresAt.slice(0, 10) : '',
     networkNotes: network?.notes ?? '',
-    priorityOverride: network?.priorityOrder != null ? String(network.priorityOrder) : '',
   };
 }
 
@@ -210,7 +209,6 @@ export function mapDetailsToLocation(details: CompanySiteDetails): Location {
     setExpiry: Boolean(network?.expiresAt),
     expiryDate: network?.expiresAt ? network.expiresAt.slice(0, 10) : '',
     networkNotes: network?.notes ?? '',
-    priorityOverride: network?.priorityOrder != null ? String(network.priorityOrder) : '',
   };
 }
 

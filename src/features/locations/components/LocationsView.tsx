@@ -123,76 +123,84 @@ export function LocationsView() {
   const TABLE_HEADERS = ['Site Name', 'Site Code', 'Site Type', 'Country', 'Status', 'Created At', 'Actions'];
 
   return (
-    <div className="animate-in slide-in-from-bottom-2 w-full space-y-8 duration-500 fade-in pb-10">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
       
-      {/* Header section */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="space-y-1">
-          <h1 className="font-[Inter,sans-serif] text-[35px] font-semibold leading-[36px] text-[#1E2939]">Locations</h1>
-          <p className="font-[Inter,sans-serif] text-[16px] font-normal leading-[24px] text-[#4A5565]">
-            Manage your company locations and geofencing settings
-          </p>
+      {/* ── Page Header Card ───────────────────────────────────────────── */}
+      <div
+        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between cursor-pointer group"
+        onClick={() => setIsAddModalOpen(true)}
+        style={{
+          background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
+          minHeight: 120,
+          boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
+        }}
+      >
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+            <MapPin size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Locations</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              Manage your company locations and geofencing settings
+            </p>
+          </div>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus size={18} strokeWidth={2.5} />}
-          iconPosition="left"
-          onClick={() => setIsAddModalOpen(true)}
-          className="h-11 min-w-[180px] rounded-xl bg-gradient-to-r from-[#155DFC] to-[#01c951] px-6 shadow-md hover:shadow-lg hover:shadow-[#155dfc]/20"
-        >
-          Add Location
-        </Button>
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
+          <Plus size={28} className="text-white" />
+        </div>
+        {/* Subtle hover overlay */}
+        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
       </div>
 
-      {/* Filters section */}
-      <Card className="rounded-[24px] border-0 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <div className="flex flex-col gap-4 lg:flex-row">
-          <div className="relative flex-1">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-              <Search size={18} strokeWidth={2} />
-            </div>
-            <input
-              type="text"
-              placeholder="Search by site name or code..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 w-full rounded-xl border border-gray-100 bg-gray-50/50 pl-11 pr-4 text-[13.5px] font-medium text-gray-700 transition-all placeholder:text-gray-400 focus:border-[#155dfc]/40 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10"
-            />
+      {/* ── Search / Filter Bar ────────────────────────────────────────── */}
+      <div 
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex flex-col lg:flex-row gap-4 items-center min-h-[48px]"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
+        <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by site name or code..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2 lg:ml-auto">
+          <div className="relative min-w-[140px]">
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value as SiteType | 'All')}
+              className="h-8 w-full appearance-none rounded-lg border border-gray-100 bg-gray-50 pl-3 pr-8 text-[12px] font-semibold text-gray-600 outline-none transition-all focus:border-blue-400/40"
+            >
+              {SITE_TYPE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option === 'All' ? 'All Types' : option.replace('_', ' ')}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <div className="relative min-w-[160px]">
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as SiteType | 'All')}
-                className="h-11 w-full appearance-none rounded-xl border border-gray-100 bg-gray-50/50 pl-4 pr-10 text-[13.5px] font-semibold text-gray-600 outline-none transition-all focus:border-[#155dfc]/40"
-              >
-                {SITE_TYPE_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option === 'All' ? 'All Types' : option.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
-            </div>
-
-            <div className="relative min-w-[160px]">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as SiteStatus | 'All')}
-                className="h-11 w-full appearance-none rounded-xl border border-gray-100 bg-gray-50/50 pl-4 pr-10 text-[13.5px] font-semibold text-gray-600 outline-none transition-all focus:border-[#155dfc]/40"
-              >
-                {SITE_STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option === 'All' ? 'All Statuses' : statusLabel(option)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
-            </div>
+          <div className="relative min-w-[140px]">
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value as SiteStatus | 'All')}
+              className="h-8 w-full appearance-none rounded-lg border border-gray-100 bg-gray-50 pl-3 pr-8 text-[12px] font-semibold text-gray-600 outline-none transition-all focus:border-blue-400/40"
+            >
+              {SITE_STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option === 'All' ? 'All Statuses' : statusLabel(option)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Unavailable Message */}
       {!isLoading && !isError && companyId && listUnavailable && (
@@ -201,23 +209,29 @@ export function LocationsView() {
         </div>
       )}
 
-      {/* Table Container */}
-      <Card className="overflow-hidden rounded-[24px] border border-[#155DFC]/30 p-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+      {/* ── Table Container ────────────────────────────────────────────── */}
+      <div 
+        className="bg-white rounded-2xl border border-[#2B7FFF] overflow-hidden mt-2"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#E8F1FF]/50 text-left">
+              <tr 
+                className="text-xs font-semibold text-white uppercase tracking-wide"
+                style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
+              >
                 {TABLE_HEADERS.map((header) => (
                   <th
                     key={header}
-                    className="whitespace-nowrap px-6 py-4 font-[Inter,sans-serif] text-[12px] font-semibold uppercase leading-[16px] tracking-[0.06em] text-[#4A5565]"
+                    className="px-4 py-3.5 text-left font-semibold whitespace-nowrap"
                   >
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB] bg-white text-left">
+            <tbody className="bg-white">
               {isLoading ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
@@ -240,41 +254,42 @@ export function LocationsView() {
                   </td>
                 </tr>
               ) : (
-                paginatedLocations.map((location) => (
+                paginatedLocations.map((location, index) => (
                   <tr
                     key={location.id}
                     onClick={() => { setSelectedSiteId(location.id); setIsDetailsModalOpen(true); }}
-                    className="group cursor-pointer transition-colors hover:bg-gray-50/50"
+                    className={`border-b border-[#E5E7EB] group transition-colors hover:bg-blue-50/30 cursor-pointer ${
+                      index % 2 === 1 ? 'bg-gray-50/40' : ''
+                    }`}
                   >
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-[#155DFC]">
-                          <MapPin size={18} strokeWidth={2.5} />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-[#155DFC]">
+                          <MapPin size={16} strokeWidth={2.5} />
                         </div>
-                        <span className="text-[16px] font-semibold text-[#1E2939] font-[Inter,sans-serif] whitespace-nowrap">{location.siteName}</span>
+                        <span className="text-[15px] font-medium text-gray-800 whitespace-nowrap">{location.siteName}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{location.siteCode}</span>
+                    <td className="px-4 py-3.5">
+                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{location.siteCode}</span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className={`rounded-lg px-3 py-1.5 text-[12px] font-bold font-[Inter,sans-serif] ${getTypeBadgeStyles(location.siteType)}`}>
+                    <td className="px-4 py-3.5">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${getTypeBadgeStyles(location.siteType)}`}>
                         {location.siteType.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{location.country}</span>
+                    <td className="px-4 py-3.5 text-gray-600">
+                      {location.country}
                     </td>
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center rounded-full px-3.5 py-1 text-[11px] font-bold font-[Inter,sans-serif] ${getStatusBadgeStyles(location.status)}`}>
-                        <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${getStatusBadgeStyles(location.status)}`}>
                         {statusLabel(location.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{formatDate(location.createdAt)}</span>
+                    <td className="px-4 py-3.5 text-gray-500 text-[14px]">
+                      {formatDate(location.createdAt)}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); setSelectedSiteId(location.id); setIsDetailsModalOpen(true); }}
@@ -343,7 +358,7 @@ export function LocationsView() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Pagination Footer */}
       <TablePagination 

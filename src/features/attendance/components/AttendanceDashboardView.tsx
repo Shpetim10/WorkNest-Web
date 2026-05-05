@@ -102,6 +102,12 @@ function normalizeRole(rawRole: string | null): string {
   return (rawRole ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 }
 
+function isAdminRole(role: string): boolean {
+  // Keep explicit known roles first, then support common admin variants.
+  if (role === 'ADMIN' || role === 'SUPERADMIN') return true;
+  return role.includes('ADMIN');
+}
+
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
 function attendanceStateBadge(state: AttendanceState): { label: string; cls: string } {
@@ -153,11 +159,17 @@ function ActionDropdown({ row, onAction, isToday, isAdmin }: ActionDropdownProps
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const allowed = isToday || isAdmin;
-  const canCheckIn = allowed && row.attendanceState === AttendanceState.NOT_CHECKED_IN;
-  const canCheckOut = allowed && row.attendanceState === AttendanceState.CHECKED_IN;
-  const canDismiss = allowed && row.hasWarnings && !row.payrollLocked && !!row.dayRecordId;
-  const canAdjust = allowed && !!row.dayRecordId && !row.payrollLocked;
+  const isPastDate = !isToday;
+  // Manual check-in/out is never allowed for past dates.
+  const canCheckIn = !isPastDate && row.attendanceState === AttendanceState.NOT_CHECKED_IN;
+  const canCheckOut = !isPastDate && row.attendanceState === AttendanceState.CHECKED_IN;
+  // Past dates: only admin can dismiss/adjust. Today: keep existing behavior.
+  const canDismiss = isPastDate
+    ? isAdmin && row.hasWarnings && !row.payrollLocked && !!row.dayRecordId
+    : row.hasWarnings && !row.payrollLocked && !!row.dayRecordId;
+  const canAdjust = isPastDate
+    ? isAdmin && !!row.dayRecordId && !row.payrollLocked
+    : !!row.dayRecordId && !row.payrollLocked;
 
   useEffect(() => {
     if (!open) return;
@@ -240,7 +252,7 @@ export function AttendanceDashboardView() {
   const [isAdmin] = useState(() => {
     if (typeof window === 'undefined') return false;
     const role = normalizeRole(localStorage.getItem('platform_role'));
-    return ['ADMIN', 'SUPERADMIN'].includes(role);
+    return isAdminRole(role);
   });
   const [companyId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -355,7 +367,7 @@ export function AttendanceDashboardView() {
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4 pb-10">
       {/* Hero banner */}
       <div
         className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
@@ -517,7 +529,7 @@ export function AttendanceDashboardView() {
               return (
                 <tr
                   key={row.employeeId}
-                  className={`border-b border-gray-50 hover:bg-blue-50/30 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/40' : ''}`}
+                  className={`border-b border-[#E5E7EB] hover:bg-blue-50/30 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/40' : ''}`}
                 >
                   {/* Name */}
                   <td className="px-4 py-3.5">
@@ -621,7 +633,7 @@ export function AttendanceDashboardView() {
           isOpen
           onClose={() => setModal({ kind: 'none' })}
           employeeId={modal.row.employeeId}
-          date={appliedFilters.date || utcToday}
+          date={appliedFilters.date || initialTodayInCompanyTz}
         />
       )}
       {modal.kind === 'checkIn' && (

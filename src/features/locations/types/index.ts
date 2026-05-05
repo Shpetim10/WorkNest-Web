@@ -170,10 +170,6 @@ export interface AttendancePolicy {
   rejectPoorAccuracy: boolean;
   allowManualCorrection: boolean;
   allowManagerManualEntry: boolean;
-  missingCheckoutAutoCloseEnabled: boolean;
-  autoCheckoutAfterMinutes: number | null;
-  lateGraceMinutes: number;
-  earlyClockInWindowMinutes: number;
 }
 
 export interface AttendancePolicyEnvelope {
@@ -192,10 +188,6 @@ export interface AttendancePolicyUpdateRequest {
   rejectPoorAccuracy: boolean;
   allowManualCorrection: boolean;
   allowManagerManualEntry: boolean;
-  missingCheckoutAutoCloseEnabled: boolean;
-  autoCheckoutAfterMinutes: number | null;
-  lateGraceMinutes: number;
-  earlyClockInWindowMinutes: number;
 }
 
 export interface QrTerminalSummary {
@@ -228,7 +220,6 @@ export interface TrustedNetworkDraftRequest {
   cidrBlock: string;
   ipVersion?: IpVersion;
   isActive: boolean;
-  priorityOrder?: number | null;
   expiresAt: string | null;
   version: number | null;
   notes: string | null;
@@ -307,7 +298,6 @@ export interface TrustedNetworkFormValue {
   setExpiry: boolean;
   expiryDate: string;
   notes: string;
-  priorityOrder: string;
   version: number | null;
 }
 
@@ -342,10 +332,6 @@ export interface LocationFormErrors {
   rejectPoorAccuracy?: string;
   allowManualCorrection?: string;
   allowManagerManualEntry?: string;
-  missingCheckoutAutoCloseEnabled?: string;
-  autoCheckoutAfterMinutes?: string;
-  lateGraceMinutes?: string;
-  earlyClockInWindowMinutes?: string;
   form?: string;
 }
 
@@ -391,7 +377,6 @@ export interface LocationStep3Errors {
   networkType?: string;
   cidrBlock?: string;
   ipVersion?: string;
-  priorityOrder?: string;
   expiryDate?: string;
   detection?: string;
 }
@@ -427,5 +412,4 @@ export interface Location extends LocationListItem {
   setExpiry: boolean;
   expiryDate: string;
   networkNotes: string;
-  priorityOverride: string;
 }

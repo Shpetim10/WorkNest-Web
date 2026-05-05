@@ -164,65 +164,76 @@ export function EmployeeListView() {
 
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
-  const employees = data?.data ?? [];
+  const employees = data?.data || [];
   const totalPages = 1;
 
   return (
-    <div className="animate-in slide-in-from-bottom-2 w-full space-y-8 duration-500 fade-in pb-10">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
 
-      {/* ── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="space-y-1">
-          <h1 className="font-[Inter,sans-serif] font-semibold text-[#1E2939]" style={{ fontSize: '35px', lineHeight: '36px' }}>
-            Employee List
-          </h1>
-          <p className="font-[Inter,sans-serif] font-normal text-[#4A5565]" style={{ fontSize: '16px', lineHeight: '24px' }}>
-            Manage all employees
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          icon={<Plus size={18} strokeWidth={2.5} />}
-          iconPosition="left"
-          onClick={() => setIsAddOpen(true)}
-          className="h-11 min-w-[180px] rounded-xl bg-gradient-to-r from-[#155DFC] to-[#01c951] px-6 shadow-md hover:shadow-lg hover:shadow-[#155dfc]/20"
-        >
-          Add Employee
-        </Button>
-      </div>
-
-      {/* ── Search ──────────────────────────────────────────────────────── */}
-      <Card className="rounded-[24px] border-0 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <div className="flex flex-col gap-4 lg:flex-row">
-          <div className="relative flex-1">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-              <Search size={18} strokeWidth={2} />
-            </div>
-            <input
-              type="text"
-              placeholder="Search employees..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="h-11 w-full rounded-xl border border-gray-100 bg-gray-50/50 pl-11 pr-4 text-[13.5px] font-medium text-gray-700 transition-all placeholder:text-gray-400 focus:border-[#155dfc]/40 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10 font-[Inter,sans-serif]"
-            />
+      {/* ── Page Header Card ───────────────────────────────────────────── */}
+      <div
+        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between cursor-pointer group"
+        onClick={() => setIsAddOpen(true)}
+        style={{
+          background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
+          minHeight: 120,
+          boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
+        }}
+      >
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+            <UserCog size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Employee List</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              Manage all employees
+            </p>
           </div>
         </div>
-      </Card>
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
+          <Plus size={28} className="text-white" />
+        </div>
+        {/* Subtle hover overlay */}
+        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
+      </div>
 
-      {/* ── Table ───────────────────────────────────────────────────────── */}
-      <Card className="rounded-[24px] border border-[#155DFC]/30 p-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+      {/* ── Search / Filter Bar ────────────────────────────────────────── */}
+      <div 
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex items-center min-h-[48px]"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
+        <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search employees..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+          />
+        </div>
+      </div>
+
+      <div 
+        className="bg-white rounded-2xl border border-[#2B7FFF] overflow-hidden mt-2"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#E5E7EB] bg-[#E8F1FF]/50">
+              <tr 
+                className="text-xs font-semibold text-white uppercase tracking-wide"
+                style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
+              >
                 {TABLE_HEADERS.map((header) => (
-                  <th key={header} className="whitespace-nowrap px-6 py-4 font-[Inter,sans-serif] text-[12px] font-semibold uppercase text-[#4A5565]" style={{ lineHeight: '16px', letterSpacing: '0.06em' }}>
+                  <th key={header} className="px-4 py-3.5 text-left font-semibold">
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB] bg-white text-left">
+            <tbody className="bg-white text-left">
               {isLoading ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
@@ -243,51 +254,56 @@ export function EmployeeListView() {
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
                 </tr>
               ) : (
-                employees.map((employee) => (
+                employees.map((employee, index) => (
                   <tr
                     key={employee.id}
                     onClick={() => setViewEmployeeId(employee.id)}
-                    className="group transition-colors hover:bg-gray-50/50 cursor-pointer"
+                    className={`border-b border-[#E5E7EB] group transition-colors hover:bg-blue-50/30 cursor-pointer ${
+                      index % 2 === 1 ? 'bg-gray-50/40' : ''
+                    }`}
                   >
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3 text-left">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#155DFC] to-[#01c951] text-[14px] font-bold text-white shadow-sm">
+                        <div 
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+                          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
+                        >
                           {getInitials(employee.name || `${employee.firstName} ${employee.lastName}`)}
                         </div>
-                        <span className="text-[16px] font-semibold text-[#1E2939] font-[Inter,sans-serif] whitespace-nowrap">
+                        <span className="text-[15px] font-medium text-gray-800 whitespace-nowrap">
                           {employee.name || `${employee.firstName} ${employee.lastName}`}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{employee.email}</span>
+                    <td className="px-4 py-3.5">
+                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{employee.email}</span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center rounded-lg px-3 py-1.5 text-[12px] font-bold ${getDepartmentBadge(employee.departmentName)} font-[Inter,sans-serif]`}>
+                    <td className="px-4 py-3.5">
+                      <span 
+                        className="text-[12px] font-medium px-2.5 py-1 rounded-full"
+                        style={{ color: '#1447E6', backgroundColor: '#EFF6FF' }}
+                      >
                         {employee.departmentName}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-[14px] font-medium text-[#1E2939] font-[Inter,sans-serif]">
-                        {employee.companySiteName || '—'}
-                      </span>
+                    <td className="px-4 py-3.5 text-gray-600 font-[Inter,sans-serif]">
+                      {employee.companySiteName || '—'}
                     </td>
-                    <td className="px-6 py-5 text-left">
-                      <span className="text-[14px] font-normal text-[#4A5565] font-[Inter,sans-serif]">{employee.jobTitle}</span>
+                    <td className="px-4 py-3.5">
+                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{employee.jobTitle}</span>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center rounded-full px-3.5 py-1 text-[11px] font-bold font-[Inter,sans-serif] ${
-                        employee.status === EmployeeStatus.ACTIVE ? 'bg-[#F0FDF4] text-[#008236]'
-                        : employee.status === EmployeeStatus.PENDING ? 'bg-[#FFFBEB] text-[#B45309]'
-                        : 'bg-[#FFF7ED] text-[#CA3500]'
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                        employee.status === EmployeeStatus.ACTIVE ? 'bg-[#00C95033] text-[#00C950]'
+                        : employee.status === EmployeeStatus.PENDING ? 'bg-[#FF690033] text-[#FF6900]'
+                        : 'bg-[#EF444433] text-[#EF4444]'
                       }`}>
-                        <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />
                         {employee.status === EmployeeStatus.ACTIVE ? 'Active'
                           : employee.status === EmployeeStatus.PENDING ? 'Pending'
-                          : employee.status.replace('_', ' ')}
+                          : employee.status.replace('_', ' ').toLowerCase()}
                       </span>
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         {/* Resend invitation (pending only) */}
                         {employee.status === EmployeeStatus.PENDING && (
@@ -352,7 +368,7 @@ export function EmployeeListView() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       <TablePagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 

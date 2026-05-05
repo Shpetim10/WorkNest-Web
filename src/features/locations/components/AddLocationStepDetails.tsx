@@ -15,10 +15,6 @@ interface AddLocationStepDetailsProps {
   attendanceSettings: AttendanceSettings;
   onChange: (updates: Partial<LocationFormData>) => void;
   onAttendanceChange: (updates: Partial<AttendanceSettings>) => void;
-  onAttendanceNumberChange: (
-    field: 'autoCheckoutAfterMinutes' | 'lateGraceMinutes' | 'earlyClockInWindowMinutes',
-    value: string,
-  ) => void;
   onBlurField: (path: string) => void;
 }
 
@@ -34,7 +30,6 @@ const ATTENDANCE_BOOLEAN_FIELDS: Array<{
     | 'rejectPoorAccuracy'
     | 'allowManualCorrection'
     | 'allowManagerManualEntry'
-    | 'missingCheckoutAutoCloseEnabled'
   >;
   label: string;
 }> = [
@@ -47,12 +42,7 @@ const ATTENDANCE_BOOLEAN_FIELDS: Array<{
   { key: 'rejectPoorAccuracy', label: 'Reject Poor Accuracy' },
   { key: 'allowManualCorrection', label: 'Allow Manual Correction' },
   { key: 'allowManagerManualEntry', label: 'Allow Manager Manual Entry' },
-  { key: 'missingCheckoutAutoCloseEnabled', label: 'Auto-Close Missing Checkout' },
 ];
-
-function toInputValue(value: number | null) {
-  return value == null || Number.isNaN(value) ? '' : String(value);
-}
 
 export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
   data,
@@ -60,7 +50,6 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
   attendanceSettings,
   onChange,
   onAttendanceChange,
-  onAttendanceNumberChange,
   onBlurField,
 }) => {
   const labelClasses = 'text-[14px] font-semibold text-[#364153] leading-[20px] mb-1 font-inter';
@@ -164,50 +153,6 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
               onBlur={() => onBlurField(`attendanceRules.${key}`)}
             />
           ))}
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Input
-            id="lateGraceMinutes"
-            label="Late Grace Minutes"
-            type="number"
-            min={0}
-            max={300}
-            value={toInputValue(attendanceSettings.lateGraceMinutes)}
-            onChange={(event) => onAttendanceNumberChange('lateGraceMinutes', event.target.value)}
-            onBlur={() => onBlurField('attendanceRules.lateGraceMinutes')}
-            error={errors.lateGraceMinutes}
-            className={inputOverrideClasses}
-          />
-          <Input
-            id="earlyClockInWindowMinutes"
-            label="Early Clock-In Window"
-            type="number"
-            min={0}
-            max={300}
-            value={toInputValue(attendanceSettings.earlyClockInWindowMinutes)}
-            onChange={(event) =>
-              onAttendanceNumberChange('earlyClockInWindowMinutes', event.target.value)
-            }
-            onBlur={() => onBlurField('attendanceRules.earlyClockInWindowMinutes')}
-            error={errors.earlyClockInWindowMinutes}
-            className={inputOverrideClasses}
-          />
-          <Input
-            id="autoCheckoutAfterMinutes"
-            label="Auto Check-Out Minutes"
-            type="number"
-            min={1}
-            max={1440}
-            disabled={!attendanceSettings.missingCheckoutAutoCloseEnabled}
-            value={toInputValue(attendanceSettings.autoCheckoutAfterMinutes)}
-            onChange={(event) =>
-              onAttendanceNumberChange('autoCheckoutAfterMinutes', event.target.value)
-            }
-            onBlur={() => onBlurField('attendanceRules.autoCheckoutAfterMinutes')}
-            error={errors.autoCheckoutAfterMinutes}
-            className={inputOverrideClasses}
-          />
         </div>
       </div>
     </div>

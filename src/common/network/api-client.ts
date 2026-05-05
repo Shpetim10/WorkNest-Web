@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { refreshAuthTokens } from '@/features/auth/api/refresh';
+import { setCookie } from '@/common/utils/cookies';
 
 /**
  * WorkNest Robust API Client
@@ -70,7 +71,7 @@ function removeLocalItems(keys: string[]): void {
   if (typeof window !== 'undefined') keys.forEach((k) => localStorage.removeItem(k));
 }
 
-const AUTH_STORAGE_KEYS = ['auth_token', 'refresh_token', 'current_company_id'] as const;
+const AUTH_STORAGE_KEYS = ['auth_token', 'refresh_token', 'access_token_expires_at', 'current_company_id'] as const;
 
 /**
  * Routes that must NEVER have the Authorization header injected and must
@@ -96,15 +97,77 @@ function isPublicAuthUrl(url: string | undefined): boolean {
 // REQUEST INTERCEPTOR
 // ---------------------------------------------------------------------------
 
+// How many milliseconds before expiry to proactively refresh the token.
+const PROACTIVE_REFRESH_BUFFER_MS = 30_000;
+
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     // 1. Prepend /api/v1 to relative paths
     if (config.url && !config.url.startsWith('http') && !config.url.startsWith(API_PREFIX)) {
       const separator = config.url.startsWith('/') ? '' : '/';
       config.url = `${API_PREFIX}${separator}${config.url}`;
     }
 
-    // 2. Inject auth / tenant headers for protected routes only
+    // 2. Proactive token refresh — refresh before expiry so callers never see a 401.
+    if (!isPublicAuthUrl(config.url)) {
+      const expiresAt = getLocalItem('access_token_expires_at');
+      const storedRefreshToken = getLocalItem('refresh_token');
+
+      if (expiresAt && storedRefreshToken) {
+        const expiresAtMs = new Date(expiresAt).getTime();
+
+        if (Date.now() + PROACTIVE_REFRESH_BUFFER_MS >= expiresAtMs) {
+          if (isRefreshing) {
+            // Another request is already refreshing; wait for it to complete.
+            await new Promise<void>((resolve, reject) => {
+              failedQueue.push({
+                resolve: (_token: string) => resolve(),
+                reject: (err: unknown) => reject(err),
+              });
+            });
+          } else {
+            isRefreshing = true;
+            try {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('🔄 [Auth] Proactive refresh: token expiring soon.');
+              }
+              const refreshResponse = await refreshAuthTokens(storedRefreshToken);
+              const {
+                accessToken,
+                refreshToken: newRefreshToken,
+                tenantContext,
+                accessTokenExpiresAt,
+              } = refreshResponse;
+
+              setLocalItem('auth_token', accessToken);
+              setLocalItem('refresh_token', newRefreshToken);
+              setLocalItem('access_token_expires_at', accessTokenExpiresAt);
+              if (tenantContext?.companyId) {
+                setLocalItem('current_company_id', tenantContext.companyId);
+              }
+              setCookie('auth_token', accessToken, 7);
+
+              processQueue(null, accessToken);
+
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ [Auth] Proactive refresh successful.');
+              }
+            } catch (proactiveErr) {
+              processQueue(proactiveErr, null);
+              removeLocalItems([...AUTH_STORAGE_KEYS]);
+              if (typeof window !== 'undefined') {
+                window.location.href = `/login?expired=true`;
+              }
+              return Promise.reject(proactiveErr);
+            } finally {
+              isRefreshing = false;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Inject auth / tenant headers for protected routes only
     if (!isPublicAuthUrl(config.url)) {
       const token = getLocalItem('auth_token');
       if (token && config.headers) {
@@ -117,7 +180,7 @@ apiClient.interceptors.request.use(
       }
     }
 
-    // 3. Debug logging (dev only)
+    // 4. Debug logging (dev only)
     if (process.env.NODE_ENV === 'development') {
       const fullPath = axios.getUri(config);
       console.log(`🚀 [API REQUEST] ${config.method?.toUpperCase()} ${fullPath}`);
@@ -224,11 +287,18 @@ apiClient.interceptors.response.use(
         }
 
         const refreshResponse = await refreshAuthTokens(refreshToken);
-        const { accessToken, refreshToken: newRefreshToken, tenantContext } = refreshResponse;
+        const {
+          accessToken,
+          refreshToken: newRefreshToken,
+          tenantContext,
+          accessTokenExpiresAt,
+        } = refreshResponse;
 
-        // Persist the new token pair
+        // Persist the new token pair and expiry, and sync the auth cookie.
         setLocalItem('auth_token', accessToken);
         setLocalItem('refresh_token', newRefreshToken);
+        setLocalItem('access_token_expires_at', accessTokenExpiresAt);
+        setCookie('auth_token', accessToken, 7);
 
         // Only update tenantContext if the server returned one; preserving the
         // existing companyId when absent avoids accidental tenant mismatches.

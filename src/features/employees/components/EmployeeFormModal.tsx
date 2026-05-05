@@ -121,6 +121,13 @@ interface FormErrors {
   jobTitle?: string;
 }
 
+interface Step2Errors {
+  employmentType?: string;
+  paymentMethod?: string;
+  monthlySalary?: string;
+  hourlyRate?: string;
+}
+
 interface EmployeeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -150,6 +157,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
   const [step1, setStep1] = useState<Step1Values>(EMPTY_STEP1);
   const [step2, setStep2] = useState<Step2Values>(EMPTY_STEP2);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [step2Errors, setStep2Errors] = useState<Step2Errors>({});
   const [departments, setDepartments] = useState<DepartmentLookup[]>([]);
   const [locations, setLocations] = useState<SiteLookup[]>([]);
   const [supervisors, setSupervisors] = useState<StaffLookup[]>([]);
@@ -229,6 +237,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
         setStep1(EMPTY_STEP1);
         setStep2(EMPTY_STEP2);
         setErrors({});
+        setStep2Errors({});
         return;
       }
       if (mode === 'edit' && editData) {
@@ -254,6 +263,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
         setStep2(EMPTY_STEP2);
       }
       setErrors({});
+      setStep2Errors({});
       setTimeout(() => firstInputRef.current?.focus(), 100);
     }
   }, [isOpen, mode, editData]);
@@ -295,6 +305,9 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
         }
         return next;
       });
+      if (step2Errors[field as keyof Step2Errors]) {
+        setStep2Errors(prev => ({ ...prev, [field]: undefined }));
+      }
     };
   }
 
@@ -316,6 +329,22 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
     return e;
   }
 
+  function validateStep2(): Step2Errors {
+    const e: Step2Errors = {};
+    if (!step2.employmentType) e.employmentType = 'Employment type is required';
+    if (!step2.paymentMethod) e.paymentMethod = 'Payment method is required';
+    if (step2.paymentMethod === 'FIXED_MONTHLY' && !step2.monthlySalary) {
+      e.monthlySalary = 'Monthly salary is required';
+    }
+    if (step2.paymentMethod === 'HOURLY' && !step2.hourlyRate) {
+      e.hourlyRate = 'Hourly rate is required';
+    }
+    return e;
+  }
+
+  const isStep1Complete = Object.keys(validateStep1()).length === 0;
+  const isStep2Complete = mode === 'edit' ? true : Object.keys(validateStep2()).length === 0;
+
   function handleNext() {
     const errs = validateStep1();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
@@ -323,7 +352,16 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
   }
 
   async function handleSubmit() {
-    if (mode === 'add' && step < totalSteps) { handleNext(); return; }
+    if (mode === 'add') {
+      if (step < totalSteps) { handleNext(); return; }
+      const step1Errs = validateStep1();
+      const step2Errs = validateStep2();
+      if (Object.keys(step1Errs).length > 0 || Object.keys(step2Errs).length > 0) {
+        if (Object.keys(step1Errs).length > 0) setErrors(step1Errs);
+        if (Object.keys(step2Errs).length > 0) setStep2Errors(step2Errs);
+        return;
+      }
+    }
 
     // Validate step 1 first (in edit mode)
     if (mode === 'edit') {
@@ -424,6 +462,28 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === 'add') {
+      if (!isStep1Complete) {
+        setErrors(validateStep1());
+        return;
+      }
+
+      if (step < totalSteps) {
+        handleNext();
+        return;
+      }
+
+      if (!isStep2Complete) {
+        setStep2Errors(validateStep2());
+        return;
+      }
+
+      const nativeEvent = e.nativeEvent as SubmitEvent;
+      const submitter = nativeEvent.submitter as HTMLElement | null;
+      const isExplicitFinalSubmit = submitter?.getAttribute('data-submit-intent') === 'final-add-submit';
+      if (!isExplicitFinalSubmit) return;
+    }
+
     void handleSubmit();
   }
 
@@ -599,6 +659,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                       </select>
                       {CHEVRON_SVG}
                     </div>
+                    {step2Errors.employmentType && <p className="text-[12px] font-semibold text-red-500 ml-1">{step2Errors.employmentType}</p>}
                   </div>
 
                   {/* Contract Document */}
@@ -678,6 +739,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                       </select>
                       {CHEVRON_SVG}
                     </div>
+                    {step2Errors.paymentMethod && <p className="text-[12px] font-semibold text-red-500 ml-1">{step2Errors.paymentMethod}</p>}
                   </div>
 
                   {step2.paymentMethod === 'FIXED_MONTHLY' && (
@@ -695,6 +757,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                           className={`${INPUT_CLASS} pl-8`}
                         />
                       </div>
+                      {step2Errors.monthlySalary && <p className="text-[12px] font-semibold text-red-500 ml-1">{step2Errors.monthlySalary}</p>}
                     </div>
                   )}
 
@@ -716,6 +779,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                           className={`${INPUT_CLASS} pl-8`}
                         />
                       </div>
+                      {step2Errors.hourlyRate && <p className="text-[12px] font-semibold text-red-500 ml-1">{step2Errors.hourlyRate}</p>}
                       <p className="text-[12px] text-gray-400 font-medium">Rate per hour worked</p>
                     </div>
                   )}
@@ -742,14 +806,15 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
               )}
 
               {mode === 'add' && step < totalSteps ? (
-                <button type="button" onClick={handleNext} className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif]">
+                <button type="button" onClick={handleNext} disabled={!isStep1Complete} className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif]">
                   Next
                 </button>
               ) : (
                 <button
                   type="submit"
-                  disabled={isBusy}
                   className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed"
+                  data-submit-intent={mode === 'add' ? 'final-add-submit' : undefined}
+                  disabled={isBusy || (mode === 'add' && (!isStep1Complete || !isStep2Complete))}
                 >
                   {isUploadingFile ? 'Uploading...' : isBusy ? 'Processing...' : (mode === 'add' ? 'Create Account' : 'Confirm Updates')}
                 </button>

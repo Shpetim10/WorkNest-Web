@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { Button, Checkbox, Input, Modal } from '@/common/ui';
+import { Button, Checkbox, Modal } from '@/common/ui';
 import { useAttendancePolicy, useUpdateAttendancePolicy } from '../api';
 import { AttendancePolicy, AttendancePolicyUpdateRequest } from '../types';
 import { formatAttendanceFriendlyError } from '../utils/errors';
@@ -28,45 +28,11 @@ function toForm(policy: AttendancePolicy): AttendancePolicyUpdateRequest {
     rejectPoorAccuracy: policy.rejectPoorAccuracy,
     allowManualCorrection: policy.allowManualCorrection,
     allowManagerManualEntry: policy.allowManagerManualEntry,
-    missingCheckoutAutoCloseEnabled: policy.missingCheckoutAutoCloseEnabled,
-    autoCheckoutAfterMinutes: policy.autoCheckoutAfterMinutes,
-    lateGraceMinutes: policy.lateGraceMinutes,
-    earlyClockInWindowMinutes: policy.earlyClockInWindowMinutes,
   };
 }
 
-function toStringValue(value: number | null) {
-  return value == null ? '' : String(value);
-}
-
-function parseOptionalNumber(value: string) {
-  if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
-}
-
-function validateForm(form: AttendancePolicyUpdateRequest): PolicyFormErrors {
-  const errors: PolicyFormErrors = {};
-
-  if (!Number.isInteger(form.lateGraceMinutes) || form.lateGraceMinutes < 0) {
-    errors.lateGraceMinutes = 'Late grace minutes must be 0 or more.';
-  }
-
-  if (!Number.isInteger(form.earlyClockInWindowMinutes) || form.earlyClockInWindowMinutes < 0) {
-    errors.earlyClockInWindowMinutes = 'Early clock-in window must be 0 or more.';
-  }
-
-  if (form.missingCheckoutAutoCloseEnabled) {
-    if (
-      form.autoCheckoutAfterMinutes == null ||
-      !Number.isInteger(form.autoCheckoutAfterMinutes) ||
-      form.autoCheckoutAfterMinutes <= 0
-    ) {
-      errors.autoCheckoutAfterMinutes = 'Enter auto-checkout minutes greater than 0.';
-    }
-  }
-
-  return errors;
+function validateForm(): PolicyFormErrors {
+  return {};
 }
 
 function PolicyToggle({
@@ -100,10 +66,8 @@ function AttendancePolicyForm({
 }) {
   const updatePolicyMutation = useUpdateAttendancePolicy();
   const [form, setForm] = useState<AttendancePolicyUpdateRequest>(() => toForm(policy));
-  const [errors, setErrors] = useState<PolicyFormErrors>({});
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [autoCheckoutInput, setAutoCheckoutInput] = useState(() => toStringValue(policy.autoCheckoutAfterMinutes));
 
   const helperText = useMemo(() => {
     if (policy.policySource === 'COMPANY_DEFAULT') {
@@ -113,24 +77,11 @@ function AttendancePolicyForm({
     return 'This site has its own attendance policy override.';
   }, [policy.policySource]);
 
-  const updateNumericField = (
-    field: 'lateGraceMinutes' | 'earlyClockInWindowMinutes',
-    value: string,
-  ) => {
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
-    const parsed = Number(value);
-    setForm((prev) => ({
-      ...prev,
-      [field]: Number.isFinite(parsed) ? parsed : Number.NaN,
-    }));
-  };
-
   const handleSubmit = async () => {
     setFormError('');
     setSuccessMessage('');
 
-    const nextErrors = validateForm(form);
-    setErrors(nextErrors);
+    const nextErrors = validateForm();
     if (Object.keys(nextErrors).length > 0) {
       setFormError('We could not save the attendance policy. Please review the fields and try again.');
       return;
@@ -191,51 +142,6 @@ function AttendancePolicyForm({
         <PolicyToggle label="Reject poor accuracy" checked={form.rejectPoorAccuracy} onChange={(checked) => setForm((prev) => ({ ...prev, rejectPoorAccuracy: checked }))} />
         <PolicyToggle label="Allow manual correction" checked={form.allowManualCorrection} onChange={(checked) => setForm((prev) => ({ ...prev, allowManualCorrection: checked }))} />
         <PolicyToggle label="Allow manager manual entry" checked={form.allowManagerManualEntry} onChange={(checked) => setForm((prev) => ({ ...prev, allowManagerManualEntry: checked }))} />
-        <PolicyToggle label="Auto-close missing checkout" checked={form.missingCheckoutAutoCloseEnabled} onChange={(checked) => setForm((prev) => ({
-          ...prev,
-          missingCheckoutAutoCloseEnabled: checked,
-          autoCheckoutAfterMinutes: checked ? prev.autoCheckoutAfterMinutes : null,
-        }))} />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Input
-          id="lateGraceMinutes"
-          label="Late Grace Minutes"
-          type="number"
-          min={0}
-          value={Number.isNaN(form.lateGraceMinutes) ? '' : String(form.lateGraceMinutes)}
-          onChange={(event) => updateNumericField('lateGraceMinutes', event.target.value)}
-          error={errors.lateGraceMinutes}
-        />
-        <Input
-          id="earlyClockInWindowMinutes"
-          label="Early Clock-in Window"
-          type="number"
-          min={0}
-          value={Number.isNaN(form.earlyClockInWindowMinutes) ? '' : String(form.earlyClockInWindowMinutes)}
-          onChange={(event) => updateNumericField('earlyClockInWindowMinutes', event.target.value)}
-          error={errors.earlyClockInWindowMinutes}
-        />
-        <Input
-          id="autoCheckoutAfterMinutes"
-          label="Auto-checkout Minutes"
-          type="number"
-          min={1}
-          disabled={!form.missingCheckoutAutoCloseEnabled}
-          value={autoCheckoutInput}
-          onChange={(event) => {
-            const nextValue = event.target.value;
-            setAutoCheckoutInput(nextValue);
-            setErrors((prev) => ({ ...prev, autoCheckoutAfterMinutes: undefined }));
-            const parsed = parseOptionalNumber(nextValue);
-            setForm((prev) => ({
-              ...prev,
-              autoCheckoutAfterMinutes: parsed,
-            }));
-          }}
-          error={errors.autoCheckoutAfterMinutes}
-        />
       </div>
 
       <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] pt-4">

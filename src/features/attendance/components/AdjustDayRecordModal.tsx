@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { Input } from '@/common/ui';
 import { useAdjustDayRecord } from '../api/adjust-day-record';
 import { AttendanceDayStatus } from '../types';
+import { formatAttendanceFriendlyError } from '@/features/locations/utils/errors';
 
 interface Props {
   isOpen: boolean;
@@ -111,6 +112,7 @@ export function AdjustDayRecordModal({
   const [checkOut, setCheckOut] = useState(toLocal(lastCheckOutAt, timezone));
   const [worked, setWorked] = useState<string>(workedMinutes ? String(workedMinutes) : '');
   const [status, setStatus] = useState<AttendanceDayStatus>(dayStatus);
+  const [formError, setFormError] = useState('');
   const mutation = useAdjustDayRecord();
 
   if (!isOpen) return null;
@@ -119,16 +121,26 @@ export function AdjustDayRecordModal({
 
   const handleSubmit = async () => {
     if (!isToday) return;
-    await mutation.mutateAsync({
-      recordId: dayRecordId,
-      data: {
-        firstCheckInAt: checkIn ? localDatetimeToUTC(checkIn, timezone) : undefined,
-        lastCheckOutAt: checkOut ? localDatetimeToUTC(checkOut, timezone) : undefined,
-        workedMinutes: worked ? parseInt(worked, 10) : null,
-        dayStatus: status,
-      },
-    });
-    onClose();
+    setFormError('');
+    try {
+      await mutation.mutateAsync({
+        recordId: dayRecordId,
+        data: {
+          firstCheckInAt: checkIn ? localDatetimeToUTC(checkIn, timezone) : undefined,
+          lastCheckOutAt: checkOut ? localDatetimeToUTC(checkOut, timezone) : undefined,
+          workedMinutes: worked ? parseInt(worked, 10) : null,
+          dayStatus: status,
+        },
+      });
+      onClose();
+    } catch (error) {
+      setFormError(
+        formatAttendanceFriendlyError(
+          error,
+          'We could not save this day-record adjustment. Please try again.',
+        ),
+      );
+    }
   };
 
   return createPortal(
@@ -147,6 +159,11 @@ export function AdjustDayRecordModal({
         </div>
 
         <div className="px-6 py-5 space-y-4">
+          {formError && (
+            <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+              {formError}
+            </p>
+          )}
           {!isToday && (
             <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
               Adjustments are only allowed for today&apos;s records.

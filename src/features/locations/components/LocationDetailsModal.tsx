@@ -215,13 +215,6 @@ export function LocationDetailsModal({
                     >
                       Edit Attendance Policy
                     </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsCreateTerminalModalOpen(true)}
-                      className="bg-[#ECFDF3] text-[#027A48] hover:bg-[#D1FADF]"
-                    >
-                      Create Terminal
-                    </Button>
                   </div>
                 </div>
 
@@ -250,19 +243,25 @@ export function LocationDetailsModal({
                       <DetailRow label="Check-out Enabled:" value={attendancePolicy.checkOutEnabled ? 'Yes' : 'No'} />
                       <DetailRow label="Reject Outside Geofence:" value={attendancePolicy.rejectOutsideGeofence ? 'Yes' : 'No'} />
                       <DetailRow label="Reject Poor Accuracy:" value={attendancePolicy.rejectPoorAccuracy ? 'Yes' : 'No'} />
-                      <DetailRow label="Late Grace Minutes:" value={String(attendancePolicy.lateGraceMinutes)} />
-                      <DetailRow label="Early Clock-in Window:" value={String(attendancePolicy.earlyClockInWindowMinutes)} />
                       <DetailRow label="Allow Manager Manual Entry:" value={attendancePolicy.allowManagerManualEntry ? 'Yes' : 'No'} />
                     </div>
                   </>
                 )}
 
-                <div className="space-y-3 rounded-xl border border-[#F1F3F5] bg-white p-4">
-                  <div className="flex items-center gap-2">
-                    <MonitorSmartphone size={18} className="text-[#155DFC]" />
-                    <h4 className="text-[15px] font-semibold text-[#101828]">Linked QR Terminals</h4>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <MonitorSmartphone size={18} className="text-[#155DFC]" />
+                        <h4 className="text-[15px] font-semibold text-[#101828]">Linked QR Terminals</h4>
+                      </div>
+                      <Button
+                          variant="secondary"
+                          onClick={() => setIsCreateTerminalModalOpen(true)}
+                          className="bg-[#ECFDF3] text-[#027A48] hover:bg-[#D1FADF]"
+                      >
+                        Create Terminal
+                      </Button>
                   </div>
-
                   {linkedQrTerminals.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] px-4 py-4 text-[13px] font-medium text-[#4A5565]">
                       <p>No QR terminals are configured for this site yet.</p>
@@ -303,7 +302,7 @@ export function LocationDetailsModal({
                               </div>
                             </div>
                             <Button
-                              variant="secondary"
+                              variant="primary"
                               onClick={() => openTerminalDisplay(terminal.id, terminal.name)}
                               className="bg-[#111827] text-white hover:bg-[#1F2937]"
                               icon={<QrCode size={16} />}

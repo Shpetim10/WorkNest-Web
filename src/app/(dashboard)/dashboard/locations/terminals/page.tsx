@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { QR_TERMINAL_PAGE_BACKGROUND } from '@/features/locations/constants/qr-terminal';
 
 export default function QrTerminalLandingPage() {
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top,rgba(21,93,252,0.08),transparent_42%),linear-gradient(180deg,#F8FBFF_0%,#FFFFFF_100%)] px-6 py-10 sm:px-8">
+    <div className={`min-h-screen ${QR_TERMINAL_PAGE_BACKGROUND} px-6 py-10 sm:px-8`}>
       <div className="mx-auto max-w-3xl rounded-[28px] border border-[#D7E3FF] bg-white/90 p-8 shadow-[0_28px_80px_-32px_rgba(21,93,252,0.35)] backdrop-blur">
         <div className="inline-flex rounded-full border border-[#D7E3FF] bg-[#EEF4FF] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#155DFC]">
           Locations

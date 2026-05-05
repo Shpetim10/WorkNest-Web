@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, ArrowRight, Loader2, Check, X } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useResetPassword } from '../api/password-reset';
@@ -11,6 +11,12 @@ export function SetNewPasswordView() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const resetPasswordMutation = useResetPassword();
+
+  const RULES = [
+    { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+    { label: 'At least one uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+    { label: 'At least one number', test: (p: string) => /[0-9]/.test(p) },
+  ];
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -99,27 +105,33 @@ export function SetNewPasswordView() {
             error={error}
           />
 
-          {/* Password Requirements Info Box */}
-          <div className="bg-[#f0f4f8] p-5 rounded-xl border border-[#e2e8f0]/60">
-            <p className="text-[13px] font-semibold text-gray-700 mb-3">Password must contain:</p>
-            <ul className="text-[13px] text-gray-500 space-y-2 pl-1">
-              <li className="flex items-center gap-2.5">
-                <span className="w-1 h-1 rounded-full bg-gray-500" />
-                At least 8 characters
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="w-1 h-1 rounded-full bg-gray-500" />
-                One uppercase letter
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="w-1 h-1 rounded-full bg-gray-500" />
-                One lowercase letter
-              </li>
-              <li className="flex items-center gap-2.5">
-                <span className="w-1 h-1 rounded-full bg-gray-500" />
-                One number
-              </li>
-            </ul>
+          {/* Password requirements */}
+          <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl p-5 space-y-3">
+            <p className="text-[13px] font-semibold text-gray-700">Password requirements</p>
+            <div className="space-y-2.5">
+              {RULES.map((rule) => {
+                const passed = rule.test(password);
+                const showRules = password.length > 0;
+                return (
+                  <div key={rule.label} className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                      showRules && passed ? 'bg-emerald-500' : showRules ? 'bg-red-400' : 'bg-gray-200'
+                    }`}>
+                      {showRules && passed
+                        ? <Check size={11} className="text-white" strokeWidth={3} />
+                        : showRules
+                        ? <X size={11} className="text-white" strokeWidth={3} />
+                        : null}
+                    </div>
+                    <span className={`text-[12px] transition-colors ${
+                      showRules && passed ? 'text-emerald-600 font-medium' : showRules ? 'text-red-500' : 'text-gray-500'
+                    }`}>
+                      {rule.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <Button

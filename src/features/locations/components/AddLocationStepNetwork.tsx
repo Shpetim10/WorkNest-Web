@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { AlertTriangle, ChevronDown, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Input, Select, Textarea } from '@/common/ui';
 import { Issue, IpVersion, LocationStep3Data, LocationStep3Errors } from '../types';
 
@@ -34,8 +34,6 @@ export function AddLocationStepNetwork({
   onDetect,
   onClear,
 }: AddLocationStepNetworkProps) {
-  const [advancedOpen, setAdvancedOpen] = useState(true);
-
   const inputBase =
     'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] placeholder:text-[rgba(10,10,10,0.5)]';
   const labelBase = 'text-[13px] font-semibold text-[#364153] leading-[20px] mb-1';
@@ -218,34 +216,7 @@ export function AddLocationStepNetwork({
         className="!min-h-[80px] resize-none rounded-[10px] border-[#E5E7EB] bg-[#F9FAFB] py-2 text-[14px]"
       />
 
-      <div className="border-t border-[#E5E7EB] pt-3">
-        <button
-          type="button"
-          onClick={() => setAdvancedOpen((open) => !open)}
-          className="mb-3 flex items-center gap-1.5 text-[13px] font-semibold text-[#155DFC] transition-opacity hover:opacity-80"
-        >
-          <ChevronDown
-            size={14}
-            className={`transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`}
-          />
-          Advanced Settings
-        </button>
-
-        {advancedOpen && (
-          <Input
-            id="priorityOrder"
-            label="Priority Override"
-            type="number"
-            min={1}
-            max={999}
-            value={data.priorityOrder}
-            onChange={(e) => onChange({ priorityOrder: e.target.value })}
-            onBlur={() => onBlurField('trustedNetworks[0].priorityOrder')}
-            error={errors.priorityOrder}
-            className={inputBase}
-          />
-        )}
-      </div>
+      <div className="border-t border-[#E5E7EB] pt-3" />
     </div>
   );
 }

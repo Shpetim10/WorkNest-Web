@@ -101,10 +101,6 @@ const VISIBLE_FIELD_PATHS = [
   'attendanceRules.rejectPoorAccuracy',
   'attendanceRules.allowManualCorrection',
   'attendanceRules.allowManagerManualEntry',
-  'attendanceRules.missingCheckoutAutoCloseEnabled',
-  'attendanceRules.autoCheckoutAfterMinutes',
-  'attendanceRules.lateGraceMinutes',
-  'attendanceRules.earlyClockInWindowMinutes',
   'location.addressLine1',
   'location.addressLine2',
   'location.city',
@@ -122,7 +118,6 @@ const VISIBLE_FIELD_PATHS = [
   'trustedNetworks[0].networkType',
   'trustedNetworks[0].cidrBlock',
   'trustedNetworks[0].ipVersion',
-  'trustedNetworks[0].priorityOrder',
   'trustedNetworks[0].expiryDate',
 ] as const;
 
@@ -154,10 +149,6 @@ function buildTouchedStep1Errors(flatErrors: Record<string, string>, touched: Pa
     rejectPoorAccuracy: touched['attendanceRules.rejectPoorAccuracy'] ? flatErrors['attendanceRules.rejectPoorAccuracy'] : undefined,
     allowManualCorrection: touched['attendanceRules.allowManualCorrection'] ? flatErrors['attendanceRules.allowManualCorrection'] : undefined,
     allowManagerManualEntry: touched['attendanceRules.allowManagerManualEntry'] ? flatErrors['attendanceRules.allowManagerManualEntry'] : undefined,
-    missingCheckoutAutoCloseEnabled: touched['attendanceRules.missingCheckoutAutoCloseEnabled'] ? flatErrors['attendanceRules.missingCheckoutAutoCloseEnabled'] : undefined,
-    autoCheckoutAfterMinutes: touched['attendanceRules.autoCheckoutAfterMinutes'] ? flatErrors['attendanceRules.autoCheckoutAfterMinutes'] : undefined,
-    lateGraceMinutes: touched['attendanceRules.lateGraceMinutes'] ? flatErrors['attendanceRules.lateGraceMinutes'] : undefined,
-    earlyClockInWindowMinutes: touched['attendanceRules.earlyClockInWindowMinutes'] ? flatErrors['attendanceRules.earlyClockInWindowMinutes'] : undefined,
   });
 }
 
@@ -191,18 +182,8 @@ function buildTouchedStep3Errors(flatErrors: Record<string, string>, touched: Pa
     networkType: touched['trustedNetworks[0].networkType'] ? flatErrors['trustedNetworks[0].networkType'] : undefined,
     cidrBlock: touched['trustedNetworks[0].cidrBlock'] ? flatErrors['trustedNetworks[0].cidrBlock'] : undefined,
     ipVersion: touched['trustedNetworks[0].ipVersion'] ? flatErrors['trustedNetworks[0].ipVersion'] : undefined,
-    priorityOrder: touched['trustedNetworks[0].priorityOrder'] ? flatErrors['trustedNetworks[0].priorityOrder'] : undefined,
     expiryDate: touched['trustedNetworks[0].expiryDate'] ? flatErrors['trustedNetworks[0].expiryDate'] : undefined,
   });
-}
-
-function parseNumericInput(value: string, { allowNull = false }: { allowNull?: boolean } = {}) {
-  if (!value.trim()) {
-    return allowNull ? null : Number.NaN;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 function getGeolocationErrorMessage(error: unknown) {
@@ -403,23 +384,11 @@ export function LocationFormModal(props: LocationFormModalProps) {
         ...updates,
       };
 
-      if (updates.missingCheckoutAutoCloseEnabled === false) {
-        next.autoCheckoutAfterMinutes = null;
-      }
-
       syncTouchedErrors(
         buildCompanySiteFormValues(step1Data, step2Data, next, [step3Data]),
       );
       return next;
     });
-  };
-
-  const updateAttendanceNumberField = (
-    field: 'autoCheckoutAfterMinutes' | 'lateGraceMinutes' | 'earlyClockInWindowMinutes',
-    value: string,
-  ) => {
-    const parsed = parseNumericInput(value, { allowNull: field === 'autoCheckoutAfterMinutes' });
-    updateAttendanceSettings({ [field]: parsed } as Partial<CompanySiteFormValues['attendanceRules']>);
   };
 
   const updateStep2Data = (updates: Partial<LocationStep2Data>) => {
@@ -920,12 +889,11 @@ export function LocationFormModal(props: LocationFormModalProps) {
             <AddLocationStepDetails
               data={step1Data}
               errors={step1Errors}
-              attendanceSettings={attendanceSettings}
-              onChange={updateStep1Data}
-              onAttendanceChange={updateAttendanceSettings}
-              onAttendanceNumberChange={updateAttendanceNumberField}
-              onBlurField={markFieldTouched}
-            />
+                attendanceSettings={attendanceSettings}
+                onChange={updateStep1Data}
+                onAttendanceChange={updateAttendanceSettings}
+                onBlurField={markFieldTouched}
+              />
           )}
 
           {currentStep === 2 && (

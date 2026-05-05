@@ -186,18 +186,6 @@ function toVisibleField(
     case 'attendanceRules.allowManagerManualEntry':
       mapped.step1Errors.allowManagerManualEntry ??= message;
       return true;
-    case 'attendanceRules.missingCheckoutAutoCloseEnabled':
-      mapped.step1Errors.missingCheckoutAutoCloseEnabled ??= message;
-      return true;
-    case 'attendanceRules.autoCheckoutAfterMinutes':
-      mapped.step1Errors.autoCheckoutAfterMinutes ??= message;
-      return true;
-    case 'attendanceRules.lateGraceMinutes':
-      mapped.step1Errors.lateGraceMinutes ??= message;
-      return true;
-    case 'attendanceRules.earlyClockInWindowMinutes':
-      mapped.step1Errors.earlyClockInWindowMinutes ??= message;
-      return true;
     case 'location.addressLine1':
       mapped.step2Errors.addressLine1 ??= message;
       return true;
@@ -250,9 +238,6 @@ function toVisibleField(
       return true;
     case 'trustedNetworks[0].ipVersion':
       mapped.step3Errors.ipVersion ??= message;
-      return true;
-    case 'trustedNetworks[0].priorityOrder':
-      mapped.step3Errors.priorityOrder ??= message;
       return true;
     case 'trustedNetworks[0].expiryDate':
       mapped.step3Errors.expiryDate ??= message;
@@ -326,6 +311,12 @@ export function formatAttendanceFriendlyError(
 
   if (status === 403 || code === 'ACCESS_DENIED') {
     return 'You do not have permission to manage attendance settings for this site.';
+  }
+  if (code === 'MANUAL_ENTRY_DISABLED') {
+    return 'Manual check-in and check-out are disabled by this site attendance policy.';
+  }
+  if (code === 'MANUAL_CORRECTION_DISABLED') {
+    return 'Manual day-record adjustments are disabled by this site attendance policy.';
   }
 
   if (code === 'SITE_NOT_FOUND') {

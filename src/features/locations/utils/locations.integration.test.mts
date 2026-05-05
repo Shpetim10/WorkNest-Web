@@ -79,14 +79,12 @@ test('network flow maps detect-network suggestions into the editable form row', 
       networkType: 'OFFICE_NETWORK',
       suggestedCidr: '10.0.0.0/24',
       ipVersion: 'IPV4',
-      priorityOrder: 3,
     },
     EMPTY_TRUSTED_NETWORK,
   );
 
   assert.equal(mapped.name, 'HQ Office Network');
   assert.equal(mapped.cidrBlock, '10.0.0.0/24');
-  assert.equal(mapped.priorityOrder, '3');
 });
 
 test('create payload omits trusted networks when a detected network was removed before submit', () => {
@@ -105,10 +103,6 @@ test('create payload omits trusted networks when a detected network was removed 
     rejectPoorAccuracy: true,
     allowManualCorrection: false,
     allowManagerManualEntry: false,
-    missingCheckoutAutoCloseEnabled: false,
-    autoCheckoutAfterMinutes: null,
-    lateGraceMinutes: 0,
-    earlyClockInWindowMinutes: 0,
   });
   assert.equal(payload.trustedNetworks, undefined);
 });
@@ -122,7 +116,6 @@ test('create payload includes a manual network row when the user overrides detec
       cidrBlock: '10.0.0.0/24',
       networkType: 'DEDICATED_HOST',
       ipVersion: 'IPV4',
-      priorityOrder: '5',
     },
   ];
 
@@ -131,7 +124,6 @@ test('create payload includes a manual network row when the user overrides detec
   assert.equal(payload.trustedNetworks?.length, 1);
   assert.equal(payload.trustedNetworks?.[0]?.name, 'Manual Office Network');
   assert.equal(payload.trustedNetworks?.[0]?.cidrBlock, '10.0.0.0/24');
-  assert.equal(payload.trustedNetworks?.[0]?.priorityOrder, 5);
 });
 
 test('step 3 validation allows a completely empty network section', () => {
@@ -192,21 +184,12 @@ test('server validation errors map fieldErrors arrays into clear form messages',
 test('backend field error paths build nested errors for dotted and indexed fields', () => {
   const nested = buildNestedFieldErrorTree([
     {
-      field: 'attendancePolicy.autoCheckoutAfterMinutes',
-      message:
-        'Auto check-out minutes is required when missing check-out auto-close is enabled.',
-    },
-    {
       field: 'trustedNetworks[0].cidrBlock',
       message: 'CIDR block already exists for this site',
     },
   ]);
 
   assert.deepEqual(nested, {
-    attendanceRules: {
-      autoCheckoutAfterMinutes:
-        'Auto check-out minutes is required when missing check-out auto-close is enabled.',
-    },
     trustedNetworks: [
       {
         cidrBlock: 'CIDR block already exists for this site',

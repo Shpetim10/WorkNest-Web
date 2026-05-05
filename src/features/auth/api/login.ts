@@ -41,6 +41,9 @@ export const useLogin = () => {
         localStorage.setItem('refresh_token', data.refreshToken);
         localStorage.setItem('user_email', variables.email);
 
+        if (data.accessTokenExpiresAt) {
+          localStorage.setItem('access_token_expires_at', data.accessTokenExpiresAt);
+        }
         if (data.tenantContext?.companyId) {
           companyId = data.tenantContext.companyId;
           localStorage.setItem('current_company_id', companyId);
@@ -81,7 +84,9 @@ export const useSelectRole = () => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
-
+        if (data.accessTokenExpiresAt) {
+          localStorage.setItem('access_token_expires_at', data.accessTokenExpiresAt);
+        }
         if (data.tenantContext?.companyId) {
           companyId = data.tenantContext.companyId;
           localStorage.setItem('current_company_id', companyId);

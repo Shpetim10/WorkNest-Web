@@ -1,31 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Clock, UserPlus, Eye, Check, X } from 'lucide-react';
 import { TablePagination } from '@/common/ui';
-import { LeaveRequestDTO, LeaveStatus } from '@/features/leave/types';
+import { LeaveRequestDto, LeaveStatus } from '@/features/leave/types';
 import { ViewLeaveModal } from '@/features/leave/components/ViewLeaveModal';
 import { RejectLeaveModal } from './RejectLeaveModal';
-
-const ITEMS_PER_PAGE = 10;
+import { useLeaveRequests, useApproveLeave, useRejectLeave } from '../api';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const AVATAR_COLORS = [
-  'bg-[#4F46E5]',
-  'bg-[#0EA5E9]',
-  'bg-[#10B981]',
-  'bg-[#F59E0B]',
-  'bg-[#EF4444]',
-  'bg-[#8B5CF6]',
-  'bg-[#EC4899]',
-];
-
-function avatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -35,63 +18,107 @@ function getInitials(name: string): string {
 
 function statusBadgeStyles(status: LeaveStatus) {
   switch (status) {
-    case 'Pending':
+    case 'PENDING':
       return { color: '#FF6900', backgroundColor: '#FF690033' };
-    case 'Approved':
-      return { color: '#00BBA7', backgroundColor: '#00BBA733' };
-    case 'Rejected':
-      return { color: '#EF4444', backgroundColor: '#EF444433' }; // Using a standard red for Rejected if needed
+    case 'APPROVED':
+      return { color: '#00C950', backgroundColor: '#00C95033' };
+    case 'REJECTED':
+      return { color: '#EF4444', backgroundColor: '#EF444433' };
     default:
       return { color: '#6B7280', backgroundColor: '#F3F4F6' };
   }
 }
 
+function statusLabel(status: LeaveStatus): string {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+function capitalize(str: string): string {
+  return str.charAt(0) + str.slice(1).toLowerCase();
+}
+
+function formatDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${day} ${months[parseInt(month) - 1]} ${year}`;
+}
+
+function formatDateRange(start: string, end: string): string {
+  if (start === end) return formatDate(start);
+  return `${formatDate(start)} – ${formatDate(end)}`;
+}
+
+const PAGE_SIZE = 10;
+const STATUS_OPTIONS = (['REJECTED', 'APPROVED', 'PENDING'] as LeaveStatus[]);
+
 // ─── Main View ───────────────────────────────────────────────────────────────
 
 export function LeaveDashboardView() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<LeaveStatus | 'All'>('All');
   const [page, setPage] = useState(1);
-  const [selectedLeave, setSelectedLeave] = useState<LeaveRequestDTO | null>(null);
+  const [selectedLeave, setSelectedLeave] = useState<LeaveRequestDto | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [approveError, setApproveError] = useState<string | null>(null);
 
-  // Client-side filtering
-  const leaveRequests: LeaveRequestDTO[] = [];
-  const filtered = leaveRequests.filter((req) => {
-    const matchesSearch = req.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === 'All' || req.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  // Debounce search input (300 ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-
-  const applyFilters = () => {
-    // In a real app, this might trigger a refetch. Here, filtering is reactive.
-    setPage(1);
+  const queryParams = {
+    search: debouncedSearch || undefined,
+    status: filterStatus !== 'All' ? filterStatus : undefined,
+    page,
+    size: PAGE_SIZE,
   };
 
-  const handleAction = (action: string, id: string) => {
-    const leave = leaveRequests.find((req) => req.id === id);
-    if (!leave) return;
+  const { data, isLoading } = useLeaveRequests(queryParams);
+  const approve = useApproveLeave();
+  const reject = useRejectLeave();
 
-    if (action === 'row_click' || action === 'view') {
-      setSelectedLeave(leave);
-      setIsViewModalOpen(true);
-    } else if (action === 'reject') {
-      setSelectedLeave(leave);
-      setRejectReason(''); // Reset reason when opening
-      setIsRejectModalOpen(true);
-    } else {
-      console.log(`Action ${action} triggered for request ${id}`);
-    }
+  const rows = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 0;
+
+  const handleApprove = (id: string) => {
+    setApproveError(null);
+    approve.mutate(id, {
+      onError: (error: unknown) => {
+        const code = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
+        if (code === 'INSUFFICIENT_LEAVE_BALANCE') {
+          setApproveError('Cannot approve: employee has insufficient leave balance.');
+        } else if (code === 'LEAVE_NOT_PENDING') {
+          setApproveError('This request is no longer pending.');
+        } else {
+          setApproveError('Failed to approve request. Please try again.');
+        }
+      },
+    });
+  };
+
+  const handleOpenView = (row: LeaveRequestDto) => {
+    setSelectedLeave(row);
+    setIsViewModalOpen(true);
+  };
+
+  const handleOpenReject = (row: LeaveRequestDto) => {
+    setSelectedLeave(row);
+    setRejectReason('');
+    setIsRejectModalOpen(true);
   };
 
   const handleRejectConfirm = (id: string, reason: string) => {
-    console.log(`Rejecting leave ${id} with reason: ${reason}`);
-    // Update logic would go here
+    reject.mutate(
+      { id, reason },
+      { onSuccess: () => setIsRejectModalOpen(false) },
+    );
   };
 
   return (
@@ -111,9 +138,7 @@ export function LeaveDashboardView() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">Leave Request</h1>
-            <p className="text-white/80 text-sm mt-0.5">
-              Review and manage leave request
-            </p>
+            <p className="text-white/80 text-sm mt-0.5">Review and manage leave requests</p>
           </div>
         </div>
         <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
@@ -121,8 +146,18 @@ export function LeaveDashboardView() {
         </div>
       </div>
 
+      {/* Approve error banner */}
+      {approveError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center justify-between">
+          <span className="text-sm">{approveError}</span>
+          <button onClick={() => setApproveError(null)} className="text-red-500 ml-4 shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
-      <div 
+      <div
         className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex flex-wrap gap-3 items-center min-h-[48px]"
         style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
       >
@@ -131,19 +166,19 @@ export function LeaveDashboardView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search employee locally..."
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by employee name..."
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
 
         {/* Filter Buttons */}
         <div className="flex items-center gap-2 ml-auto">
-          {(['Rejected', 'Approved', 'Pending'] as LeaveStatus[]).map((status) => (
+          {STATUS_OPTIONS.map((status) => (
             <button
               key={status}
               onClick={() => {
-                setFilterStatus((prev: LeaveStatus | 'All') => (prev === status ? 'All' : status));
+                setFilterStatus((prev) => (prev === status ? 'All' : status));
                 setPage(1);
               }}
               className={`h-8 px-5 border rounded-xl text-[13px] font-medium transition-colors ${
@@ -152,13 +187,13 @@ export function LeaveDashboardView() {
                   : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
               }`}
             >
-              {status}
+              {statusLabel(status)}
             </button>
           ))}
         </div>
 
         <button
-          onClick={applyFilters}
+          onClick={() => setPage(1)}
           className="h-8 px-6 bg-blue-600 text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           Apply
@@ -166,7 +201,7 @@ export function LeaveDashboardView() {
       </div>
 
       {/* Table */}
-      <div 
+      <div
         className="bg-white rounded-2xl border border-[#2B7FFF] overflow-hidden mt-2"
         style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
       >
@@ -186,20 +221,26 @@ export function LeaveDashboardView() {
             </tr>
           </thead>
           <tbody>
-            {paginated.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="py-12 text-center text-gray-400 text-sm">
+                  Loading...
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center text-gray-400 text-sm">
                   No leave requests found.
                 </td>
               </tr>
             ) : (
-              paginated.map((row, idx) => (
+              rows.map((row, idx) => (
                 <tr
                   key={row.id}
                   className={`border-b border-[#E5E7EB] hover:bg-blue-50/30 transition-colors cursor-pointer ${
                     idx % 2 === 1 ? 'bg-gray-50/40' : ''
                   }`}
-                  onClick={() => handleAction('row_click', row.id)}
+                  onClick={() => handleOpenView(row)}
                 >
                   {/* Name */}
                   <td className="px-4 py-3.5">
@@ -208,35 +249,37 @@ export function LeaveDashboardView() {
                         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
                         style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                       >
-                        {getInitials(row.name)}
+                        {getInitials(row.employeeName)}
                       </div>
                       <span className="font-medium text-gray-800 whitespace-nowrap">
-                        {row.name}
+                        {row.employeeName}
                       </span>
                     </div>
                   </td>
 
                   {/* Site */}
-                  <td className="px-4 py-3.5 text-gray-600">{row.site}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{row.siteName ?? '—'}</td>
 
                   {/* Department */}
                   <td className="px-4 py-3.5">
-                    <span 
+                    <span
                       className="text-xs font-medium px-2.5 py-1 rounded-full"
                       style={{ color: '#1447E6', backgroundColor: '#EFF6FF' }}
                     >
-                      {row.department}
+                      {row.departmentName ?? '—'}
                     </span>
                   </td>
 
                   {/* Type */}
-                  <td className="px-4 py-3.5 text-gray-600">{row.type}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{capitalize(row.leaveType)}</td>
 
                   {/* Date Range */}
-                  <td className="px-4 py-3.5 text-gray-600">{row.dateRange}</td>
+                  <td className="px-4 py-3.5 text-gray-600">
+                    {formatDateRange(row.startDate, row.endDate)}
+                  </td>
 
                   {/* Days */}
-                  <td className="px-4 py-3.5 text-gray-600">{row.days}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{row.totalDays}</td>
 
                   {/* Status */}
                   <td className="px-4 py-3.5">
@@ -244,7 +287,7 @@ export function LeaveDashboardView() {
                       className="text-xs font-medium px-2.5 py-1 rounded-full"
                       style={statusBadgeStyles(row.status)}
                     >
-                      {row.status}
+                      {statusLabel(row.status)}
                     </span>
                   </td>
 
@@ -254,33 +297,38 @@ export function LeaveDashboardView() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAction('view', row.id);
+                          handleOpenView(row);
                         }}
                         className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                         title="View"
                       >
                         <Eye size={16} />
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAction('approve', row.id);
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-green-50 text-green-500 hover:text-green-600 transition-colors"
-                        title="Approve"
-                      >
-                        <Check size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAction('reject', row.id);
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
-                        title="Reject"
-                      >
-                        <X size={16} />
-                      </button>
+                      {row.status === 'PENDING' && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApprove(row.id);
+                            }}
+                            disabled={approve.isPending}
+                            className="p-1.5 rounded-lg hover:bg-green-50 text-green-500 hover:text-green-600 transition-colors disabled:opacity-50"
+                            title="Approve"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReject(row);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
+                            title="Reject"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -313,6 +361,7 @@ export function LeaveDashboardView() {
         reason={rejectReason}
         onReasonChange={setRejectReason}
         onConfirm={handleRejectConfirm}
+        isLoading={reject.isPending}
       />
     </div>
   );

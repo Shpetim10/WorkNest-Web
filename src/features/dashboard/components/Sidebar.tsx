@@ -65,9 +65,18 @@ const NAV_ITEMS: NavItem[] = [
   },
   { name: 'Departments', icon: Building2, href: '/dashboard/settings/departments' },
   { name: 'Reports', icon: FileText, href: '#' },
-  { name: 'Announcements', icon: Megaphone, href: '#' },
+  { name: 'Announcements', icon: Megaphone, href: '/dashboard/announcements' },
   { name: 'Audit Log', icon: ShieldCheck, href: '#' },
-  { name: 'Settings', icon: Settings, href: '/dashboard/settings/company', hasChevron: true },
+  {
+    name: 'Settings',
+    icon: Settings,
+    href: '#',
+    hasChevron: true,
+    subItems: [
+      { name: 'Company Settings', href: '/dashboard/settings/company' },
+      { name: 'Change Password', href: '/dashboard/settings/change-password' },
+    ],
+  },
 ];
 
 export function Sidebar() {

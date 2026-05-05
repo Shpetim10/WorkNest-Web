@@ -27,7 +27,6 @@ const trustedNetworkSchema = z.object({
   setExpiry: z.boolean(),
   expiryDate: z.string(),
   notes: z.string(),
-  priorityOrder: z.string(),
   version: z.number().nullable(),
 });
 
@@ -42,16 +41,6 @@ function isValidTimeZone(value: string) {
   } catch {
     return false;
   }
-}
-
-function parsePriorityOrder(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  const parsed = Number(trimmed);
-  return Number.isInteger(parsed) ? parsed : Number.NaN;
 }
 
 function isFutureDate(value: string) {
@@ -118,10 +107,6 @@ const companySiteSchema = z
       rejectPoorAccuracy: z.boolean(),
       allowManualCorrection: z.boolean(),
       allowManagerManualEntry: z.boolean(),
-      missingCheckoutAutoCloseEnabled: z.boolean(),
-      autoCheckoutAfterMinutes: z.number().nullable(),
-      lateGraceMinutes: z.number(),
-      earlyClockInWindowMinutes: z.number(),
     }),
     trustedNetworks: z.array(trustedNetworkSchema),
   })
@@ -178,37 +163,6 @@ const companySiteSchema = z
       }
     }
 
-    if (!Number.isInteger(value.attendanceRules.lateGraceMinutes) || value.attendanceRules.lateGraceMinutes < 0 || value.attendanceRules.lateGraceMinutes > 300) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Late grace minutes must be an integer between 0 and 300',
-        path: ['attendanceRules', 'lateGraceMinutes'],
-      });
-    }
-
-    if (!Number.isInteger(value.attendanceRules.earlyClockInWindowMinutes) || value.attendanceRules.earlyClockInWindowMinutes < 0 || value.attendanceRules.earlyClockInWindowMinutes > 300) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Early clock-in window must be an integer between 0 and 300',
-        path: ['attendanceRules', 'earlyClockInWindowMinutes'],
-      });
-    }
-
-    if (value.attendanceRules.missingCheckoutAutoCloseEnabled) {
-      if (
-        value.attendanceRules.autoCheckoutAfterMinutes == null ||
-        !Number.isInteger(value.attendanceRules.autoCheckoutAfterMinutes) ||
-        value.attendanceRules.autoCheckoutAfterMinutes < 1 ||
-        value.attendanceRules.autoCheckoutAfterMinutes > 1440
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Auto check-out minutes must be an integer between 1 and 1440',
-          path: ['attendanceRules', 'autoCheckoutAfterMinutes'],
-        });
-      }
-    }
-
     const seenNetworkKeys = new Map<string, number>();
     value.trustedNetworks.forEach((network, index) => {
       if (!hasTrustedNetworkInput(network)) {
@@ -256,15 +210,6 @@ const companySiteSchema = z
           code: z.ZodIssueCode.custom,
           message: 'IP version is required',
           path: ['trustedNetworks', index, 'ipVersion'],
-        });
-      }
-
-      const priorityOrder = parsePriorityOrder(network.priorityOrder);
-      if (priorityOrder == null || Number.isNaN(priorityOrder) || priorityOrder < 1 || priorityOrder > 999) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Priority order must be an integer between 1 and 999',
-          path: ['trustedNetworks', index, 'priorityOrder'],
         });
       }
 
@@ -368,10 +313,6 @@ export function validateStep1(values: CompanySiteFormValues) {
   errors.rejectPoorAccuracy = pickFirst(flatErrors, 'attendanceRules.rejectPoorAccuracy');
   errors.allowManualCorrection = pickFirst(flatErrors, 'attendanceRules.allowManualCorrection');
   errors.allowManagerManualEntry = pickFirst(flatErrors, 'attendanceRules.allowManagerManualEntry');
-  errors.missingCheckoutAutoCloseEnabled = pickFirst(flatErrors, 'attendanceRules.missingCheckoutAutoCloseEnabled');
-  errors.autoCheckoutAfterMinutes = pickFirst(flatErrors, 'attendanceRules.autoCheckoutAfterMinutes');
-  errors.lateGraceMinutes = pickFirst(flatErrors, 'attendanceRules.lateGraceMinutes');
-  errors.earlyClockInWindowMinutes = pickFirst(flatErrors, 'attendanceRules.earlyClockInWindowMinutes');
 
   return Object.fromEntries(
     Object.entries(errors).filter(([, message]) => Boolean(message)),
@@ -410,7 +351,6 @@ export function validateStep3(values: CompanySiteFormValues) {
   errors.networkType = pickFirst(flatErrors, 'trustedNetworks[0].networkType');
   errors.cidrBlock = pickFirst(flatErrors, 'trustedNetworks[0].cidrBlock');
   errors.ipVersion = pickFirst(flatErrors, 'trustedNetworks[0].ipVersion');
-  errors.priorityOrder = pickFirst(flatErrors, 'trustedNetworks[0].priorityOrder');
   errors.expiryDate = pickFirst(flatErrors, 'trustedNetworks[0].expiryDate');
 
   return Object.fromEntries(

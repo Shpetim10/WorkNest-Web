@@ -25,10 +25,6 @@ export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
   rejectPoorAccuracy: true,
   allowManualCorrection: false,
   allowManagerManualEntry: false,
-  missingCheckoutAutoCloseEnabled: false,
-  autoCheckoutAfterMinutes: null,
-  lateGraceMinutes: 0,
-  earlyClockInWindowMinutes: 0,
 };
 
 export const DEFAULT_LOCATION_STEP: LocationStep2Data = {
@@ -66,7 +62,6 @@ export const EMPTY_TRUSTED_NETWORK: TrustedNetworkFormValue = {
   setExpiry: false,
   expiryDate: '',
   notes: '',
-  priorityOrder: '',
   version: null,
 };
 
@@ -111,8 +106,6 @@ export function mapDetectNetworkResponseToFormValue(
     vpnDetected: Boolean(response.vpnOrDatacenter),
     cgnatDetected: Boolean(response.cgnat),
     notes: response.notes ?? current.notes,
-    priorityOrder:
-      response.priorityOrder != null ? String(response.priorityOrder) : current.priorityOrder,
   };
 }
 
@@ -200,7 +193,6 @@ export function mapLocationToForm(location: Location) {
         setExpiry: location.setExpiry ?? false,
         expiryDate: location.expiryDate ?? '',
         notes: location.networkNotes ?? '',
-        priorityOrder: location.priorityOverride ?? '',
         version: location.trustedNetworks[0]?.version ?? null,
       },
     ],
@@ -214,10 +206,6 @@ export function mapFormToCreateCompanySiteRequest(
   const networkPayload = values.trustedNetworks
     .filter(hasTrustedNetworkInput)
     .map<TrustedNetworkDraftRequest>((network) => {
-      const priority = network.priorityOrder.trim()
-        ? Math.max(1, Number(network.priorityOrder.trim()))
-        : 1;
-
       return {
         id: network.id,
         name: network.name.trim(),
@@ -225,7 +213,6 @@ export function mapFormToCreateCompanySiteRequest(
         cidrBlock: network.cidrBlock.trim(),
         ipVersion: network.ipVersion || undefined,
         isActive: true,
-        priorityOrder: priority,
         expiresAt: network.setExpiry ? normalizeDate(network.expiryDate) : null,
         version: network.id ? network.version ?? 0 : null,
         notes: trimToUndefined(network.notes) ?? null,
@@ -253,12 +240,6 @@ export function mapFormToCreateCompanySiteRequest(
       rejectPoorAccuracy: values.attendanceRules.rejectPoorAccuracy,
       allowManualCorrection: values.attendanceRules.allowManualCorrection,
       allowManagerManualEntry: values.attendanceRules.allowManagerManualEntry,
-      missingCheckoutAutoCloseEnabled: values.attendanceRules.missingCheckoutAutoCloseEnabled,
-      autoCheckoutAfterMinutes: values.attendanceRules.missingCheckoutAutoCloseEnabled
-        ? values.attendanceRules.autoCheckoutAfterMinutes
-        : null,
-      lateGraceMinutes: values.attendanceRules.lateGraceMinutes,
-      earlyClockInWindowMinutes: values.attendanceRules.earlyClockInWindowMinutes,
     },
     location: {
       latitude: values.location.latitude,
@@ -388,7 +369,6 @@ export function mapCreatedSiteToLocation(site: CompanySiteResponse): Partial<Loc
     setExpiry: false,
     expiryDate: '',
     networkNotes: '',
-    priorityOverride: '',
     createdAt: site.createdAt ?? '',
   };
 }

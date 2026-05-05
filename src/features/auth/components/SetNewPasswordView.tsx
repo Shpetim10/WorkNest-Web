@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, ArrowRight, Loader2, Check, X } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useResetPassword } from '../api/password-reset';
 
-export function SetNewPasswordView() {
+type SetNewPasswordViewProps = {
+  token?: string;
+};
+
+export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
   const resetPasswordMutation = useResetPassword();
 
   const RULES = [

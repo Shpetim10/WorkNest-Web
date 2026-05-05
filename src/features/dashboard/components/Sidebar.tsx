@@ -65,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { name: 'Departments', icon: Building2, href: '/dashboard/settings/departments' },
   { name: 'Reports', icon: FileText, href: '#' },
-  { name: 'Announcements', icon: Megaphone, href: '#' },
+  { name: 'Announcements', icon: Megaphone, href: '/dashboard/announcements' },
   { name: 'Audit Log', icon: ShieldCheck, href: '#' },
   { name: 'Settings', icon: Settings, href: '/dashboard/settings/company', hasChevron: true },
 ];

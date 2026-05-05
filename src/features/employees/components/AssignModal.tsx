@@ -185,7 +185,7 @@ export function AssignModal({
             className="flex items-center justify-between px-8 py-6 rounded-t-[16px] text-white shrink-0"
             style={{
               background:
-                'linear-gradient(90deg, rgba(43, 127, 255, 0.9) 0%, rgba(0, 201, 80, 0.9) 100%)',
+                'linear-gradient(90deg, rgba(43, 127, 255, 0.9) 0%, rgba(0, 187, 167, 0.9) 100%)',
             }}
           >
             <div>
@@ -259,7 +259,7 @@ export function AssignModal({
                             : 'bg-white border-transparent hover:border-gray-200'
                         }`}
                       >
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#155DFC]/80 to-[#01c951]/80 flex items-center justify-center text-white text-[12px] font-bold shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2B7FFF]/80 to-[#00BBA7]/80 flex items-center justify-center text-white text-[12px] font-bold shrink-0">
                           {emp.initials}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -286,7 +286,7 @@ export function AssignModal({
               <div className="flex flex-col justify-center gap-4 px-1">
                 <button
                   onClick={moveAllRight}
-                  className={`${BTN_CONTROL} bg-gradient-to-br from-[#155DFC] to-[#01c951] text-white`}
+                  className={`${BTN_CONTROL} bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] text-white`}
                   title="Move all to assigned"
                 >
                   <ChevronsRight size={20} />
@@ -354,7 +354,7 @@ export function AssignModal({
                             : 'bg-white border-transparent hover:border-gray-200'
                         }`}
                       >
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#155DFC]/80 to-[#01c951]/80 flex items-center justify-center text-white text-[12px] font-bold shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#2B7FFF]/80 to-[#00BBA7]/80 flex items-center justify-center text-white text-[12px] font-bold shrink-0">
                           {emp.initials}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -398,7 +398,7 @@ export function AssignModal({
                 );
               }}
               disabled={isPending}
-              className={`h-11 px-8 rounded-xl text-[15px] font-bold text-white bg-gradient-to-r from-[#155DFC] to-[#01c951] shadow-lg shadow-[#155DFC]/20 transition-all ${
+              className={`h-11 px-8 rounded-xl text-[15px] font-bold text-white bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] shadow-lg shadow-[#2B7FFF]/20 transition-all ${
                 isPending ? 'cursor-not-allowed opacity-80' : 'hover:scale-[1.02] hover:shadow-[#155DFC]/40'
               }`}
             >

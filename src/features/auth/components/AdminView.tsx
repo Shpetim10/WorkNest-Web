@@ -168,7 +168,7 @@ export function AdminView() {
         </div>
 
         <div className="flex justify-center mb-5">
-          <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-[#2178ff] to-[#01c9c9] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(21,93,252,0.4)]">
+          <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(21,93,252,0.4)]">
             <User size={34} strokeWidth={1.6} className="text-white" />
           </div>
         </div>

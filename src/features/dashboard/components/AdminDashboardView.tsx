@@ -74,7 +74,7 @@ export function AdminDashboardView() {
           
           {/* Chart Placeholder Box */}
           <div className="flex-1 w-full bg-[#f4fbfa] border border-[#e2f0ee] rounded-[24px] flex items-center justify-center group overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-[#00a63e]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-[#00BBA7]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <span className="text-[14.5px] font-semibold text-gray-300 relative z-10 tracking-wide uppercase">Chart Component Here</span>
           </div>
         </Card>

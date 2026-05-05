@@ -94,23 +94,23 @@ export function LocationDetailsModal({
         <div className="flex max-h-[85vh] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_70px_-10px_rgba(0,0,0,0.15)]">
           <div
             className="relative border-b border-[#E5E7EB] px-6 pt-6 pb-6"
-            style={{ background: 'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)' }}
+            style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#155DFC] to-[#3B82F6] shadow-lg shadow-blue-200">
+                <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#2B7FFF] to-[#00BBA7] shadow-lg shadow-blue-200">
                   <MapPin size={26} className="text-white" strokeWidth={2.5} />
                 </div>
                 <div className="space-y-0.5">
-                  <h2 className="text-[24px] font-bold leading-tight tracking-tight text-[#101828]">
+                  <h2 className="text-[24px] font-bold leading-tight tracking-tight text-white">
                     {location?.siteName ?? 'Location details'}
                   </h2>
-                  <p className="text-[14px] font-normal text-[#4A5565]">{location?.siteCode ?? 'Loading...'}</p>
+                  <p className="text-[14px] font-normal text-white/80">{location?.siteCode ?? 'Loading...'}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="rounded-full p-1.5 text-[#6A7282] transition-colors hover:bg-gray-100"
+                className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/10"
               >
                 <X size={20} />
               </button>

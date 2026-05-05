@@ -162,6 +162,9 @@ export function EmployeeListView() {
     }
   };
 
+  const [supervisor, setSupervisor] = useState('All supervisors');
+  const [department, setDepartment] = useState('All departments');
+
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
   const employees = data?.data || [];
@@ -200,18 +203,49 @@ export function EmployeeListView() {
 
       {/* ── Search / Filter Bar ────────────────────────────────────────── */}
       <div 
-        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex items-center min-h-[48px]"
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex flex-wrap gap-3 items-center min-h-[48px]"
         style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
       >
         <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search employees..."
+            placeholder="Search employee locally..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="relative">
+            <select
+              value={supervisor}
+              onChange={(e) => setSupervisor(e.target.value)}
+              className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            >
+              <option>All supervisors</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+
+          <div className="relative">
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            >
+              <option>All departments</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+
+          <button
+            onClick={() => {}}
+            className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            Apply
+          </button>
         </div>
       </div>
 
@@ -266,7 +300,7 @@ export function EmployeeListView() {
                       <div className="flex items-center gap-3 text-left">
                         <div 
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-                          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
+                          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                         >
                           {getInitials(employee.name || `${employee.firstName} ${employee.lastName}`)}
                         </div>

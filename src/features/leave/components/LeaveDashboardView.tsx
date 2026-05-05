@@ -38,7 +38,7 @@ function statusBadgeStyles(status: LeaveStatus) {
     case 'Pending':
       return { color: '#FF6900', backgroundColor: '#FF690033' };
     case 'Approved':
-      return { color: '#00C950', backgroundColor: '#00C95033' };
+      return { color: '#00BBA7', backgroundColor: '#00BBA733' };
     case 'Rejected':
       return { color: '#EF4444', backgroundColor: '#EF444433' }; // Using a standard red for Rejected if needed
     default:
@@ -206,7 +206,7 @@ export function LeaveDashboardView() {
                     <div className="flex items-center gap-3">
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
+                        style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                       >
                         {getInitials(row.name)}
                       </div>

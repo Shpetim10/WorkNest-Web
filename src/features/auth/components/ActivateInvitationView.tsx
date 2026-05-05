@@ -296,8 +296,8 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
     <Card className="relative w-full max-w-[480px] p-8 sm:p-10 z-10 transition-all duration-300 shadow-xl border-white/40">
       <div className="mb-8 text-center">
         <div className="mb-6">
-          <h1 className="font-sans font-bold text-[22px] leading-[28px] bg-gradient-to-r from-[#0066FF] to-[#00C853] bg-clip-text text-transparent inline-block">
-            WorkNest
+          <h1 className="font-sans font-bold text-[22px] leading-[28px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text text-transparent inline-block">
+            WorkTrezz
           </h1>
         </div>
         <h2 className="text-2xl font-bold text-[#1a1c23] mb-2 tracking-tight">Complete Setup</h2>
@@ -317,11 +317,10 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
           <div className="relative group">
             <label
               htmlFor="profile-image-upload"
-              className={`relative flex w-24 h-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-all duration-300 ${
-                previewUrl
+              className={`relative flex w-24 h-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-all duration-300 ${previewUrl
                   ? 'border-[#0066FF] border-solid ring-4 ring-[#0066FF]/10'
                   : 'border-gray-200 bg-gray-50 hover:border-[#0066FF]'
-              }`}
+                }`}
             >
               {previewUrl ? (
                 <>
@@ -397,14 +396,12 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
               {passwordChecks.map((check) => (
                 <div
                   key={check.key}
-                  className={`flex items-center gap-2 text-[12px] font-medium ${
-                    check.passed ? 'text-green-600' : 'text-gray-400'
-                  }`}
+                  className={`flex items-center gap-2 text-[12px] font-medium ${check.passed ? 'text-green-600' : 'text-gray-400'
+                    }`}
                 >
                   <div
-                    className={`flex h-4 w-4 items-center justify-center rounded-full ${
-                      check.passed ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-400'
-                    }`}
+                    className={`flex h-4 w-4 items-center justify-center rounded-full ${check.passed ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-400'
+                      }`}
                   >
                     {check.passed ? (
                       <Check className="h-2.5 w-2.5 stroke-[3px]" />
@@ -441,14 +438,12 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
 
             {formData.confirmPassword.length > 0 && (
               <div
-                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold ${
-                  passwordsMatch ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
-                }`}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold ${passwordsMatch ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
+                  }`}
               >
                 <div
-                  className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                    passwordsMatch ? 'bg-green-100' : 'bg-amber-100'
-                  }`}
+                  className={`flex h-5 w-5 items-center justify-center rounded-full ${passwordsMatch ? 'bg-green-100' : 'bg-amber-100'
+                    }`}
                 >
                   {passwordsMatch ? (
                     <Check className="h-3 w-3 stroke-[3px]" />

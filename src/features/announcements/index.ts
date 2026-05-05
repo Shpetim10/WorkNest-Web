@@ -1,0 +1,1 @@
+export { AnnouncementsDashboardView } from './components/AnnouncementsDashboardView';

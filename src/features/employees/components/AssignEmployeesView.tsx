@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, TablePagination } from '@/common/ui';
-import { Search, UserPlus2, Building2, Users2 } from 'lucide-react';
+import { Search, UserPlus2, Building2, Users2, Plus } from 'lucide-react';
 import { AssignModal } from './AssignModal';
 import { useStaff } from '../api/get-staff';
 
@@ -28,9 +28,9 @@ export function AssignEmployeesView() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const supervisors: Supervisor[] = React.useMemo(() => {
-    if (!staffResponse?.data) return [];
+    const rawData = staffResponse?.data || [];
 
-    return staffResponse.data.map(staff => ({
+    return rawData.map(staff => ({
       id: staff.id,
       supervisorRoleAssignmentId: staff.roleAssignmentId || '',
       name: `${staff.firstName} ${staff.lastName}`,
@@ -69,57 +69,68 @@ export function AssignEmployeesView() {
   };
 
   return (
-    <div className="animate-in slide-in-from-bottom-2 w-full space-y-8 duration-500 fade-in pb-10">
+    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
+      {/* ── Page Header Card ───────────────────────────────────────────── */}
       <div
-        className="relative flex items-center justify-between overflow-hidden rounded-[24px] p-8 text-white shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]"
-        style={{ background: 'linear-gradient(90deg, rgba(43, 127, 255, 0.90) 50%, rgba(0, 201, 80, 0.90) 100%)' }}
+        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
+        style={{
+          background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
+          minHeight: 120,
+          boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
+        }}
       >
-        <div className="space-y-2 z-10">
-          <h1 className="font-[Inter,sans-serif] text-[30px] font-bold leading-[36px]" style={{ letterSpacing: '-0.02em' }}>
-            Assign Employees
-          </h1>
-          <p className="font-[Inter,sans-serif] text-[16px] font-normal leading-[24px] text-white/90">
-            Manage employee assignments to supervisors
-          </p>
-        </div>
-
-        <div className="z-10 flex h-[88px] w-[87px] items-center justify-center rounded-[16px] bg-white/20 backdrop-blur-sm">
-          <UserPlus2 size={42} strokeWidth={1.5} className="text-white" />
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+            <UserPlus2 size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Assign Employees</h1>
+            <p className="text-white/80 text-sm mt-0.5">
+              Manage employee assignments to supervisors
+            </p>
+          </div>
         </div>
       </div>
 
-      <Card className="rounded-[24px] border-0 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <div className="relative">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-            <Search size={18} strokeWidth={2} />
-          </div>
+      {/* ── Search / Filter Bar ────────────────────────────────────────── */}
+      <div 
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex items-center min-h-[48px]"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
+        <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search by name, job title, or department..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="h-11 w-full rounded-xl border border-gray-100 bg-gray-50/50 pl-11 pr-4 text-[13.5px] font-medium text-gray-700 transition-all placeholder:text-gray-400 focus:border-[#155dfc]/40 focus:outline-none focus:ring-2 focus:ring-[#155dfc]/10"
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
-      </Card>
+      </div>
 
-      <Card className="overflow-hidden rounded-[24px] border border-[#155DFC]/30 p-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+      <div 
+        className="bg-white rounded-2xl border border-[#2B7FFF] overflow-hidden mt-2"
+        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#155DFC]/10 bg-[#E8F1FF]/50">
+              <tr 
+                className="text-xs font-semibold text-white uppercase tracking-wide"
+                style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
+              >
                 {TABLE_HEADERS.map(header => (
                   <th
                     key={header}
-                    className="whitespace-nowrap px-6 py-4 font-[Inter,sans-serif] text-[12px] font-semibold uppercase text-[#4A5565]"
-                    style={{ lineHeight: '16px', letterSpacing: '0.06em' }}
+                    className="px-4 py-3.5 text-left font-semibold"
                   >
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
+            <tbody className="bg-white">
               {paginatedSupervisors.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center">
@@ -127,46 +138,48 @@ export function AssignEmployeesView() {
                   </td>
                 </tr>
               ) : (
-                paginatedSupervisors.map(supervisor => (
-                  <tr key={supervisor.id} className="group transition-colors hover:bg-gray-50/50">
-                    <td className="px-6 py-5">
+                paginatedSupervisors.map((supervisor, index) => (
+                  <tr 
+                    key={supervisor.id} 
+                    className={`border-b border-[#E5E7EB] group transition-colors hover:bg-blue-50/30 ${
+                      index % 2 === 1 ? 'bg-gray-50/40' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#155DFC] to-[#01c951] text-[14px] font-bold text-white shadow-sm">
+                        <div 
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white shadow-sm"
+                          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
+                        >
                           {supervisor.initials}
                         </div>
-                        <span className="text-[15px] font-bold text-[#1E2939]">{supervisor.name}</span>
+                        <span className="text-[15px] font-medium text-gray-800">{supervisor.name}</span>
                       </div>
                     </td>
 
-                    <td className="px-6 py-5 whitespace-nowrap">
-                      <span className="text-[13.5px] font-medium text-gray-600">{supervisor.jobTitle}</span>
+                    <td className="px-4 py-3.5 whitespace-nowrap text-gray-600">
+                      {supervisor.jobTitle}
                     </td>
 
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <Building2 size={16} className="text-gray-400" strokeWidth={1.5} />
-                        <span className="text-[13.5px] font-medium text-gray-500">{supervisor.department}</span>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Building2 size={14} className="text-gray-400" strokeWidth={1.5} />
+                        <span>{supervisor.department}</span>
                       </div>
                     </td>
 
-                    <td className="px-6 py-5">
-                      <span className="inline-flex items-center gap-2 rounded-[14px] bg-[#EEF4FF] px-3 py-1.5 text-[13px] font-semibold text-[#2B7FFF]">
+                    <td className="px-4 py-3.5">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[#E8F1FF] px-3 py-1 text-[#2B7FFF] font-bold">
                         <Users2 size={14} strokeWidth={2.2} />
                         {supervisor.assignedCount}
                       </span>
                     </td>
 
-                    <td className="px-6 py-5">
+                    <td className="px-4 py-3.5">
                       <button
                         onClick={() => setActiveSupervisor(supervisor)}
-                        className="inline-flex items-center justify-center p-0 h-10 px-5 rounded-[14px] text-white shadow-md transition-all hover:shadow-lg hover:opacity-90 active:scale-95"
-                        style={{
-                          background: 'linear-gradient(90deg, rgba(43, 127, 255, 0.85) 0%, rgba(21, 93, 252, 0.85) 100%)',
-                          fontFamily: 'Inter, sans-serif',
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          lineHeight: '20px',
-                        }}
+                        className="h-8 px-4 text-white text-[13px] font-semibold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95"
+                        style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
                       >
                         Assign Employees
                       </button>
@@ -177,7 +190,7 @@ export function AssignEmployeesView() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       <TablePagination
         currentPage={currentPage}

@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { name: 'Attendance', icon: Clock, href: '/dashboard/attendance' },
-  { name: 'Leave', icon: Calendar, href: '#', hasChevron: true },
+  { name: 'Leave', icon: Calendar, href: '/dashboard/leave' },
   { name: 'Payroll', icon: DollarSign, href: '#', hasChevron: true },
   {
     name: 'Locations',
@@ -65,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { name: 'Departments', icon: Building2, href: '/dashboard/settings/departments' },
   { name: 'Reports', icon: FileText, href: '#' },
-  { name: 'Announcements', icon: Megaphone, href: '#' },
+  { name: 'Announcements', icon: Megaphone, href: '/dashboard/announcements' },
   { name: 'Audit Log', icon: ShieldCheck, href: '#' },
   {
     name: 'Settings',
@@ -91,26 +91,26 @@ export function Sidebar() {
   };
 
   const activeItemStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.22)',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
-    borderRadius: '12px',
+    background: 'rgba(255, 255, 255, 0.35)',
+    boxShadow: '0px 4px 12px rgba(255, 255, 255, 0.20)',
+    borderRadius: '16px',
     color: '#ffffff',
   };
 
   const inactiveItemStyle: React.CSSProperties = {
-    borderRadius: '12px',
+    borderRadius: '16px',
     color: 'rgba(255,255,255,0.82)',
   };
 
   return (
     <aside
-      className={`fixed top-3 left-3 transition-all duration-300 ease-in-out flex flex-col z-30 rounded-2xl ${
+      className={`fixed top-3 left-3 transition-all duration-300 ease-in-out flex flex-col z-30 rounded-[24px] ${
         isSidebarExpanded ? 'w-[228px]' : 'w-[62px]'
       }`}
       style={{
         height: 'calc(100vh - 24px)',
         background: '#4080ED',
-        boxShadow: '0 8px 32px rgba(37,99,235,0.30), 0 2px 8px rgba(37,99,235,0.12)',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.20), 0 4px 12px rgba(0,0,0,0.12)',
       }}
     >
       {/* Brand area */}
@@ -230,8 +230,8 @@ export function Sidebar() {
                           borderRadius: '10px',
                           ...(isSubActive
                             ? {
-                                background: 'rgba(255,255,255,0.22)',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                background: 'rgba(255, 255, 255, 0.35)',
+                                boxShadow: '0px 4px 12px rgba(255, 255, 255, 0.20)',
                                 color: '#ffffff',
                               }
                             : { color: 'rgba(255,255,255,0.65)' }),

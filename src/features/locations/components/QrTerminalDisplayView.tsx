@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { AlertCircle, Expand, Loader2, RefreshCw, Shrink } from 'lucide-react';
 import { Button } from '@/common/ui';
 import { fetchCurrentQrToken, refreshCurrentQrToken } from '../api';
+import { QR_TERMINAL_PAGE_BACKGROUND } from '../constants/qr-terminal';
 import { CurrentQrToken } from '../types';
 import { formatAttendanceFriendlyError } from '../utils/errors';
 
@@ -214,7 +215,7 @@ export function QrTerminalDisplayView({
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#e8f1ff_0%,#f8fbff_38%,#edf7ef_100%)] px-4 py-6 text-[#101828] sm:px-8">
+    <div className={`min-h-screen ${QR_TERMINAL_PAGE_BACKGROUND} px-4 py-6 text-[#101828] sm:px-8`}>
       <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-6">
         <div className="flex flex-col justify-between gap-4 rounded-[28px] border border-white/70 bg-white/85 px-6 py-5 shadow-[0_20px_60px_-25px_rgba(21,93,252,0.35)] backdrop-blur sm:flex-row sm:items-center">
           <div>

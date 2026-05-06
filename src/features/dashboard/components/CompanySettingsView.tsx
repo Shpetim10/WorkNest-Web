@@ -1,14 +1,139 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, Input, Textarea, Button } from '@/common/ui';
-import { Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Button } from '@/common/ui';
+import {
+  Settings,
+  ChevronDown,
+  Building2,
+  Camera,
+  LayoutGrid,
+  Mail,
+  Loader2,
+} from 'lucide-react';
+import { useCompanySettings, useUpdateCompanySettings } from '@/features/company-settings/api/use-company-settings';
+import { apiClient } from '@/common/network/api-client';
+import { ApiResponse } from '@/common/types/api';
 
-export function CompanySettingsView() {
-  const [formData, setFormData] = useState({
-    name: 'WorkNest Inc.',
-    email: 'info@worknest.com',
-    address: '',
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:8080';
+
+interface MediaUploadResponse {
+  storageKey: string;
+  storagePath: string;
+}
+
+type FormData = {
+  name: string;
+  email: string;
+  adminEmail: string;
+  nipt: string;
+  phone: string;
+  industry: string;
+  currency: string;
+  dateFormat: string;
+};
+
+const INDUSTRY_OPTIONS = [
+  'HR & Workforce Management',
+  'Technology',
+  'Finance',
+  'Healthcare',
+  'Education',
+  'Retail',
+  'Other',
+];
+const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'ALL'];
+const DATE_FORMAT_OPTIONS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
+
+const SELECT_OPTIONS: Partial<Record<keyof FormData, string[]>> = {
+  industry: INDUSTRY_OPTIONS,
+  currency: CURRENCY_OPTIONS,
+  dateFormat: DATE_FORMAT_OPTIONS,
+};
+
+const READ_ONLY_FIELDS: (keyof FormData)[] = ['email', 'adminEmail'];
+
+interface FieldProps {
+  id: keyof FormData;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  readOnly?: boolean;
+  icon?: React.ReactNode;
+}
+
+function Field({ id, label, value, onChange, readOnly, icon }: FieldProps) {
+  const options = SELECT_OPTIONS[id];
+
+  const displayBox =
+    'w-full h-11 bg-[#f8fafc] border border-gray-100 rounded-xl text-sm text-gray-800 flex items-center px-4';
+  const inputBase =
+    'w-full bg-[#f8fafc] border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40 transition-all';
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="block text-[13px] font-semibold text-gray-700">{label}</label>
+
+      {readOnly ? (
+        <div className="relative">
+          {icon && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              {icon}
+            </div>
+          )}
+          <div className={`${displayBox} ${icon ? 'pl-9' : ''}`}>
+            <span>{value || <span className="text-gray-400">—</span>}</span>
+          </div>
+        </div>
+      ) : options ? (
+        <div className="relative">
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`h-11 pl-4 pr-10 appearance-none cursor-pointer ${inputBase}`}
+          >
+            {options.map((opt) => (
+              <option key={opt}>{opt}</option>
+            ))}
+          </select>
+          <ChevronDown
+            size={16}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          />
+        </div>
+      ) : (
+        <div className="relative">
+          {icon && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              {icon}
+            </div>
+          )}
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`h-11 ${icon ? 'pl-9' : 'pl-4'} pr-4 ${inputBase}`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompanySettingsView() {
+  const [companyId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : localStorage.getItem('current_company_id'),
+  );
+
+  const { data, isLoading } = useCompanySettings(companyId);
+  const updateMutation = useUpdateCompanySettings(companyId ?? '');
+
+  const [adminEmail] = useState<string>(() =>
+    typeof window === 'undefined' ? '' : (localStorage.getItem('user_email') ?? ''),
+  );
+
+  const [formData, setFormData] = useState<FormData>({
+    name: '', email: '', adminEmail: '', nipt: '', phone: '', industry: '', currency: '', dateFormat: '',
   });
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -129,18 +254,17 @@ export function CompanySettingsView() {
   }
 
   return (
-    <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
-      
-      {/* ── Page Header Card ───────────────────────────────────────────── */}
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+
+      {/* Header banner */}
       <div
         className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
         style={{
-          background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
+          background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 50%, #10B981 100%)',
           minHeight: 120,
-          boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
-        <div className="flex items-center gap-4 relative z-10">
+        <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Settings size={24} className="text-white" />
           </div>
@@ -151,35 +275,31 @@ export function CompanySettingsView() {
             </p>
           </div>
         </div>
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+          <Settings size={28} className="text-white" />
+        </div>
       </div>
 
-      <div 
-        className="bg-white rounded-2xl border border-gray-100 p-8 lg:p-10"
-        style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
-      >
-        <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-          <div className="space-y-6">
-            <Input
-              id="name"
-              label="Company Name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter company name"
-            />
-            <Input
-              id="email"
-              label="Company Email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter company email"
-            />
-            <Textarea
-              id="address"
-              label="Address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Enter company address"
+      {/* Main card */}
+      <Card className="p-8 lg:p-10 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+
+        {/* Card header */}
+        <div className="space-y-1 mb-6">
+          <h2 className="text-[17px] font-bold text-[#1a1c23]">Company Setting</h2>
+          <p className="text-[13px] text-gray-500">
+            Update your organization profile and payroll preferences
+          </p>
+        </div>
+
+        {/* Logo pill */}
+        <div className="mb-8">
+          <div className="relative inline-block">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
             />
             <div
               onClick={handleLogoClick}
@@ -225,17 +345,65 @@ export function CompanySettingsView() {
           )}
         </div>
 
-          <div className="pt-2">
-            <Button 
-              variant="primary" 
-              onClick={handleSave}
-              className="h-11 px-8 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] text-white font-bold shadow-md hover:shadow-lg transition-all active:scale-95"
-            >
-              Save Changes
-            </Button>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-gray-400">
+            <Loader2 size={28} className="animate-spin" />
           </div>
-        </form>
-      </div>
+        ) : (
+          <div className="space-y-6">
+
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Company Name" icon={<LayoutGrid size={16} />} {...fieldProps('name')} />
+              <Field label="NIPT (Tax ID)" {...fieldProps('nipt')} />
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Company Email" icon={<Mail size={16} />} {...fieldProps('email')} />
+              <Field label="Admin Email" icon={<Mail size={16} />} {...fieldProps('adminEmail')} />
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Primary Contact Number" {...fieldProps('phone')} />
+              <Field label="Industry" {...fieldProps('industry')} />
+            </div>
+
+            {/* Row 4 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Currency" {...fieldProps('currency')} />
+              <Field label="Date Format" {...fieldProps('dateFormat')} />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-100" />
+
+            {saveError && (
+              <p className="text-[13px] text-red-500 font-medium text-right">{saveError}</p>
+            )}
+            {saveSuccess && (
+              <p className="text-[13px] text-green-600 font-medium text-right">Settings saved successfully.</p>
+            )}
+
+            {/* Save button */}
+            <div className="flex justify-end pt-1">
+              <Button
+                variant="primary"
+                onClick={handleSave}
+                disabled={updateMutation.isPending}
+                className="bg-linear-to-r from-[#0ea5e9] to-[#10b981] hover:shadow-lg hover:shadow-teal-500/20 text-white"
+              >
+                {updateMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={15} className="animate-spin" /> Saving...
+                  </span>
+                ) : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
 
     </div>
   );

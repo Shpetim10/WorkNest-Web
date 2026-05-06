@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, ArrowRight, Loader2, Check, X } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
 import { useRouter } from 'next/navigation';
+import { AxiosError } from 'axios';
+import { ApiErrorResponse } from '@/common/types/api';
 import { useResetPassword } from '../api/password-reset';
 
 type SetNewPasswordViewProps = {
@@ -51,8 +53,9 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
           newPassword: password,
         });
         router.push('/password-reset-success');
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      } catch (err: unknown) {
+        const msg = (err as AxiosError<ApiErrorResponse>)?.response?.data?.message;
+        setError(msg || 'Failed to reset password. The link may have expired.');
       }
     }
   };

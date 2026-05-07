@@ -53,7 +53,7 @@ export function AnnouncementsDashboardView() {
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
       {/* Hero banner */}
       <div
-        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between"
+        className="relative overflow-hidden rounded-2xl px-8 py-8"
         style={{
           background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
           minHeight: 120,
@@ -69,73 +69,75 @@ export function AnnouncementsDashboardView() {
             <p className="text-white/80 text-sm mt-0.5">Create and manage company announcements</p>
           </div>
         </div>
+      </div>
+
+      <div className="flex justify-end px-2">
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white text-blue-600 rounded-xl text-sm font-semibold hover:bg-blue-50 transition-colors"
+          className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-[0px_4px_12px_rgba(43,127,255,0.24)] transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
         >
           <Plus size={16} />
           Create Announcement
         </button>
       </div>
 
-      {/* Cards */}
+      {/* Announcement list */}
       {isLoading ? (
-        <div className="py-20 text-center text-gray-400 text-sm">Loading...</div>
+        <div className="py-20 text-center text-sm text-gray-400">Loading...</div>
       ) : announcements.length === 0 ? (
-        <div className="py-20 text-center">
+        <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
           <Megaphone size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-400 text-sm">No announcements yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-4 px-2">
           {announcements.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3"
-              style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.08)' }}
+              className="flex w-full items-start justify-between gap-6 rounded-xl border border-gray-100 bg-white px-6 py-5"
+              style={{ boxShadow: '0px 6px 16px rgba(15, 23, 42, 0.12)' }}
             >
-              {/* Top row */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-[16px] font-semibold leading-6 text-[#1F2937]">
+                    {item.title}
+                  </h3>
                   {item.priority === 'IMPORTANT' && (
                     <span
-                      className="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
                       style={priorityBadgeStyle(item.priority)}
                     >
                       <AlertCircle size={11} />
                       Important
                     </span>
                   )}
-                  <span
-                    className="text-xs font-medium px-2.5 py-1 rounded-full"
-                    style={audienceBadgeStyle(item.targetAudience)}
-                  >
-                    {audienceLabel(item.targetAudience)}
-                  </span>
                 </div>
+
+                <p className="mt-1 text-[12px] font-medium text-[#6A7282]">
+                  By {item.createdByName} &bull; {formatDate(item.createdAt)}
+                </p>
+
+                <p className="mt-4 text-[14px] leading-6 text-[#4A5565]">
+                  {item.content}
+                </p>
+              </div>
+
+              <div className="flex shrink-0 items-start gap-2">
+                <span
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  style={audienceBadgeStyle(item.targetAudience)}
+                >
+                  {audienceLabel(item.targetAudience)}
+                </span>
                 <button
                   onClick={() => setToDelete(item)}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors shrink-0"
+                  className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
                   title="Delete"
                 >
                   <Trash2 size={15} />
                 </button>
               </div>
-
-              {/* Title */}
-              <h3 className="text-base font-semibold text-gray-800 leading-snug line-clamp-2">
-                {item.title}
-              </h3>
-
-              {/* Content preview */}
-              <p className="text-sm text-gray-500 leading-relaxed line-clamp-3 flex-1">
-                {item.content}
-              </p>
-
-              {/* Footer */}
-              <p className="text-xs text-gray-400 mt-auto pt-2 border-t border-gray-50">
-                By {item.createdByName} &bull; {formatDate(item.createdAt)}
-              </p>
             </div>
           ))}
         </div>

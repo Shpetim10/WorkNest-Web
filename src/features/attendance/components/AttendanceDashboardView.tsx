@@ -12,7 +12,6 @@ import {
   MoreHorizontal,
   Lock,
   UserPlus,
-  Filter,
   ChevronDown,
 } from 'lucide-react';
 import { TablePagination } from '@/common/ui';
@@ -619,16 +618,14 @@ export function AttendanceDashboardView() {
           </tbody>
         </table>
 
-        {totalPages > 1 && (
-          <div className="px-4 py-4 border-t border-gray-50">
-            <TablePagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
-          </div>
-        )}
       </div>
+
+      <TablePagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        className="-mt-2"
+      />
 
       {/* Modals */}
       {modal.kind === 'view' && (

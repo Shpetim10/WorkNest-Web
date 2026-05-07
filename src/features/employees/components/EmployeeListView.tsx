@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { TablePagination } from '@/common/ui';
 import {
   Eye, Plus, Search, Trash2, Loader2, Send, Check, Power,
   UserCog, FileText, ChevronDown
@@ -20,16 +20,6 @@ import { StatusActionModal } from './StatusActionModal';
 
 const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
 const ITEMS_PER_PAGE = 10;
-
-function getDepartmentBadge(dept: string) {
-  const map: Record<string, string> = {
-    Engineering: 'bg-[#E8F1FF] text-[#155DFC]',
-    Marketing: 'bg-[#FFF3E0] text-[#E65100]',
-    Sales: 'bg-[#E8F5E9] text-[#2E7D32]',
-    HR: 'bg-[#F3E5F5] text-[#7B1FA2]',
-  };
-  return map[dept] ?? 'bg-gray-100 text-gray-600';
-}
 
 function getInitials(name?: string | null) {
   if (!name) return '??';
@@ -54,7 +44,7 @@ export function EmployeeListView() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError } = useEmployees({ page: currentPage, size: ITEMS_PER_PAGE, search: searchQuery });
+  const { data, isLoading, isError } = useEmployees({ search: searchQuery });
 
   // Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -168,7 +158,11 @@ export function EmployeeListView() {
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
   const employees = data?.data || [];
-  const totalPages = 1;
+  const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
+  const paginatedEmployees = employees.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
@@ -283,12 +277,12 @@ export function EmployeeListView() {
                     <p className="text-[14px] font-medium">Failed to load employees</p>
                   </td>
                 </tr>
-              ) : employees.length === 0 ? (
+              ) : paginatedEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
                 </tr>
               ) : (
-                employees.map((employee, index) => (
+                paginatedEmployees.map((employee, index) => (
                   <tr
                     key={employee.id}
                     onClick={() => setViewEmployeeId(employee.id)}

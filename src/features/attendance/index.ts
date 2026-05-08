@@ -7,3 +7,4 @@ export * from './api/dismiss-warnings';
 export * from './api/review-event';
 export * from './api/adjust-day-record';
 export { AttendanceDashboardView } from './components/AttendanceDashboardView';
+export { useAttendanceRealtime } from './hooks/useAttendanceRealtime';

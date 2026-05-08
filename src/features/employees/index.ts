@@ -14,5 +14,4 @@ export * from './components/StaffViewModal';
 export * from './components/DeleteConfirmationModal';
 export * from './components/AssignEmployeesView';
 
-// Centrally manage keys for query invalidation across the app
-// Note: employeeKeys is already exported by the export * above, but we can keep the comment for clarity.
+export { useEmployeesRealtime } from './hooks/useEmployeesRealtime';

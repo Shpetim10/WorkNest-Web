@@ -1,23 +1,11 @@
 ﻿"use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Bell,
-  Building2,
   CalendarDays,
   Check,
   ChevronDown,
-  ChevronRight,
-  ChevronsUpDown,
-  Globe,
-  LayoutGrid,
-  Menu,
-  Search,
-  ShieldCheck,
-  X,
   Home,
   CheckSquare,
   XCircle,
@@ -35,13 +23,6 @@ import {
   SuperAdminQuickStatDto,
 } from '../types';
 
-interface NavItem {
-  name: string;
-  icon: LucideIcon;
-  href: string;
-  active?: boolean;
-}
-
 interface KpiData {
   id: string;
   label: string;
@@ -49,12 +30,6 @@ interface KpiData {
   icon: LucideIcon;
   iconColor: string;
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { name: 'Dashboard', icon: LayoutGrid, href: '/superadmin_dashboard', active: true },
-  { name: 'Companies', icon: Building2, href: '#' },
-  { name: 'Audit Log', icon: ShieldCheck, href: '#' },
-];
 
 const KPI_DATA: KpiData[] = [
   {
@@ -214,159 +189,6 @@ function getCurrentDateTimeLabels(): DateTimeLabels {
       day: 'numeric',
     }).format(now),
   };
-}
-
-// EXACT ORIGINAL SIDEBAR
-function SuperAdminSidebar({
-  isSidebarExpanded,
-  toggleSidebar,
-}: {
-  isSidebarExpanded: boolean;
-  toggleSidebar: () => void;
-}) {
-  const activeItemStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.35)',
-    boxShadow: '0px 4px 12px rgba(255, 255, 255, 0.20)',
-    borderRadius: '16px',
-    color: '#ffffff',
-  };
-
-  const inactiveItemStyle: React.CSSProperties = {
-    borderRadius: '16px',
-    color: 'rgba(255,255,255,0.82)',
-  };
-
-  return (
-    <aside
-      className={`fixed left-3 top-3 z-30 flex h-[calc(100vh-24px)] flex-col rounded-[24px] bg-[#4080ED] shadow-[0_12px_36px_rgba(0,0,0,0.20),0_4px_12px_rgba(0,0,0,0.12)] transition-all duration-300 ease-in-out ${
-        isSidebarExpanded ? 'w-[228px]' : 'w-[62px]'
-      }`}
-    >
-      <div className={`shrink-0 pb-1 pt-3 transition-all duration-300 ${isSidebarExpanded ? 'px-3' : 'px-2'}`}>
-        <div
-          className={`flex items-center rounded-xl bg-white/15 transition-all duration-300 ${
-            isSidebarExpanded ? 'gap-2.5 px-3 py-2.5' : 'justify-center px-0 py-2'
-          }`}
-        >
-          {isSidebarExpanded ? (
-            <>
-              <div
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg"
-                style={{ background: 'rgba(255,255,255,0.2)' }}
-              >
-                <Image
-                  src="/logos/worktrezz-symbol-cropped.png"
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="font-bold text-[15px] text-white leading-tight tracking-tight truncate">
-                  WorkTrezz
-                </h1>
-              </div>
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="shrink-0 text-white/60 transition-colors hover:text-white"
-              >
-                <ChevronsUpDown size={15} strokeWidth={2} />
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="flex h-9 w-9 items-center justify-center text-white/70 transition-all hover:text-white"
-            >
-              <Menu size={18} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <nav
-        className={`flex-1 space-y-0.5 overflow-y-auto pb-6 pt-3 transition-all duration-300 ${
-          isSidebarExpanded ? 'px-3' : 'px-2'
-        }`}
-        style={{ scrollbarWidth: 'none' }}
-      >
-        {NAV_ITEMS.map((item) => {
-          const labelClass = `text-[13.5px] font-semibold leading-none whitespace-nowrap transition-all duration-200 overflow-hidden ${
-            isSidebarExpanded ? 'w-auto opacity-100' : 'w-0 opacity-0'
-          }`;
-
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              title={!isSidebarExpanded ? item.name : undefined}
-              className={`flex h-10 items-center transition-all duration-200 ${
-                isSidebarExpanded ? 'justify-between px-3' : 'justify-center px-0'
-              } ${!item.active ? 'hover:bg-white/10' : ''}`}
-              style={item.active ? activeItemStyle : inactiveItemStyle}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <item.icon size={18} strokeWidth={item.active ? 2.2 : 1.8} className="shrink-0" />
-                <span className={labelClass}>{item.name}</span>
-              </div>
-              {!item.active && isSidebarExpanded && (
-                <ChevronRight size={13} strokeWidth={2.5} className="shrink-0 text-white/40" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {!isSidebarExpanded && (
-        <div className="flex shrink-0 justify-center pb-4">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-white/50 transition-all hover:bg-white/10 hover:text-white"
-          >
-            <X size={16} strokeWidth={2} />
-          </button>
-        </div>
-      )}
-    </aside>
-  );
-}
-
-// EXACT ORIGINAL TOP HEADER
-function SuperAdminTopHeader() {
-  return (
-    <header className="flex h-[60px] w-full items-center justify-between rounded-2xl bg-white px-6 shadow-[0_4px_16px_rgba(0,0,0,0.07)]">
-      <div className="max-w-[400px] flex-1">
-        <div className="relative flex items-center">
-          <Search size={15} className="pointer-events-none absolute left-3.5 text-gray-400" strokeWidth={2} />
-          <input
-            type="text"
-            placeholder="Search companies, staff..."
-            className="h-9 w-full rounded-xl border border-gray-100 bg-gray-50 pl-10 pr-4 text-[13px] text-gray-600 transition-all placeholder:text-gray-400 focus:border-blue-300/60 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-5">
-        <button type="button" className="flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-700">
-          <Globe size={16} strokeWidth={2} />
-          <span className="text-[12px] font-semibold tracking-wide">EN</span>
-        </button>
-
-        <button type="button" className="relative text-gray-400 transition-colors hover:text-gray-600">
-          <Bell size={18} strokeWidth={2} />
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-[1.5px] border-white bg-red-500" />
-        </button>
-
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2B7FFF] text-[14px] font-bold text-white transition-colors hover:bg-[#155DFC]">
-          S
-        </div>
-      </div>
-    </header>
-  );
 }
 
 function WelcomeBanner({
@@ -823,7 +645,6 @@ export function SuperAdminDashboardView({
   data: initialData,
   enableDashboardQuery = false,
 }: SuperAdminDashboardViewProps = {}) {
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [dateTimeLabels, setDateTimeLabels] = useState<DateTimeLabels>(() => getCurrentDateTimeLabels());
   const dashboardQuery = useSuperAdminDashboard({ enabled: enableDashboardQuery && !initialData });
   const dashboardData = initialData ?? dashboardQuery.data;
@@ -839,57 +660,37 @@ export function SuperAdminDashboardView({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#E8EFFA] font-sans">
-      <SuperAdminSidebar
-        isSidebarExpanded={isSidebarExpanded}
-        toggleSidebar={() => setIsSidebarExpanded((v) => !v)}
-      />
+    <div className="mx-auto w-full max-w-[1360px] space-y-6 pb-12">
+      <WelcomeBanner header={dashboardData?.header} dateTimeLabels={dateTimeLabels} />
 
       <div
-        className="flex min-w-0 flex-1 flex-col transition-all duration-300"
-        style={{ paddingLeft: isSidebarExpanded ? '252px' : '86px' }}
+        className="relative z-10 gap-5"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr)' }}
       >
-        <div className="sticky top-0 z-50 bg-[#E8EFFA] pr-3 pt-3">
-          <SuperAdminTopHeader />
-        </div>
+        {KPI_DATA.map((kpi) => (
+          <KpiCard key={kpi.id} kpi={kpi} value={kpis?.[kpi.valueKey]} />
+        ))}
+        <SubscriptionBreakdownCard plans={dashboardData?.subscriptionPlans} />
+      </div>
 
-        <main className="flex-1 p-6 md:p-8">
-          <div className="mx-auto w-full max-w-[1440px]">
-            <div className="mx-auto w-full max-w-[1360px] space-y-6 pb-12">
-              <WelcomeBanner header={dashboardData?.header} dateTimeLabels={dateTimeLabels} />
+      <div
+        className="relative z-0 gap-5"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
+      >
+        <Card className="!rounded-[20px] min-h-[270px] min-w-0 overflow-hidden border-0 p-6">
+          <SectionHeader title="Company Registrations" />
+          <RegistrationsChart registrations={dashboardData?.companyRegistrations} />
+        </Card>
 
-              <div
-                className="relative z-10 gap-5"
-                style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr)' }}
-              >
-                {KPI_DATA.map((kpi) => (
-                  <KpiCard key={kpi.id} kpi={kpi} value={kpis?.[kpi.valueKey]} />
-                ))}
-                <SubscriptionBreakdownCard plans={dashboardData?.subscriptionPlans} />
-              </div>
+        <Card className="!rounded-[20px] h-[270px] min-w-0 overflow-hidden border-0 p-6">
+          <SectionHeader title="Recent Activity" />
+          <RecentActivity items={dashboardData?.recentActivity} />
+        </Card>
 
-              <div
-                className="relative z-0 gap-5"
-                style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
-              >
-                <Card className="!rounded-[20px] min-h-[270px] min-w-0 overflow-hidden border-0 p-6">
-                  <SectionHeader title="Company Registrations" />
-                  <RegistrationsChart registrations={dashboardData?.companyRegistrations} />
-                </Card>
-
-                <Card className="!rounded-[20px] h-[270px] min-w-0 overflow-hidden border-0 p-6">
-                  <SectionHeader title="Recent Activity" />
-                  <RecentActivity items={dashboardData?.recentActivity} />
-                </Card>
-
-                <Card className="!rounded-[20px] relative z-20 h-[270px] min-w-0 overflow-visible border-0 p-6">
-                  <SectionHeader title="Quick Stats" action={<PeriodFilterDropdown ariaLabelPrefix="Quick stats" />} />
-                  <QuickStats stats={dashboardData?.quickStats} />
-                </Card>
-              </div>
-            </div>
-          </div>
-        </main>
+        <Card className="!rounded-[20px] relative z-20 h-[270px] min-w-0 overflow-visible border-0 p-6">
+          <SectionHeader title="Quick Stats" action={<PeriodFilterDropdown ariaLabelPrefix="Quick stats" />} />
+          <QuickStats stats={dashboardData?.quickStats} />
+        </Card>
       </div>
     </div>
   );

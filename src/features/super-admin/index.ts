@@ -1,11 +1,4 @@
-export { SuperAdminDashboardView } from './components/SuperAdminDashboardView';
-export { useSuperAdminDashboard, superAdminDashboardKeys } from './api/use-super-admin-dashboard';
-export type {
-  CompanyRegistrationPointDto,
-  SubscriptionPlanBreakdownDto,
-  SuperAdminActivityItemDto,
-  SuperAdminDashboardDto,
-  SuperAdminDashboardHeaderDto,
-  SuperAdminDashboardKpisDto,
-  SuperAdminQuickStatDto,
-} from './types';
+export * from './dashboard';
+export * from './companies';
+export * from './shell';
+export * from './auth';

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Modal, Input, Select, Textarea, Button } from '@/common/ui';
+import { GradientModalHeader, Modal, Input, Select, Textarea, Button } from '@/common/ui';
 import { useCreateDepartment } from '../api';
 import { DepartmentStatus } from '../types';
 
@@ -18,6 +18,11 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
   });
 
   const createMutation = useCreateDepartment();
+
+  const handleModalClose = () => {
+    onClose();
+    setFormData({ name: '', status: 'ACTIVE', description: '' });
+  };
 
   const handleAdd = async () => {
     try {
@@ -36,15 +41,18 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => {
-        onClose();
-        setFormData({ name: '', status: 'ACTIVE', description: '' });
-      }}
-      title="Add Department"
-      subtitle="Add new department for your company"
+      onClose={handleModalClose}
       width="max-w-[794px]"
+      showDefaultStyles={false}
+      containerClassName="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
     >
-      <div className="space-y-8 pt-2">
+      <GradientModalHeader
+        title="Add Department"
+        subtitle="Add new department for your company"
+        onClose={handleModalClose}
+      />
+
+      <div className="space-y-8 p-6">
         {/* Row 1: Name and Status */}
         <div className="grid grid-cols-2 gap-x-10 items-start">
           <Input

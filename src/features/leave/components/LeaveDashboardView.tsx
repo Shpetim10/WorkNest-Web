@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Search, Clock, UserPlus, Eye, Check, X } from 'lucide-react';
-import { TablePagination } from '@/common/ui';
+import { Search, Clock, Eye, Check, X } from 'lucide-react';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { LeaveRequestDto, LeaveStatus } from '@/features/leave/types';
 import { ViewLeaveModal } from '@/features/leave/components/ViewLeaveModal';
 import { RejectLeaveModal } from './RejectLeaveModal';
@@ -132,7 +132,8 @@ export function LeaveDashboardView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
-        <div className="flex items-center gap-4">
+        <PageHeaderDecorativeCircles />
+        <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Clock size={24} className="text-white" />
           </div>
@@ -140,9 +141,6 @@ export function LeaveDashboardView() {
             <h1 className="text-3xl font-bold text-white">Leave Request</h1>
             <p className="text-white/80 text-sm mt-0.5">Review and manage leave requests</p>
           </div>
-        </div>
-        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
-          <UserPlus size={28} className="text-white" />
         </div>
       </div>
 

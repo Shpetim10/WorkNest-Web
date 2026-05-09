@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import {
   ChevronDown, Eye, Plus, Search, Trash2, Loader2, Send, Users2, UserCog, FileText, Check, Power,
 } from 'lucide-react';
@@ -203,6 +203,7 @@ export function StaffListView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Users2 size={24} className="text-white" />

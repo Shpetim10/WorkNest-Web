@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import {
   Eye, Plus, Search, Trash2, Loader2, Send, Check, Power,
   UserCog, FileText, ChevronDown
@@ -183,6 +183,7 @@ export function EmployeeListView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <UserCog size={24} className="text-white" />

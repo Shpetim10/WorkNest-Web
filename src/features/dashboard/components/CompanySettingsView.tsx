@@ -28,13 +28,14 @@ interface MediaUploadResponse {
 type CompanyFormData = {
   name: string;
   email: string;
-  adminEmail: string;
   nipt: string;
   phone: string;
   industry: string;
   currency: string;
   dateFormat: string;
 };
+
+type SelectOption = string | { value: string; label: string };
 
 const INDUSTRY_OPTIONS = [
   'HR & Workforce Management',
@@ -45,16 +46,21 @@ const INDUSTRY_OPTIONS = [
   'Retail',
   'Other',
 ];
-const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'ALL'];
+const CURRENCY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ALL', label: 'LEK - Albanian Lek' },
+  { value: 'EUR', label: 'EUR – Euro' },
+  { value: 'USD', label: 'USD – US Dollar' },
+  { value: 'GBP', label: 'GBP – British Pound' },
+];
 const DATE_FORMAT_OPTIONS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 
-const SELECT_OPTIONS: Partial<Record<keyof CompanyFormData, string[]>> = {
+const SELECT_OPTIONS: Partial<Record<keyof CompanyFormData, SelectOption[]>> = {
   industry: INDUSTRY_OPTIONS,
   currency: CURRENCY_OPTIONS,
   dateFormat: DATE_FORMAT_OPTIONS,
 };
 
-const READ_ONLY_FIELDS: (keyof CompanyFormData)[] = ['email', 'adminEmail'];
+const READ_ONLY_FIELDS: (keyof CompanyFormData)[] = ['email'];
 
 interface FieldProps {
   id: keyof CompanyFormData;
@@ -63,15 +69,19 @@ interface FieldProps {
   onChange: (v: string) => void;
   readOnly?: boolean;
   icon?: React.ReactNode;
+  error?: string;
 }
 
-function Field({ id, label, value, onChange, readOnly, icon }: FieldProps) {
+function Field({ id, label, value, onChange, readOnly, icon, error }: FieldProps) {
   const options = SELECT_OPTIONS[id];
 
   const displayBox =
     'w-full h-11 bg-[#f8fafc] border border-gray-100 rounded-xl text-sm text-gray-800 flex items-center px-4';
-  const inputBase =
-    'w-full bg-[#f8fafc] border border-gray-200 rounded-xl text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40 transition-all';
+  const inputBase = `w-full bg-[#f8fafc] border ${
+    error
+      ? 'border-red-400 focus:ring-red-500/10 focus:border-red-400'
+      : 'border-gray-200 focus:ring-[#155dfc]/10 focus:border-[#155dfc]/40'
+  } rounded-xl text-sm text-gray-800 outline-none focus:ring-2 transition-all`;
 
   return (
     <div className="flex flex-col gap-2">
@@ -95,9 +105,13 @@ function Field({ id, label, value, onChange, readOnly, icon }: FieldProps) {
             onChange={(e) => onChange(e.target.value)}
             className={`h-11 pl-4 pr-10 appearance-none cursor-pointer ${inputBase}`}
           >
-            {options.map((opt) => (
-              <option key={opt}>{opt}</option>
-            ))}
+            {options.map((opt) =>
+              typeof opt === 'string' ? (
+                <option key={opt} value={opt}>{opt}</option>
+              ) : (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              )
+            )}
           </select>
           <ChevronDown
             size={16}
@@ -119,27 +133,29 @@ function Field({ id, label, value, onChange, readOnly, icon }: FieldProps) {
           />
         </div>
       )}
+      {error && <p className="text-[12px] text-red-500 font-medium pl-1">{error}</p>}
     </div>
   );
 }
 
 interface SettingsFormProps {
   data: CompanySettingsResponse;
-  adminEmail: string;
   updateMutation: UseMutationResult<ApiResponse<CompanySettingsResponse>, Error, UpdateCompanySettingsRequest>;
 }
 
-function SettingsForm({ data, adminEmail, updateMutation }: SettingsFormProps) {
+const REQUIRED_FIELDS: (keyof CompanyFormData)[] = ['name', 'currency', 'dateFormat'];
+
+function SettingsForm({ data, updateMutation }: SettingsFormProps) {
   const [formData, setFormData] = useState<CompanyFormData>({
     name: data.name ?? '',
     email: data.email ?? '',
-    adminEmail,
     nipt: data.nipt ?? '',
     phone: data.phoneNumber ?? '',
     industry: data.industry ?? '',
     currency: data.currency ?? '',
     dateFormat: data.dateFormat ?? '',
   });
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CompanyFormData, string>>>({});
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -186,7 +202,9 @@ function SettingsForm({ data, adminEmail, updateMutation }: SettingsFormProps) {
 
   function set(field: keyof CompanyFormData) {
     return (v: string) => {
-      setFormData((prev) => ({ ...prev, [field]: v }));
+      const value = field === 'phone' ? v.replace(/[^+\d\s\-()]/g, '') : v;
+      setFormData((prev) => ({ ...prev, [field]: value }));
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
       setSaveError('');
       setSaveSuccess(false);
     };
@@ -198,10 +216,23 @@ function SettingsForm({ data, adminEmail, updateMutation }: SettingsFormProps) {
       value: formData[id],
       onChange: set(id),
       readOnly: READ_ONLY_FIELDS.includes(id),
+      error: fieldErrors[id],
     };
   }
 
+  function validate(): boolean {
+    const errors: Partial<Record<keyof CompanyFormData, string>> = {};
+    for (const field of REQUIRED_FIELDS) {
+      if (!formData[field]?.trim()) {
+        errors[field] = 'This field is required.';
+      }
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   async function handleSave() {
+    if (!validate()) return;
     setSaveError('');
     setSaveSuccess(false);
 
@@ -308,19 +339,18 @@ function SettingsForm({ data, adminEmail, updateMutation }: SettingsFormProps) {
 
         {/* Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Company Email" icon={<Mail size={16} />} {...fieldProps('email')} />
-          <Field label="Admin Email" icon={<Mail size={16} />} {...fieldProps('adminEmail')} />
+          <Field label="Primary Contact Email" icon={<Mail size={16} />} {...fieldProps('email')} />
+          <Field label="Primary Contact Number" {...fieldProps('phone')} />
         </div>
 
         {/* Row 3 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Primary Contact Number" {...fieldProps('phone')} />
           <Field label="Industry" {...fieldProps('industry')} />
+          <Field label="Currency" {...fieldProps('currency')} />
         </div>
 
         {/* Row 4 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Currency" {...fieldProps('currency')} />
           <Field label="Date Format" {...fieldProps('dateFormat')} />
         </div>
 
@@ -361,10 +391,6 @@ function CompanySettingsView() {
 
   const { data, isLoading } = useCompanySettings(companyId);
   const updateMutation = useUpdateCompanySettings(companyId ?? '');
-
-  const [adminEmail] = useState<string>(() =>
-    typeof window === 'undefined' ? '' : (localStorage.getItem('user_email') ?? ''),
-  );
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
@@ -412,7 +438,6 @@ function CompanySettingsView() {
           <SettingsForm
             key={data.companyId}
             data={data}
-            adminEmail={adminEmail}
             updateMutation={updateMutation}
           />
         )}

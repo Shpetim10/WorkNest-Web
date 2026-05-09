@@ -4,9 +4,17 @@ import React from 'react';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { useDashboardStore } from '../store/useDashboardStore';
+import { useDashboardRealtime } from '../hooks/useDashboardRealtime';
+
+function getCurrentCompanyId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('current_company_id');
+}
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isSidebarExpanded } = useDashboardStore();
+  const companyId = getCurrentCompanyId();
+  useDashboardRealtime(companyId);
 
   return (
     <div className="min-h-screen font-sans flex" style={{ background: '#E8EFFA' }}>

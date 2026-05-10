@@ -1,16 +1,21 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
+  ChevronDown,
+  ChevronRight,
   ChevronsUpDown,
+  KeyRound,
   LayoutGrid,
   Menu,
+  Settings,
   ShieldCheck,
+  UserCircle,
   X,
 } from 'lucide-react';
 
@@ -23,7 +28,12 @@ interface SuperAdminNavItem {
 const NAV_ITEMS: SuperAdminNavItem[] = [
   { name: 'Dashboard', icon: LayoutGrid, href: '/superadmin_dashboard' },
   { name: 'Companies', icon: Building2, href: '/superadmin_dashboard/companies' },
-  { name: 'Audit Log', icon: ShieldCheck, href: '#' },
+  { name: 'Audit Log', icon: ShieldCheck, href: '/superadmin_dashboard/audit-log' },
+];
+
+const PROFILE_ITEMS: SuperAdminNavItem[] = [
+  { name: 'My Profile', icon: UserCircle, href: '/superadmin_dashboard/profile/personal-info' },
+  { name: 'Change Password', icon: KeyRound, href: '/superadmin_dashboard/profile/change-password' },
 ];
 
 function isActiveRoute(pathname: string, href: string): boolean {
@@ -41,6 +51,9 @@ export function SuperAdminSidebar({
   toggleSidebar: () => void;
 }) {
   const pathname = usePathname();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const hasActiveProfileRoute = PROFILE_ITEMS.some((item) => isActiveRoute(pathname, item.href));
+  const settingsExpanded = isSidebarExpanded && (isSettingsOpen || hasActiveProfileRoute);
   const activeItemStyle: React.CSSProperties = {
     background: 'rgba(255, 255, 255, 0.35)',
     boxShadow: '0px 4px 12px rgba(255, 255, 255, 0.20)',
@@ -80,7 +93,6 @@ export function SuperAdminSidebar({
                 <h1 className="truncate text-[15px] font-bold leading-tight tracking-tight text-white">
                   WorkTrezz
                 </h1>
-                <p className="text-[11px] font-medium text-white/60">Free Plan</p>
               </div>
               <button
                 type="button"
@@ -132,6 +144,72 @@ export function SuperAdminSidebar({
           );
         })}
       </nav>
+
+      <div
+        className={`shrink-0 border-t border-white/10 pb-3 pt-3 transition-all duration-300 ${
+          isSidebarExpanded ? 'px-3' : 'px-2'
+        }`}
+      >
+        <div className="space-y-0.5">
+          <button
+            type="button"
+            onClick={() => isSidebarExpanded && setIsSettingsOpen((value) => !value)}
+            title={!isSidebarExpanded ? 'Settings' : undefined}
+            className={`flex h-10 w-full items-center transition-all duration-200 ${
+              isSidebarExpanded ? 'justify-between px-3' : 'justify-center px-0'
+            } ${!hasActiveProfileRoute ? 'hover:bg-white/10' : ''}`}
+            style={hasActiveProfileRoute && !settingsExpanded ? activeItemStyle : inactiveItemStyle}
+          >
+            <div className="flex min-w-0 items-center gap-2.5">
+              <Settings size={18} strokeWidth={hasActiveProfileRoute ? 2.2 : 1.8} className="shrink-0" />
+              <span
+                className={`text-[13.5px] font-semibold leading-none whitespace-nowrap transition-all duration-200 overflow-hidden ${
+                  isSidebarExpanded ? 'w-auto opacity-100' : 'w-0 opacity-0'
+                }`}
+              >
+                Settings
+              </span>
+            </div>
+            {isSidebarExpanded && (
+              <span className="shrink-0 text-white/50 transition-transform duration-200">
+                {settingsExpanded ? <ChevronDown size={13} strokeWidth={2.5} /> : <ChevronRight size={13} strokeWidth={2.5} />}
+              </span>
+            )}
+          </button>
+
+          {settingsExpanded && (
+            <div className="ml-6 space-y-0.5 border-l border-white/15 pl-2">
+              {PROFILE_ITEMS.map((item) => {
+                const active = isActiveRoute(pathname, item.href);
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="flex h-9 items-center gap-2.5 px-3 transition-all"
+                    style={{
+                      borderRadius: '10px',
+                      ...(active
+                        ? {
+                            background: 'rgba(255, 255, 255, 0.35)',
+                            boxShadow: '0px 4px 12px rgba(255, 255, 255, 0.20)',
+                            color: '#ffffff',
+                          }
+                        : { color: 'rgba(255,255,255,0.65)' }),
+                    }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: active ? '#ffffff' : 'rgba(255,255,255,0.35)' }}
+                    />
+                    <span className="whitespace-nowrap text-[13px] font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {!isSidebarExpanded && (
         <div className="flex shrink-0 justify-center pb-4">

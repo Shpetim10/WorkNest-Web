@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import {
   Eye, Plus, Search, Trash2, Loader2, Send, Check, Power,
   UserCog, FileText, ChevronDown

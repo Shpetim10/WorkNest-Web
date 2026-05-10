@@ -11,7 +11,7 @@ import {
   XCircle,
   Info
 } from 'lucide-react';
-import { Card } from '@/common/ui';
+import { Card, PageHeaderDecorativeCircles } from '@/common/ui';
 import { useSuperAdminDashboard } from '../api/use-super-admin-dashboard';
 import {
   CompanyRegistrationPointDto,
@@ -209,6 +209,7 @@ function WelcomeBanner({
         boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
       }}
     >
+      <PageHeaderDecorativeCircles />
       <div className="relative z-10 flex w-full items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 text-[20px] font-bold text-white">

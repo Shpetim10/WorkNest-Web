@@ -14,6 +14,7 @@ import {
   Search,
   XCircle,
 } from 'lucide-react';
+import { PageHeaderDecorativeCircles } from '@/common/ui';
 import { CompanyManagementRow, CompanyManagementStatus } from '../types';
 import { CompanyDetailsModal } from './CompanyDetailsModal';
 import { SuspendCompanyModal } from './SuspendCompanyModal';
@@ -236,6 +237,7 @@ export function CompaniesManagementView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Building2 size={24} className="text-white" />

@@ -2,12 +2,18 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Bell, Globe, LogOut, Search, Settings } from 'lucide-react';
+import { Globe, LogOut, Search, Settings } from 'lucide-react';
 import { useLogout } from '@/features/auth/api/logout';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
-function subscribeToUserEmail() {
-  return () => {};
+function subscribeToUserEmail(onStoreChange: () => void) {
+  window.addEventListener('storage', onStoreChange);
+  window.addEventListener('worknest:user-email-changed', onStoreChange);
+
+  return () => {
+    window.removeEventListener('storage', onStoreChange);
+    window.removeEventListener('worknest:user-email-changed', onStoreChange);
+  };
 }
 
 function getUserEmailSnapshot() {
@@ -45,7 +51,7 @@ export function SuperAdminTopHeader() {
     }
 
     clearAuth();
-    window.location.href = '/login';
+    window.location.href = '/login-superadmin';
   };
 
   return (
@@ -70,11 +76,6 @@ export function SuperAdminTopHeader() {
           <span className="text-[12px] font-semibold tracking-wide">EN</span>
         </button>
 
-        <button type="button" className="relative text-gray-400 transition-colors hover:text-gray-600">
-          <Bell size={18} strokeWidth={2} />
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-[1.5px] border-white bg-red-500" />
-        </button>
-
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
@@ -94,7 +95,7 @@ export function SuperAdminTopHeader() {
               </div>
 
               <Link
-                href="/superadmin_dashboard/profile"
+                href="/superadmin_dashboard/profile/personal-info"
                 className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#155DFC]"
                 onClick={() => setIsDropdownOpen(false)}
               >

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { PageHeaderDecorativeCircles } from '@/common/ui';
 
 export function SuperAdminPageHeader({
   title,
@@ -22,6 +23,7 @@ export function SuperAdminPageHeader({
         boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
       }}
     >
+      <PageHeaderDecorativeCircles />
       <div className="relative z-10 flex items-center gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20">
           <Icon size={24} className="text-white" />

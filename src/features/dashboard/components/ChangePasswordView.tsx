@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, Button } from '@/common/ui';
+import { Card, Button, PageHeaderDecorativeCircles } from '@/common/ui';
 import { Lock, Eye, EyeOff, KeyRound, Loader2, Check, X, ShieldCheck } from 'lucide-react';
 import { useChangePassword } from '@/features/auth/api/change-password';
 
@@ -77,7 +77,8 @@ export function ChangePasswordView() {
           minHeight: 120,
         }}
       >
-        <div className="flex items-center gap-4">
+        <PageHeaderDecorativeCircles />
+        <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <KeyRound size={24} className="text-white" />
           </div>
@@ -88,7 +89,7 @@ export function ChangePasswordView() {
             </p>
           </div>
         </div>
-        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10">
           <KeyRound size={28} className="text-white" />
         </div>
       </div>

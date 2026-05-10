@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Card, Button } from '@/common/ui';
+import { Card, Button, PageHeaderDecorativeCircles } from '@/common/ui';
 import {
   Settings,
   ChevronDown,
@@ -403,7 +403,8 @@ function CompanySettingsView() {
           minHeight: 120,
         }}
       >
-        <div className="flex items-center gap-4">
+        <PageHeaderDecorativeCircles />
+        <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Settings size={24} className="text-white" />
           </div>
@@ -414,7 +415,7 @@ function CompanySettingsView() {
             </p>
           </div>
         </div>
-        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10">
           <Settings size={28} className="text-white" />
         </div>
       </div>

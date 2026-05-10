@@ -7,3 +7,5 @@ export * from './Modal';
 export * from './Select';
 export * from './Stepper';
 export * from './TablePagination';
+export * from './PageHeaderDecorativeCircles';
+export * from './GradientModalHeader';

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, TablePagination } from '@/common/ui';
+import { Card, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Search, UserPlus2, Building2, Users2, Plus, ChevronDown } from 'lucide-react';
 import { AssignModal } from './AssignModal';
 import { useStaff } from '../api/get-staff';
@@ -82,6 +82,7 @@ export function AssignEmployeesView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <UserPlus2 size={24} className="text-white" />

@@ -14,7 +14,7 @@ import {
   UserPlus,
   ChevronDown,
 } from 'lucide-react';
-import { TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { useAttendanceDashboard } from '../api/get-attendance';
 import { useDepartmentLookup } from '@/features/departments/api';
 import { useLocations } from '@/features/locations/api';
@@ -376,7 +376,8 @@ export function AttendanceDashboardView() {
           minHeight: 120,
         }}
       >
-        <div className="flex items-center gap-4">
+        <PageHeaderDecorativeCircles />
+        <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Clock size={24} className="text-white" />
           </div>
@@ -390,9 +391,6 @@ export function AttendanceDashboardView() {
               {timezone}
             </p>
           </div>
-        </div>
-        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
-          <UserPlus size={28} className="text-white" />
         </div>
       </div>
 

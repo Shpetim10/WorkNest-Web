@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Megaphone, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { PageHeaderDecorativeCircles } from '@/common/ui';
 import { AnnouncementListResponse, AnnouncementAudience, AnnouncementPriority } from '../types';
 import { useAnnouncements, useDeleteAnnouncement } from '../api';
 import { CreateAnnouncementModal } from './CreateAnnouncementModal';
@@ -60,7 +61,8 @@ export function AnnouncementsDashboardView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
-        <div className="flex items-center gap-4">
+        <PageHeaderDecorativeCircles />
+        <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Megaphone size={24} className="text-white" />
           </div>

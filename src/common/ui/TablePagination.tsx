@@ -16,85 +16,90 @@ export function TablePagination({
   onPageChange,
   className = "",
 }: TablePaginationProps) {
-  
-  if (totalPages <= 1) return null;
+  const pageCount = Math.max(1, totalPages);
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), pageCount);
 
   // Logic to generate page numbers with ellipsis
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    const maxVisiblePages = 5; // Adjustment to handle smaller datasets better
 
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    if (pageCount <= 7) {
+      for (let i = 1; i <= pageCount; i++) pages.push(i);
     } else {
       // Logic for > 7 pages
-      if (currentPage <= 4) {
-        pages.push(1, 2, 3, 4, 5, "...", totalPages);
-      } else if (currentPage >= totalPages - 3) {
-        pages.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      if (safeCurrentPage <= 3) {
+        pages.push(1, 2, 3, "...", pageCount - 1, pageCount);
+      } else if (safeCurrentPage >= pageCount - 2) {
+        pages.push(1, 2, "...", pageCount - 2, pageCount - 1, pageCount);
       } else {
-        pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+        pages.push(1, "...", safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, "...", pageCount);
       }
     }
     return pages;
   };
 
   const pages = getPageNumbers();
+  const canGoPrevious = safeCurrentPage > 1;
+  const canGoNext = safeCurrentPage < pageCount;
+  const gradient = 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)';
 
   return (
-    <div className={`flex items-center justify-center gap-4 py-4 w-full ${className}`}>
-      {/* Previous Button */}
-      <button
-        type="button"
-        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-        disabled={currentPage === 1}
-        className="flex items-center gap-1 text-[14px] font-medium text-gray-400 transition-colors hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed font-[Inter,sans-serif]"
-      >
-        <ChevronLeft size={16} />
-        Previous
-      </button>
+    <div className={`flex w-full justify-center py-2 ${className}`}>
+      <nav className="inline-flex max-w-full items-center gap-1.5 overflow-x-auto rounded-[10px] bg-white px-2.5 py-2 shadow-[0px_3px_10px_rgba(15,23,42,0.14)]">
+        {/* Previous Button */}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
+          disabled={!canGoPrevious}
+          className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-35 font-[Inter,sans-serif]"
+          style={{ background: gradient }}
+        >
+          <ChevronLeft size={14} />
+          Previous
+        </button>
 
-      {/* Page Numbers */}
-      <div className="flex items-center gap-1">
+        {/* Page Numbers */}
         {pages.map((n, idx) => {
           if (n === "...") {
             return (
-              <span key={`ell-${idx}`} className="px-2 text-[13px] text-gray-300 font-[Inter,sans-serif]">
+              <span key={`ell-${idx}`} className="px-1.5 text-[13px] font-semibold text-[#0092D5] font-[Inter,sans-serif]">
                 ...
               </span>
             );
           }
 
           const pageNum = n as number;
-          const isActive = pageNum === currentPage;
+          const isActive = pageNum === safeCurrentPage;
 
           return (
             <button
               key={pageNum}
               type="button"
               onClick={() => onPageChange(pageNum)}
-              className={`h-8 w-8 rounded-full text-[13px] font-medium transition-colors flex items-center justify-center font-[Inter,sans-serif] ${
-                isActive 
-                  ? 'bg-[#155DFC] font-bold text-white shadow-md' 
-                  : 'text-gray-500 hover:bg-gray-100'
+              className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2.5 text-[13px] font-semibold transition-colors font-[Inter,sans-serif] ${
+                isActive
+                  ? 'text-white shadow-md'
+                  : 'text-[#0092D5] hover:bg-blue-50'
               }`}
+              style={isActive ? { background: gradient } : undefined}
             >
               {pageNum}
             </button>
           );
         })}
-      </div>
 
-      {/* Next Button */}
-      <button
-        type="button"
-        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage === totalPages}
-        className="flex items-center gap-1 text-[14px] font-medium text-[#155DFC] transition-colors hover:text-[#0c47c5] disabled:opacity-50 disabled:cursor-not-allowed font-[Inter,sans-serif]"
-      >
-        Next
-        <ChevronRight size={16} />
-      </button>
+        {/* Next Button */}
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(pageCount, safeCurrentPage + 1))}
+          disabled={!canGoNext}
+          className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-35 font-[Inter,sans-serif]"
+          style={{ background: gradient }}
+        >
+          Next
+          <ChevronRight size={14} />
+        </button>
+      </nav>
     </div>
   );
 }

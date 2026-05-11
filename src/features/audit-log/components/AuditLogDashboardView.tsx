@@ -7,7 +7,6 @@ import { AuditLogEntry } from '../types';
 import { AuditLogDetailsModal } from './AuditLogDetailsModal';
 import { useAuditLogs } from '../api';
 
-const PAGE_SIZE = 10;
 
 const TABLE_HEADERS = ['User', 'Role', 'Action', 'Details', 'Timestamp', 'View'];
 
@@ -19,15 +18,16 @@ function roleBadgeClass(role: string): string {
 
 export function AuditLogDashboardView() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLogEntry | null>(null);
 
   const { data, isLoading, isError } = useAuditLogs({
     page: currentPage,
-    size: PAGE_SIZE,
+    size: pageSize,
   });
 
   const rows = data?.content ?? [];
-  const totalPages = data?.totalPages ?? 0;
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4 pb-10">
@@ -168,6 +168,12 @@ export function AuditLogDashboardView() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={data?.totalElements}
       />
 
       <AuditLogDetailsModal

@@ -1,3 +1,5 @@
+import type { OffsetPaginatedCollection } from '@/common/types/api';
+
 export type LeaveType = 'VACATION' | 'SICK' | 'PERSONAL';
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -36,12 +38,4 @@ export interface LeaveRequestDto {
   createdAt: string;
 }
 
-export interface Page<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-}
+export type Page<T> = OffsetPaginatedCollection<T>;

@@ -1,3 +1,5 @@
+import type { OffsetPaginatedCollection, PaginationParams } from '@/common/types/api';
+
 export enum AttendanceState {
   NOT_CHECKED_IN = 'NOT_CHECKED_IN',
   CHECKED_IN = 'CHECKED_IN',
@@ -76,6 +78,7 @@ export interface AttendanceDashboardData {
   timezone: string;
   summary: AttendanceSummary;
   employees: AttendanceEmployeeRow[];
+  pagination: OffsetPaginatedCollection<never>;
 }
 
 export interface AttendanceDashboardResponse {
@@ -131,7 +134,7 @@ export interface AttendanceDetailResponse {
   data: AttendanceDetailData;
 }
 
-export interface AttendanceDashboardFilters {
+export interface AttendanceDashboardFilters extends PaginationParams {
   date?: string;
   siteId?: string;
   departmentId?: string;

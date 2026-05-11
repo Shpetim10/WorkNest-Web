@@ -316,10 +316,28 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
 
     const fetchUnassigned = async () => {
       try {
-        const res = await apiClient.get<ApiResponse<UnassignedEmployee[]>>(
-          `/companies/${companyId}/employees/unassigned?departmentId=${values.department}`
-        );
-        setUnassignedEmployees(res.data.data || []);
+        const items: UnassignedEmployee[] = [];
+        let page = 0;
+        let totalPages = 1;
+
+        do {
+          const res = await apiClient.get<ApiResponse<{
+            items: UnassignedEmployee[];
+            totalPages: number;
+          }>>(`/companies/${companyId}/employees/unassigned`, {
+            params: {
+              departmentId: values.department,
+              page,
+              size: 100,
+            },
+          });
+
+          items.push(...(res.data.data.items || []));
+          totalPages = Math.max(1, res.data.data.totalPages || 1);
+          page += 1;
+        } while (page < totalPages);
+
+        setUnassignedEmployees(items);
       } catch (err: any) {
         setUnassignedEmployees([]);
       }

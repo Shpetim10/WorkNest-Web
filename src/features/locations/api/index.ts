@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosRequestConfig } from 'axios';
 import { apiClient } from '@/common/network/api-client';
-import { ApiErrorResponse, ApiResponse } from '@/common/types/api';
+import { ApiErrorResponse, ApiResponse, OffsetPaginatedCollection, PaginationParams } from '@/common/types/api';
 import {
   AttendancePolicyEnvelope,
   AttendancePolicyUpdateRequest,
@@ -47,6 +47,12 @@ export const locationKeys = {
 
 export interface LocationsQueryResult {
   items: LocationListItem[];
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
   listUnavailable: boolean;
 }
 
@@ -212,16 +218,36 @@ export function mapDetailsToLocation(details: CompanySiteDetails): Location {
   };
 }
 
-async function fetchCompanySites(companyId: string): Promise<{ sites: CompanySiteResponse[]; listUnavailable: boolean }> {
-  const response = await apiClient.get<CompanySiteResponse[] | ApiResponse<CompanySiteResponse[]>>(
+async function fetchCompanySites(
+  companyId: string,
+  params: PaginationParams = {},
+): Promise<{ sites: OffsetPaginatedCollection<CompanySiteResponse>; listUnavailable: boolean }> {
+  const response = await apiClient.get<
+    OffsetPaginatedCollection<CompanySiteResponse> | ApiResponse<OffsetPaginatedCollection<CompanySiteResponse>>
+  >(
     `/companies/${companyId}/sites`,
     {
+      params: {
+        page: Math.max(0, (params.page ?? 1) - 1),
+        size: params.size ?? 10,
+      },
       validateStatus: (status) => (status >= 200 && status < 300) || status >= 500,
     },
   );
 
   if (response.status >= 500) {
-    return { sites: [], listUnavailable: true };
+    return {
+      sites: {
+        items: [],
+        currentPage: Math.max(0, (params.page ?? 1) - 1),
+        pageSize: params.size ?? 10,
+        totalItems: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
+      listUnavailable: true,
+    };
   }
 
   return { sites: unwrapApiResponse(response.data), listUnavailable: false };
@@ -383,17 +409,32 @@ export async function detectSiteNetwork(options?: ApiRequestOptions): Promise<De
   return postPayload<DetectNetworkResponse, undefined>('/site-network/detect', undefined, options);
 }
 
-export const useLocations = (companyId: string | null) =>
+export const useLocations = (companyId: string | null, params: PaginationParams = {}) =>
   useQuery<LocationsQueryResult>({
-    queryKey: companyId ? locationKeys.list(companyId) : [...locationKeys.lists(), 'anonymous'],
+    queryKey: companyId ? [...locationKeys.list(companyId), params] : [...locationKeys.lists(), 'anonymous', params],
     queryFn: async () => {
       if (!companyId) {
-        return { items: [], listUnavailable: false };
+        return {
+          items: [],
+          currentPage: 0,
+          pageSize: params.size ?? 10,
+          totalItems: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+          listUnavailable: false,
+        };
       }
 
-      const result = await fetchCompanySites(companyId);
+      const result = await fetchCompanySites(companyId, params);
       return {
-        items: result.sites.map(mapCompanySiteToListItem),
+        items: result.sites.items.map(mapCompanySiteToListItem),
+        currentPage: result.sites.currentPage,
+        pageSize: result.sites.pageSize,
+        totalItems: result.sites.totalItems,
+        totalPages: result.sites.totalPages,
+        hasNext: result.sites.hasNext,
+        hasPrevious: result.sites.hasPrevious,
         listUnavailable: result.listUnavailable,
       };
     },

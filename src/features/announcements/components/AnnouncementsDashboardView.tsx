@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { Megaphone, Plus, Trash2, AlertCircle } from 'lucide-react';
-import { PageHeaderDecorativeCircles } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { AnnouncementListResponse, AnnouncementAudience, AnnouncementPriority } from '../types';
 import { useAnnouncements, useDeleteAnnouncement } from '../api';
 import { CreateAnnouncementModal } from './CreateAnnouncementModal';
 import { DeleteAnnouncementModal } from './DeleteAnnouncementModal';
+
 
 function audienceLabel(audience: AnnouncementAudience): string {
   switch (audience) {
@@ -39,9 +40,18 @@ function formatDate(iso: string): string {
 export function AnnouncementsDashboardView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState<AnnouncementListResponse | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const { data: announcements = [], isLoading } = useAnnouncements();
+  const { data, isLoading } = useAnnouncements({
+    page: currentPage,
+    size: pageSize,
+  });
   const deleteAnnouncement = useDeleteAnnouncement();
+  const announcements = data?.items ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const totalItems = data?.totalItems ?? announcements.length;
+  // Use pageSize from state
 
   const handleDeleteConfirm = () => {
     if (!toDelete) return;
@@ -144,6 +154,18 @@ export function AnnouncementsDashboardView() {
           ))}
         </div>
       )}
+
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={totalItems}
+      />
 
       <CreateAnnouncementModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
 

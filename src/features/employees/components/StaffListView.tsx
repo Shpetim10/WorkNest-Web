@@ -45,16 +45,20 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Location', 'Job Title', 'Employees', 'Status', 'Actions'];
-const ITEMS_PER_PAGE = 10;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export function StaffListView() {
-  const { data, isLoading, isError } = useStaff();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { data, isLoading, isError } = useStaff({
+    page: currentPage,
+    size: pageSize,
+  });
 
   // Modal State
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -114,7 +118,7 @@ export function StaffListView() {
     setCurrentPage(1);
   };
 
-  const staffList = data?.data || [];
+  const staffList = data?.data.items || [];
 
   const filteredStaff = staffList.filter(
     (s) => {
@@ -125,11 +129,9 @@ export function StaffListView() {
   );
 
   // Pagination Logic
-  const totalPages = Math.ceil(filteredStaff.length / ITEMS_PER_PAGE);
-  const paginatedStaff = filteredStaff.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = Math.max(1, data?.data.totalPages ?? 1);
+  const totalItems = data?.data.totalItems ?? filteredStaff.length;
+  // Use pageSize from state
 
   const handleSaveStaff = () => {
     setEditStaff(null);
@@ -311,12 +313,12 @@ export function StaffListView() {
                     <p className="text-[14px] font-medium">Failed to load staff members</p>
                   </td>
                 </tr>
-              ) : paginatedStaff.length === 0 ? (
+              ) : filteredStaff.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium">No staff members found</td>
                 </tr>
               ) : (
-                paginatedStaff.map((member, index) => (
+                filteredStaff.map((member, index) => (
                   <tr 
                     key={member.id} 
                     onClick={() => setViewStaffId(member.id)}
@@ -442,6 +444,12 @@ export function StaffListView() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={totalItems}
       />
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}

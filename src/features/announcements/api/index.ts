@@ -2,13 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
 import { ApiResponse } from '@/common/types/api';
 import { AnnouncementListResponse, CreateAnnouncementBody } from '../types';
+import { EmployeeDTO } from '@/features/employees/types';
+import { normalizeCompanyPersonRow } from '@/features/employees/utils/people';
 
 export interface EmployeeLookupItem {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
+  fullName: string;
   email: string;
+  platformRole: string;
+  displayRoleLabel: string;
+  employmentTypeLabel: string;
 }
 
 function getCurrentCompanyId() {
@@ -79,10 +82,20 @@ export const useEmployeeLookup = () => {
     queryFn: async () => {
       const companyId = getCurrentCompanyId();
       if (!companyId) throw new Error('Company context missing.');
-      const response = await apiClient.get<ApiResponse<EmployeeLookupItem[]>>(
+      const response = await apiClient.get<ApiResponse<EmployeeDTO[]>>(
         `/companies/${companyId}/employees`,
       );
-      return response.data.data;
+      return (response.data.data ?? []).map((row) => {
+        const person = normalizeCompanyPersonRow(row);
+        return {
+          id: person.id,
+          fullName: person.fullName,
+          email: person.email,
+          platformRole: person.platformRole,
+          displayRoleLabel: person.displayRoleLabel,
+          employmentTypeLabel: person.employmentTypeLabel,
+        };
+      });
     },
     enabled: typeof window !== 'undefined' && !!getCurrentCompanyId(),
   });

@@ -195,8 +195,6 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
                   <p className="text-xs text-gray-400 p-3">No employees found.</p>
                 ) : (
                   employees.map((emp) => {
-                    const fullName = `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim();
-                    const displayName = emp.name ?? (fullName || emp.email);
                     return (
                       <label
                         key={emp.id}
@@ -208,7 +206,10 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
                           onChange={() => toggleEmp(emp.id)}
                           className="accent-blue-600"
                         />
-                        <span className="text-sm text-gray-700">{displayName}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm text-gray-700">{emp.fullName}</span>
+                          <span className="text-[11px] text-gray-400">{emp.displayRoleLabel} · {emp.employmentTypeLabel}</span>
+                        </div>
                       </label>
                     );
                   })

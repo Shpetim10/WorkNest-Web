@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
-import { EmployeeDTO, EmployeeFilters } from '../types';
-import { PaginatedResponse } from '@/common/types/api';
+import { CompanyPersonRow, EmployeeDTO, EmployeeFilters } from '../types';
+import { normalizeCompanyPersonRow } from '../utils/people';
 
 /**
  * Filter keys for cache invalidation
@@ -30,6 +30,25 @@ export const useEmployees = (filters: EmployeeFilters) => {
         params: filters,
       });
       return response.data;
+    },
+  });
+};
+
+export const useCompanyPeople = (filters: EmployeeFilters) => {
+  return useQuery<ApiResponse<CompanyPersonRow[]>>({
+    queryKey: [...employeeKeys.list(filters), 'normalized'],
+    queryFn: async () => {
+      const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') : null;
+      if (!companyId) throw new Error('Company Context Missing');
+
+      const response = await apiClient.get<ApiResponse<EmployeeDTO[]>>(`/companies/${companyId}/employees`, {
+        params: filters,
+      });
+
+      return {
+        ...response.data,
+        data: (response.data.data ?? []).map(normalizeCompanyPersonRow),
+      };
     },
   });
 };

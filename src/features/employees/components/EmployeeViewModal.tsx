@@ -75,7 +75,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
   const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
   const [isContractPreviewLoading, setIsContractPreviewLoading] = useState(false);
   const [contractPreviewError, setContractPreviewError] = useState<string | null>(null);
-  const { data: employee, isLoading, isError } = useEmployee(companyId, employeeId);
+  const { data: employee, isLoading, isError, error } = useEmployee(companyId, employeeId);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -135,6 +135,14 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
         ? 'bg-[#155DFC] text-white shadow-md shadow-[#155DFC]/20'
         : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
     }`;
+
+  const scopedAccessMessage = (() => {
+    const status = (error as { response?: { status?: number } } | null)?.response?.status;
+    if (status === 403 || status === 404) {
+      return 'You can only view details for employees in your assigned scope.';
+    }
+    return 'Failed to load employee details';
+  })();
 
   return createPortal(
     <>
@@ -198,7 +206,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
                 <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center text-red-500">
                   <X size={24} />
                 </div>
-                <p className="text-gray-500 font-medium">Failed to load employee details</p>
+                <p className="text-gray-500 font-medium">{scopedAccessMessage}</p>
               </div>
             ) : activeTab === 'profile' ? (
               <div className="grid grid-cols-2 gap-4">

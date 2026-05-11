@@ -2,13 +2,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { TablePagination } from '@/common/ui';
 import {
   Eye, Plus, Search, Trash2, Loader2, Send, Check, Power,
   UserCog, FileText, ChevronDown
 } from 'lucide-react';
-import { EmployeeStatus, EmployeeDTO } from '../types';
-import { useEmployees } from '../api/get-employees';
+import { EmployeeStatus, EmployeeDTO, CompanyPersonRow } from '../types';
+import { useCompanyPeople } from '../api/get-employees';
 import { useResendInvitation } from '../api/resend-invitation';
 import { useDeleteEmployee } from '../api/delete-employee';
 import { useToggleEmployeeStatus } from '../api/toggle-employee-status';
@@ -17,19 +17,11 @@ import { EmployeeViewModal } from './EmployeeViewModal';
 import { JobDetailsModal } from './JobDetailsModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { StatusActionModal } from './StatusActionModal';
+import { StaffViewModal } from './StaffViewModal';
+import { resolvePersonDetailTarget } from '../utils/people';
 
-const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
+const TABLE_HEADERS = ['Name', 'Role', 'Employment Type', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
 const ITEMS_PER_PAGE = 10;
-
-function getDepartmentBadge(dept: string) {
-  const map: Record<string, string> = {
-    Engineering: 'bg-[#E8F1FF] text-[#155DFC]',
-    Marketing: 'bg-[#FFF3E0] text-[#E65100]',
-    Sales: 'bg-[#E8F5E9] text-[#2E7D32]',
-    HR: 'bg-[#F3E5F5] text-[#7B1FA2]',
-  };
-  return map[dept] ?? 'bg-gray-100 text-gray-600';
-}
 
 function getInitials(name?: string | null) {
   if (!name) return '??';
@@ -54,11 +46,11 @@ export function EmployeeListView() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError } = useEmployees({ page: currentPage, size: ITEMS_PER_PAGE, search: searchQuery });
+  const { data, isLoading, isError } = useCompanyPeople({ page: currentPage, size: ITEMS_PER_PAGE, search: searchQuery });
 
   // Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [viewEmployeeId, setViewEmployeeId] = useState<string | null>(null);
+  const [viewPerson, setViewPerson] = useState<CompanyPersonRow | null>(null);
   const [editEmployee, setEditEmployee] = useState<EmployeeDTO | null>(null);
   const [jobDetailsEmployee, setJobDetailsEmployee] = useState<EmployeeDTO | null>(null);
   const [deleteEmployee, setDeleteEmployee] = useState<EmployeeDTO | null>(null);
@@ -167,7 +159,7 @@ export function EmployeeListView() {
 
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
-  const employees = data?.data || [];
+  const people = data?.data || [];
   const totalPages = 1;
 
   return (
@@ -283,15 +275,19 @@ export function EmployeeListView() {
                     <p className="text-[14px] font-medium">Failed to load employees</p>
                   </td>
                 </tr>
-              ) : employees.length === 0 ? (
+              ) : people.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
                 </tr>
               ) : (
-                employees.map((employee, index) => (
+                people.map((person, index) => {
+                  const employee = person.raw;
+                  const detailTarget = resolvePersonDetailTarget(person);
+                  const isEmployeeRow = detailTarget === 'employee';
+                  return (
                   <tr
-                    key={employee.id}
-                    onClick={() => setViewEmployeeId(employee.id)}
+                    key={person.id}
+                    onClick={() => setViewPerson(person)}
                     className={`border-b border-[#E5E7EB] group transition-colors hover:bg-blue-50/30 cursor-pointer ${
                       index % 2 === 1 ? 'bg-gray-50/40' : ''
                     }`}
@@ -302,47 +298,63 @@ export function EmployeeListView() {
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
                           style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                         >
-                          {getInitials(employee.name || `${employee.firstName} ${employee.lastName}`)}
+                          {getInitials(person.fullName)}
                         </div>
                         <span className="text-[15px] font-medium text-gray-800 whitespace-nowrap">
-                          {employee.name || `${employee.firstName} ${employee.lastName}`}
+                          {person.fullName}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{employee.email}</span>
+                      <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${
+                        person.platformRole === 'STAFF'
+                          ? 'bg-[#FFF7ED] text-[#CA3500]'
+                          : person.platformRole === 'EMPLOYEE'
+                            ? 'bg-[#EFF6FF] text-[#1447E6]'
+                            : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {person.displayRoleLabel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[#F3F4F6] text-[#374151]">
+                        {person.employmentTypeLabel}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{person.email}</span>
                     </td>
                     <td className="px-4 py-3.5">
                       <span 
                         className="text-[12px] font-medium px-2.5 py-1 rounded-full"
                         style={{ color: '#1447E6', backgroundColor: '#EFF6FF' }}
                       >
-                        {employee.departmentName}
+                        {person.departmentName}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-gray-600 font-[Inter,sans-serif]">
-                      {employee.companySiteName || '—'}
+                      {person.companySiteName || '—'}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{employee.jobTitle}</span>
+                      <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{person.jobTitle}</span>
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                        employee.status === EmployeeStatus.ACTIVE ? 'bg-[#00C95033] text-[#00C950]'
-                        : employee.status === EmployeeStatus.PENDING ? 'bg-[#FF690033] text-[#FF6900]'
+                        person.status === EmployeeStatus.ACTIVE ? 'bg-[#00C95033] text-[#00C950]'
+                        : person.status === EmployeeStatus.PENDING ? 'bg-[#FF690033] text-[#FF6900]'
                         : 'bg-[#EF444433] text-[#EF4444]'
                       }`}>
-                        {employee.status === EmployeeStatus.ACTIVE ? 'Active'
-                          : employee.status === EmployeeStatus.PENDING ? 'Pending'
-                          : employee.status.replace('_', ' ').toLowerCase()}
+                        {person.status === EmployeeStatus.ACTIVE ? 'Active'
+                          : person.status === EmployeeStatus.PENDING ? 'Pending'
+                          : person.status.replace('_', ' ').toLowerCase()}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         {/* Resend invitation (pending only) */}
-                        {employee.status === EmployeeStatus.PENDING && (
+                        {isEmployeeRow && person.status === EmployeeStatus.PENDING && (
                           <button
-                            onClick={() => handleResend(employee.id)}
+                            onClick={() => handleResend(person.id)}
                             disabled={resendMutation.isPending}
                             title="Resend Invitation"
                             className="rounded-lg p-2 text-gray-400 transition-all hover:bg-orange-50 hover:text-[#B45309] disabled:opacity-50"
@@ -353,7 +365,7 @@ export function EmployeeListView() {
 
                         {/* View */}
                         <button
-                          onClick={() => setViewEmployeeId(employee.id)}
+                          onClick={() => setViewPerson(person)}
                           title="View Details"
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                         >
@@ -361,43 +373,45 @@ export function EmployeeListView() {
                         </button>
 
                         {/* Update Dropdown */}
+                        {isEmployeeRow && (
                         <div className="relative">
                           <button
-                            data-employee-dropdown-trigger={employee.id}
-                            onClick={(event) => handleDropdownToggle(event, employee.id)}
+                            data-employee-dropdown-trigger={person.id}
+                            onClick={(event) => handleDropdownToggle(event, person.id)}
                             title="Update"
-                            className={`rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC] flex items-center gap-0.5 ${openDropdownId === employee.id ? 'bg-blue-50 text-[#155DFC]' : ''}`}
+                            className={`rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC] flex items-center gap-0.5 ${openDropdownId === person.id ? 'bg-blue-50 text-[#155DFC]' : ''}`}
                           >
                             <ChevronDown size={17} />
                           </button>
                         </div>
+                        )}
 
                         {/* Delete */}
-                        {(employee.status === EmployeeStatus.ACTIVE || employee.status === EmployeeStatus.INACTIVE || employee.status === EmployeeStatus.TERMINATED) && (
+                        {isEmployeeRow && (person.status === EmployeeStatus.ACTIVE || person.status === EmployeeStatus.INACTIVE || person.status === EmployeeStatus.TERMINATED) && (
                           <button
                             onClick={() => setStatusActionEmployee(employee)}
-                            title={employee.status === EmployeeStatus.ACTIVE ? 'Terminate Employee' : 'Activate Employee'}
+                            title={person.status === EmployeeStatus.ACTIVE ? 'Terminate Employee' : 'Activate Employee'}
                             className={`rounded-lg p-2 text-gray-400 transition-all ${
-                              employee.status === EmployeeStatus.ACTIVE
+                              person.status === EmployeeStatus.ACTIVE
                                 ? 'hover:bg-amber-50 hover:text-amber-500'
                                 : 'hover:bg-emerald-50 hover:text-emerald-500'
                             }`}
                           >
-                            {employee.status === EmployeeStatus.ACTIVE ? <Power size={17} /> : <Check size={17} />}
+                            {person.status === EmployeeStatus.ACTIVE ? <Power size={17} /> : <Check size={17} />}
                           </button>
                         )}
 
-                        <button
+                        {isEmployeeRow && <button
                           onClick={() => setDeleteEmployee(employee)}
                           title="Delete Employee"
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 size={17} />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>
-                ))
+                )})
               )}
             </tbody>
           </table>
@@ -429,9 +443,14 @@ export function EmployeeListView() {
 
       {/* View Modal */}
       <EmployeeViewModal
-        isOpen={!!viewEmployeeId}
-        onClose={() => setViewEmployeeId(null)}
-        employeeId={viewEmployeeId}
+        isOpen={!!viewPerson && resolvePersonDetailTarget(viewPerson) === 'employee'}
+        onClose={() => setViewPerson(null)}
+        employeeId={viewPerson && resolvePersonDetailTarget(viewPerson) === 'employee' ? viewPerson.id : null}
+      />
+      <StaffViewModal
+        isOpen={!!viewPerson && resolvePersonDetailTarget(viewPerson) === 'staff'}
+        onClose={() => setViewPerson(null)}
+        staffId={viewPerson && resolvePersonDetailTarget(viewPerson) === 'staff' ? viewPerson.id : null}
       />
 
       {/* Job & Contract Update Modal */}
@@ -473,7 +492,7 @@ export function EmployeeListView() {
       )}
 
       {openDropdownId && dropdownPosition && (() => {
-        const activeEmployee = employees.find((employee) => employee.id === openDropdownId);
+        const activeEmployee = people.find((person) => person.id === openDropdownId)?.raw;
         if (!activeEmployee) return null;
 
         return createPortal(

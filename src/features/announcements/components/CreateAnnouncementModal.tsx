@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Megaphone } from 'lucide-react';
+import { X } from 'lucide-react';
 import { AnnouncementAudience, AnnouncementPriority, CreateAnnouncementBody } from '../types';
 import { useCreateAnnouncement, useEmployeeLookup } from '../api';
 import { useDepartmentLookup } from '@/features/departments';
@@ -27,7 +27,21 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
 
   const create = useCreateAnnouncement();
   const { data: departments = [] } = useDepartmentLookup();
-  const { data: employees = [] } = useEmployeeLookup();
+  const selectedDepartmentNames = useMemo(
+    () =>
+      departments
+        .filter((department) => selectedDeptIds.includes(department.id))
+        .map((department) => department.name),
+    [departments, selectedDeptIds],
+  );
+  const {
+    data: employees = [],
+    isFetching: isLoadingEmployees,
+  } = useEmployeeLookup(
+    selectedDeptIds,
+    selectedDepartmentNames,
+    form.targetAudience === 'SPECIFIC_USERS',
+  );
 
   if (!isOpen) return null;
 
@@ -37,10 +51,12 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
     setSelectedEmpIds([]);
   };
 
-  const toggleDept = (id: string) =>
+  const toggleDept = (id: string) => {
     setSelectedDeptIds((prev) =>
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
     );
+    setSelectedEmpIds([]);
+  };
 
   const toggleEmp = (id: string) =>
     setSelectedEmpIds((prev) =>
@@ -53,8 +69,10 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
     if (!form.content.trim()) return setError('Content is required.');
     if (form.targetAudience === 'DEPARTMENT' && selectedDeptIds.length === 0)
       return setError('Select at least one department.');
+    if (form.targetAudience === 'SPECIFIC_USERS' && selectedDeptIds.length === 0)
+      return setError('Select at least one department.');
     if (form.targetAudience === 'SPECIFIC_USERS' && selectedEmpIds.length === 0)
-      return setError('Select at least one employee.');
+      return setError('Select at least one user.');
 
     const body: CreateAnnouncementBody = {
       ...form,
@@ -79,48 +97,90 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
     { value: 'SPECIFIC_USERS', label: 'Specific Users' },
   ];
 
+  const renderDepartmentChips = () => (
+    <div className="flex flex-wrap gap-3">
+      {departments.length === 0 ? (
+        <p className="text-xs text-gray-400">No departments found.</p>
+      ) : (
+        departments.map((dept) => {
+          const isSelected = selectedDeptIds.includes(dept.id);
+          return (
+            <button
+              key={dept.id}
+              type="button"
+              onClick={() => toggleDept(dept.id)}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-[8px] border px-5 py-2 text-xs font-medium transition-colors ${
+                isSelected
+                  ? 'border-[#2B7FFF] bg-[#EFF6FF] text-[#1E3A8A]'
+                  : 'border-[#E5E7EB] bg-white text-[#364153] hover:bg-gray-50'
+              }`}
+            >
+              <span
+                className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center ${
+                  isSelected ? 'border-[#2B7FFF]' : 'border-[#D1D5DC]'
+                }`}
+              >
+                {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#2B7FFF]" />}
+              </span>
+              {dept.name}
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
+
   const modal = (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col"
+        className="relative flex h-[717px] max-h-[calc(100vh-32px)] w-[969px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] border-[1.26px] border-[rgba(0,0,0,0.1)] bg-white"
+        style={{
+          boxShadow:
+            '0px 4px 6px -4px rgba(0,0,0,0.1), 0px 10px 15px -3px rgba(0,0,0,0.1)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="px-6 py-5 flex items-center justify-between shrink-0 rounded-t-2xl"
+          className="sticky top-0 z-10 flex shrink-0 items-start justify-between px-5 py-4"
           style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-              <Megaphone size={18} className="text-white" />
-            </div>
-            <h2 className="text-lg font-bold text-white">Create Announcement</h2>
+          <div>
+            <h2 className="text-[24px] font-bold leading-7 text-white">Create Announcement</h2>
+            <p className="mt-1 text-[12px] font-normal leading-4 text-white/90">
+              Create a new announcement to share with your team
+            </p>
           </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-md p-1 text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 flex flex-col gap-5">
-          {/* Title */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              value={form.title}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              maxLength={255}
-              placeholder="Announcement title"
-              className="h-10 px-3 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400/60"
-            />
-          </div>
+        <div className="flex-1 overflow-y-auto px-7 py-5">
+          <div className="flex flex-col gap-4">
+            {/* Title */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium text-[#1F2937]">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                maxLength={255}
+                placeholder="Announcement title"
+                className="h-12 rounded-[10px] border border-[#D1D5DC] px-4 text-[14px] text-gray-800 placeholder:text-[#99A1AF] focus:border-[#2B7FFF] focus:outline-none focus:ring-2 focus:ring-blue-500/15"
+              />
+            </div>
 
           {/* Content */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-[12px] font-medium text-[#1F2937]">
               Content <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -128,25 +188,25 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
               onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
               rows={4}
               placeholder="Write your announcement here..."
-              className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400/60 resize-none"
+              className="min-h-[72px] resize-none rounded-[10px] border border-[#E5E7EB] px-4 py-3 text-[14px] text-gray-800 placeholder:text-[#99A1AF] focus:border-[#2B7FFF] focus:outline-none focus:ring-2 focus:ring-blue-500/15"
             />
           </div>
 
           {/* Target Audience */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-[12px] font-medium text-[#1F2937]">
               Target Audience <span className="text-red-500">*</span>
             </label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="grid grid-cols-3 gap-2 rounded-[10px] bg-[#F3F4F6] p-1">
               {AUDIENCE_OPTIONS.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => handleAudienceChange(value)}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                  className={`h-10 rounded-[8px] text-[13px] font-semibold transition-colors ${
                     form.targetAudience === value
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      ? 'bg-white text-[#155DFC] shadow-sm'
+                      : 'text-[#4A5565] hover:bg-white/60'
                   }`}
                 >
                   {label}
@@ -157,84 +217,92 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
 
           {/* Department picker */}
           {form.targetAudience === 'DEPARTMENT' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">
+            <div className="flex flex-col gap-3 pt-1">
+              <label className="text-[12px] font-medium text-[#1F2937]">
                 Select Departments <span className="text-red-500">*</span>
               </label>
-              <div className="border border-gray-200 rounded-xl max-h-40 overflow-y-auto divide-y divide-gray-50">
-                {departments.length === 0 ? (
-                  <p className="text-xs text-gray-400 p-3">No departments found.</p>
-                ) : (
-                  departments.map((dept) => (
-                    <label
-                      key={dept.id}
-                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedDeptIds.includes(dept.id)}
-                        onChange={() => toggleDept(dept.id)}
-                        className="accent-blue-600"
-                      />
-                      <span className="text-sm text-gray-700">{dept.name}</span>
-                    </label>
-                  ))
-                )}
-              </div>
+              {renderDepartmentChips()}
             </div>
           )}
 
           {/* Employee picker */}
           {form.targetAudience === 'SPECIFIC_USERS' && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Select Employees <span className="text-red-500">*</span>
+            <div className="flex flex-col gap-4 pt-1">
+              <div className="flex flex-col gap-3">
+                <label className="text-[12px] font-medium text-[#1F2937]">
+                  Select Departments <span className="text-red-500">*</span>
+                </label>
+                {renderDepartmentChips()}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <label className="text-[12px] font-medium text-[#1F2937]">
+                  Select Users <span className="text-red-500">*</span>
               </label>
-              <div className="border border-gray-200 rounded-xl max-h-48 overflow-y-auto divide-y divide-gray-50">
-                {employees.length === 0 ? (
-                  <p className="text-xs text-gray-400 p-3">No employees found.</p>
-                ) : (
+                <div className="flex flex-wrap gap-3">
+                  {selectedDeptIds.length === 0 ? (
+                    <p className="text-xs text-gray-400">Select a department to view users.</p>
+                  ) : isLoadingEmployees ? (
+                    <p className="text-xs text-gray-400">Loading users...</p>
+                  ) : employees.length === 0 ? (
+                    <p className="text-xs text-gray-400">No users found for selected department.</p>
+                  ) : (
                   employees.map((emp) => {
+                    const fullName = `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim();
+                    const displayName = emp.name ?? (fullName || emp.email);
+                    const isSelected = selectedEmpIds.includes(emp.id);
                     return (
-                      <label
+                      <button
                         key={emp.id}
-                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-gray-50"
+                        type="button"
+                        onClick={() => toggleEmp(emp.id)}
+                        className={`inline-flex min-h-10 items-center gap-2 rounded-[8px] border px-5 py-2 text-xs font-medium transition-colors ${
+                          isSelected
+                            ? 'border-[#2B7FFF] bg-[#EFF6FF] text-[#1E3A8A]'
+                            : 'border-[#E5E7EB] bg-white text-[#364153] hover:bg-gray-50'
+                        }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={selectedEmpIds.includes(emp.id)}
-                          onChange={() => toggleEmp(emp.id)}
-                          className="accent-blue-600"
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm text-gray-700">{emp.fullName}</span>
-                          <span className="text-[11px] text-gray-400">{emp.displayRoleLabel} · {emp.employmentTypeLabel}</span>
-                        </div>
-                      </label>
+                        <span
+                          className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center ${
+                            isSelected ? 'border-[#2B7FFF]' : 'border-[#D1D5DC]'
+                          }`}
+                        >
+                          {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#2B7FFF]" />}
+                        </span>
+                        {displayName}
+                      </button>
                     );
                   })
                 )}
+                </div>
               </div>
             </div>
           )}
 
           {/* Priority */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700">Priority</label>
-            <div className="flex gap-2">
+            <label className="text-[12px] font-medium text-[#1F2937]">Priority (Optional)</label>
+            <div className="flex flex-wrap gap-3">
               {(['NORMAL', 'IMPORTANT'] as AnnouncementPriority[]).map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setForm((prev) => ({ ...prev, priority: p }))}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                  className={`inline-flex h-10 min-w-[112px] items-center justify-center gap-2 rounded-[8px] border px-5 text-xs font-medium transition-colors ${
                     form.priority === p
-                      ? p === 'IMPORTANT'
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      ? 'border-[#2B7FFF] bg-[#EFF6FF] text-[#1E3A8A]'
+                      : 'border-[#E5E7EB] bg-white text-[#364153] hover:bg-gray-50'
                   }`}
                 >
+                  <span
+                    className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center ${
+                      form.priority === p ? 'border-[#2B7FFF]' : 'border-[#D1D5DC]'
+                    }`}
+                  >
+                    {form.priority === p && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#2B7FFF]" />
+                    )}
+                  </span>
                   {p === 'IMPORTANT' ? 'Important' : 'Normal'}
                 </button>
               ))}
@@ -245,20 +313,22 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
           {error && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
           )}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-6 flex justify-end gap-3 shrink-0">
+        <div className="sticky bottom-0 z-10 flex shrink-0 items-center justify-between bg-white px-7 py-6">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="h-11 min-w-[100px] rounded-[8px] bg-[#E5E7EB] px-6 text-sm font-medium text-[#364153] transition-colors hover:bg-[#D1D5DC]"
           >
             Back
           </button>
           <button
             onClick={handleSubmit}
             disabled={create.isPending}
-            className="px-6 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="h-11 min-w-[158px] rounded-[8px] px-6 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+            style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
             {create.isPending ? 'Creating...' : 'Add'}
           </button>

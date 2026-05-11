@@ -9,9 +9,12 @@ export interface EmployeeLookupItem {
   id: string;
   fullName: string;
   email: string;
-  platformRole: string;
-  displayRoleLabel: string;
-  employmentTypeLabel: string;
+  departmentId?: string;
+  departmentName?: string;
+  department?: {
+    id?: string;
+    name?: string;
+  };
 }
 
 function getCurrentCompanyId() {
@@ -26,7 +29,8 @@ function getBasePath(companyId: string) {
 export const announcementKeys = {
   all: ['announcements'] as const,
   list: () => [...announcementKeys.all, 'list'] as const,
-  employeeLookup: () => [...announcementKeys.all, 'employee-lookup'] as const,
+  employeeLookup: (departmentIds: string[], departmentNames: string[]) =>
+    [...announcementKeys.all, 'employee-lookup', { departmentIds, departmentNames }] as const,
 };
 
 export const useAnnouncements = () => {
@@ -76,27 +80,53 @@ export const useDeleteAnnouncement = () => {
   });
 };
 
-export const useEmployeeLookup = () => {
+function normalizeLookupValue(value?: string) {
+  return value?.trim().toLowerCase() ?? '';
+}
+
+export const useEmployeeLookup = (
+  departmentIds: string[],
+  departmentNames: string[],
+  enabled = true,
+) => {
   return useQuery<EmployeeLookupItem[]>({
-    queryKey: announcementKeys.employeeLookup(),
+    queryKey: announcementKeys.employeeLookup(departmentIds, departmentNames),
     queryFn: async () => {
       const companyId = getCurrentCompanyId();
       if (!companyId) throw new Error('Company context missing.');
-      const response = await apiClient.get<ApiResponse<EmployeeDTO[]>>(
-        `/companies/${companyId}/employees`,
+
+      const responses = await Promise.all(
+        departmentIds.map((departmentId) =>
+          apiClient.get<ApiResponse<EmployeeLookupItem[]>>(`/companies/${companyId}/employees`, {
+            params: { departmentId },
+          }),
+        ),
       );
-      return (response.data.data ?? []).map((row) => {
-        const person = normalizeCompanyPersonRow(row);
-        return {
-          id: person.id,
-          fullName: person.fullName,
-          email: person.email,
-          platformRole: person.platformRole,
-          displayRoleLabel: person.displayRoleLabel,
-          employmentTypeLabel: person.employmentTypeLabel,
-        };
+
+      const employeesById = new Map<string, EmployeeLookupItem>();
+      responses.forEach((response) => {
+        response.data.data.forEach((employee) => employeesById.set(employee.id, employee));
+      });
+
+      const selectedDepartmentIds = new Set(departmentIds);
+      const selectedDepartmentNames = new Set(departmentNames.map(normalizeLookupValue));
+
+      return Array.from(employeesById.values()).filter((employee) => {
+        const employeeDepartmentId = employee.departmentId ?? employee.department?.id;
+        const employeeDepartmentName = normalizeLookupValue(
+          employee.departmentName ?? employee.department?.name,
+        );
+
+        return (
+          (employeeDepartmentId ? selectedDepartmentIds.has(employeeDepartmentId) : false) ||
+          (employeeDepartmentName ? selectedDepartmentNames.has(employeeDepartmentName) : false)
+        );
       });
     },
-    enabled: typeof window !== 'undefined' && !!getCurrentCompanyId(),
+    enabled:
+      enabled &&
+      typeof window !== 'undefined' &&
+      !!getCurrentCompanyId() &&
+      departmentIds.length > 0,
   });
 };

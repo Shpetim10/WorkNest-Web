@@ -10,6 +10,7 @@
     "test": "node --test --experimental-strip-types src/features/locations/utils/locations.integration.test.mts"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.3.0",
     "@tanstack/react-query": "^5.96.1",
     "@tanstack/react-query-devtools": "^5.96.1",
     "@types/leaflet": "^1.9.21",
@@ -22,6 +23,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
+    "sockjs-client": "^1.6.1",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
@@ -31,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sockjs-client": "^1.5.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",

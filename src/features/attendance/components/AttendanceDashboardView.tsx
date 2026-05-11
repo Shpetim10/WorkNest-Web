@@ -12,10 +12,9 @@ import {
   MoreHorizontal,
   Lock,
   UserPlus,
-  Filter,
   ChevronDown,
 } from 'lucide-react';
-import { TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { useAttendanceDashboard } from '../api/get-attendance';
 import { useDepartmentLookup } from '@/features/departments/api';
 import { useLocations } from '@/features/locations/api';
@@ -377,7 +376,8 @@ export function AttendanceDashboardView() {
           minHeight: 120,
         }}
       >
-        <div className="flex items-center gap-4">
+        <PageHeaderDecorativeCircles />
+        <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Clock size={24} className="text-white" />
           </div>
@@ -391,9 +391,6 @@ export function AttendanceDashboardView() {
               {timezone}
             </p>
           </div>
-        </div>
-        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
-          <UserPlus size={28} className="text-white" />
         </div>
       </div>
 
@@ -619,16 +616,14 @@ export function AttendanceDashboardView() {
           </tbody>
         </table>
 
-        {totalPages > 1 && (
-          <div className="px-4 py-4 border-t border-gray-50">
-            <TablePagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
-          </div>
-        )}
       </div>
+
+      <TablePagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        className="-mt-2"
+      />
 
       {/* Modals */}
       {modal.kind === 'view' && (

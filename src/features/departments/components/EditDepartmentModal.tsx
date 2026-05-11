@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, Textarea, Button } from '@/common/ui';
+import React, { useState } from 'react';
+import { GradientModalHeader, Modal, Input, Select, Textarea, Button } from '@/common/ui';
 import { useUpdateDepartment } from '../api';
-import { DepartmentListItem, DepartmentStatus } from '../types';
+import { DepartmentListItem } from '../types';
 
 interface EditDepartmentModalProps {
   isOpen: boolean;
@@ -12,26 +12,43 @@ interface EditDepartmentModalProps {
 }
 
 export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartmentModalProps) {
+  if (!department) return null;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      width="max-w-[794px]"
+      showDefaultStyles={false}
+      containerClassName="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+    >
+      <GradientModalHeader
+        title="Edit Department"
+        subtitle="Edit the department details below."
+        onClose={onClose}
+      />
+
+      <EditDepartmentForm key={department.id} department={department} onClose={onClose} />
+    </Modal>
+  );
+}
+
+function EditDepartmentForm({
+  department,
+  onClose,
+}: {
+  department: DepartmentListItem;
+  onClose: () => void;
+}) {
   const [formData, setFormData] = useState({
-    name: '',
-    status: 'ACTIVE' as DepartmentStatus,
-    description: ''
+    name: department.name,
+    status: department.status,
+    description: department.description || '',
   });
 
   const updateMutation = useUpdateDepartment(department?.id || '');
 
-  useEffect(() => {
-    if (department && isOpen) {
-      setFormData({
-        name: department.name,
-        status: department.status,
-        description: department.description || ''
-      });
-    }
-  }, [department, isOpen]);
-
   const handleSave = async () => {
-    if (!department) return;
     try {
       await updateMutation.mutateAsync({
         name: formData.name,
@@ -45,14 +62,7 @@ export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartm
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Edit Department"
-      subtitle="Edit the department details below."
-      width="max-w-[794px]"
-    >
-      <div className="space-y-8 pt-2">
+    <div className="space-y-8 p-6">
         {/* Row 1: Name and Status */}
         <div className="grid grid-cols-2 gap-x-10 items-start">
           <Input
@@ -107,6 +117,5 @@ export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartm
           </Button>
         </div>
       </div>
-    </Modal>
   );
 }

@@ -248,8 +248,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
                     <p className="text-xs text-gray-400">No users found for selected department.</p>
                   ) : (
                   employees.map((emp) => {
-                    const fullName = `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim();
-                    const displayName = emp.name ?? (fullName || emp.email);
+                    const displayName = emp.fullName?.trim() || emp.email;
                     const isSelected = selectedEmpIds.includes(emp.id);
                     return (
                       <button

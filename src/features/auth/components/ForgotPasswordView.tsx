@@ -60,8 +60,8 @@ export function ForgotPasswordView() {
         <div className="mt-6 mb-8">
           {/* Logo Text */}
           <div className="mb-6">
-            <h1 className="font-sans font-bold text-[22px] leading-[28px] bg-gradient-to-r from-[#155DFC] to-[#00A63E] bg-clip-text text-transparent inline-block">
-              WorkNest
+            <h1 className="font-sans font-bold text-[22px] leading-[28px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text text-transparent inline-block">
+              WorkTrezz
             </h1>
           </div>
 

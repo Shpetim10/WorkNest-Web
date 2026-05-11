@@ -100,7 +100,7 @@ export function CompanyView() {
             {/* Gradient capsule / Preview */}
             <div 
               onClick={handleLogoClick}
-              className="w-[100px] h-[44px] rounded-full bg-gradient-to-r from-[#2178ff] to-[#01c951] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(21,93,252,0.4)] cursor-pointer overflow-hidden group"
+              className="w-[100px] h-[44px] rounded-full bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(43,127,255,0.4)] cursor-pointer overflow-hidden group"
             >
               {logoPreviewUrl ? (
                 <img src={logoPreviewUrl} alt="Logo preview" className="w-full h-full object-cover" />

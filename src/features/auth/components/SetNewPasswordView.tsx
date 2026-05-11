@@ -3,13 +3,17 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, ArrowRight, Loader2, Check, X } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { AxiosError } from 'axios';
+import { ApiErrorResponse } from '@/common/types/api';
 import { useResetPassword } from '../api/password-reset';
 
-export function SetNewPasswordView() {
+type SetNewPasswordViewProps = {
+  token?: string;
+};
+
+export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
   const resetPasswordMutation = useResetPassword();
 
   const RULES = [
@@ -49,8 +53,9 @@ export function SetNewPasswordView() {
           newPassword: password,
         });
         router.push('/password-reset-success');
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      } catch (err: unknown) {
+        const msg = (err as AxiosError<ApiErrorResponse>)?.response?.data?.message;
+        setError(msg || 'Failed to reset password. The link may have expired.');
       }
     }
   };
@@ -67,8 +72,8 @@ export function SetNewPasswordView() {
         <div className="mb-8">
           {/* Logo Text */}
           <div className="mb-6">
-            <h1 className="font-sans font-bold text-[22px] leading-[28px] bg-gradient-to-r from-[#155DFC] to-[#00A63E] bg-clip-text text-transparent inline-block">
-              WorkNest
+            <h1 className="font-sans font-bold text-[22px] leading-[28px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text text-transparent inline-block">
+              WorkTrezz
             </h1>
           </div>
 

@@ -806,15 +806,15 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
               )}
 
               {mode === 'add' && step < totalSteps ? (
-                <button type="button" onClick={handleNext} disabled={!isStep1Complete} className="h-12 rounded-xl bg-gradient-to-r from-[#155DFC] to-[#01c951] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#155DFC]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed">
+                <button type="button" onClick={handleNext} disabled={!isStep1Complete} className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif]">
                   Next
                 </button>
               ) : (
                 <button
                   type="submit"
+                  className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed"
                   data-submit-intent={mode === 'add' ? 'final-add-submit' : undefined}
                   disabled={isBusy || (mode === 'add' && (!isStep1Complete || !isStep2Complete))}
-                  className="h-12 rounded-xl bg-gradient-to-r from-[#155DFC] to-[#01c951] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#155DFC]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isUploadingFile ? 'Uploading...' : isBusy ? 'Processing...' : (mode === 'add' ? 'Create Account' : 'Confirm Updates')}
                 </button>

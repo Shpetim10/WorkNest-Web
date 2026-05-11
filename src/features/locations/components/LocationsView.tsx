@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Check, ChevronDown, Edit3, Eye, Loader2, MapPin, Network, Plus, Power, Search, Settings, Trash2 } from 'lucide-react';
 import { SITES_LIST_UNAVAILABLE_MESSAGE, useLocations } from '../api';
 import { LocationListItem, SiteStatus, SiteType } from '../types';
@@ -135,6 +135,7 @@ export function LocationsView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <MapPin size={24} className="text-white" />

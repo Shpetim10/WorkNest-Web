@@ -41,7 +41,7 @@ export function AddLocationStepLocation({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[20px] border border-[#DCE7FF] bg-[linear-gradient(135deg,rgba(239,244,255,0.92),rgba(255,255,255,1))] p-4 shadow-[0_20px_40px_-28px_rgba(21,93,252,0.45)]">
+      <div className="rounded-[20px] border border-[#DCE7FF] bg-[linear-gradient(135deg,#2B7FFF,#00BBA7)] p-4 shadow-[0_20px_40px_-28px_rgba(43,127,255,0.45)]">
         <div className="flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#D7E3FF] bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#155DFC]">
             <span className="h-2 w-2 rounded-full bg-[#12B76A]" />
@@ -52,7 +52,7 @@ export function AddLocationStepLocation({
             type="button"
             onClick={() => void onDetect()}
             disabled={isDetecting}
-            className="flex h-[44px] items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-[#155DFC] via-[#246BFF] to-[#1447E6] px-5 text-sm font-medium text-white shadow-[0_18px_30px_-18px_rgba(21,93,252,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_36px_-18px_rgba(21,93,252,0.75)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex h-[44px] items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-5 text-sm font-medium text-white shadow-[0_18px_30px_-18px_rgba(43,127,255,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_36px_-18px_rgba(43,127,255,0.75)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isDetecting ? (
               <Loader2 size={16} className="animate-spin text-white" strokeWidth={2.5} />
@@ -62,7 +62,7 @@ export function AddLocationStepLocation({
             {isDetecting ? 'Detecting your location...' : data.locationDetected ? 'Refresh Detected Location' : 'Detect My Location'}
           </button>
 
-          <p className="text-center text-[12px] leading-5 text-[#475467]">
+          <p className="text-center text-[12px] leading-5 text-white/90">
             We&apos;ll suggest a geofence, drop the pin precisely, and prefill the location details for you.
           </p>
 

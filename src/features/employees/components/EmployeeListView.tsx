@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import {
   Eye, Plus, Search, Trash2, Loader2, Send, Check, Power,
   UserCog, FileText, ChevronDown
@@ -20,16 +20,6 @@ import { StatusActionModal } from './StatusActionModal';
 
 const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
 const ITEMS_PER_PAGE = 10;
-
-function getDepartmentBadge(dept: string) {
-  const map: Record<string, string> = {
-    Engineering: 'bg-[#E8F1FF] text-[#155DFC]',
-    Marketing: 'bg-[#FFF3E0] text-[#E65100]',
-    Sales: 'bg-[#E8F5E9] text-[#2E7D32]',
-    HR: 'bg-[#F3E5F5] text-[#7B1FA2]',
-  };
-  return map[dept] ?? 'bg-gray-100 text-gray-600';
-}
 
 function getInitials(name?: string | null) {
   if (!name) return '??';
@@ -54,7 +44,7 @@ export function EmployeeListView() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError } = useEmployees({ page: currentPage, size: ITEMS_PER_PAGE, search: searchQuery });
+  const { data, isLoading, isError } = useEmployees({ search: searchQuery });
 
   // Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -162,10 +152,17 @@ export function EmployeeListView() {
     }
   };
 
+  const [supervisor, setSupervisor] = useState('All supervisors');
+  const [department, setDepartment] = useState('All departments');
+
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
   const employees = data?.data || [];
-  const totalPages = 1;
+  const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
+  const paginatedEmployees = employees.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
@@ -180,6 +177,7 @@ export function EmployeeListView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <UserCog size={24} className="text-white" />
@@ -200,18 +198,49 @@ export function EmployeeListView() {
 
       {/* ── Search / Filter Bar ────────────────────────────────────────── */}
       <div 
-        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex items-center min-h-[48px]"
+        className="bg-white rounded-xl border border-gray-100 px-4 py-1.5 flex flex-wrap gap-3 items-center min-h-[48px]"
         style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
       >
         <div className="relative w-full max-w-[340px] md:max-w-[420px] lg:max-w-[500px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search employees..."
+            placeholder="Search employee locally..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="relative">
+            <select
+              value={supervisor}
+              onChange={(e) => setSupervisor(e.target.value)}
+              className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            >
+              <option>All supervisors</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+
+          <div className="relative">
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
+            >
+              <option>All departments</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+
+          <button
+            onClick={() => {}}
+            className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            Apply
+          </button>
         </div>
       </div>
 
@@ -249,12 +278,12 @@ export function EmployeeListView() {
                     <p className="text-[14px] font-medium">Failed to load employees</p>
                   </td>
                 </tr>
-              ) : employees.length === 0 ? (
+              ) : paginatedEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
                 </tr>
               ) : (
-                employees.map((employee, index) => (
+                paginatedEmployees.map((employee, index) => (
                   <tr
                     key={employee.id}
                     onClick={() => setViewEmployeeId(employee.id)}
@@ -266,7 +295,7 @@ export function EmployeeListView() {
                       <div className="flex items-center gap-3 text-left">
                         <div 
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-                          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00C950 100%)' }}
+                          style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                         >
                           {getInitials(employee.name || `${employee.firstName} ${employee.lastName}`)}
                         </div>

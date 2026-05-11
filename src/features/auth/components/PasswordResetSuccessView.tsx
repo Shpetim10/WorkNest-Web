@@ -16,7 +16,7 @@ export function PasswordResetSuccessView() {
       <Card className="w-full max-w-[460px] p-12 flex flex-col items-center text-center relative z-10">
 
         {/* Green Circle Icon */}
-        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#00A63E] to-[#4ade80] shadow-lg shadow-green-500/20 flex items-center justify-center mb-8">
+        <div className="w-[84px] h-[84px] rounded-full bg-gradient-to-tr from-[#2B7FFF] to-[#00BBA7] shadow-lg shadow-green-500/20 flex items-center justify-center mb-8">
           <svg
             width="42"
             height="42"

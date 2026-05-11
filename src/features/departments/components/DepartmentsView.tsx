@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Card, Button, TablePagination } from '@/common/ui';
+import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Plus, Search, Edit2, Trash2, Eye, Loader2, Building2 } from 'lucide-react';
 import { useDepartments } from '../api';
 import { AddDepartmentModal } from './AddDepartmentModal';
@@ -85,6 +85,7 @@ export function DepartmentsView() {
           boxShadow: '0px 4px 12px rgba(0,0,0,0.12)',
         }}
       >
+        <PageHeaderDecorativeCircles />
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
             <Building2 size={24} className="text-white" />

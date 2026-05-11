@@ -59,7 +59,7 @@ export function PricingView() {
         {/* Professional Plan (Highlighted) */}
         <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:px-7 md:py-8 flex flex-col relative z-20 border border-gray-100 lg:-translate-y-2 transition-transform lg:hover:-translate-y-3">
           <div className="absolute top-4 left-6">
-            <span className="bg-gradient-to-r from-[#0066FF] to-[#00C853] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+            <span className="bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
               Most Popular
             </span>
           </div>
@@ -83,7 +83,7 @@ export function PricingView() {
 
           <button
             onClick={() => router.push('/register/company')}
-            className="w-full flex items-center justify-center gap-1.5 py-3 rounded-[10px] text-white text-[13px] font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] bg-gradient-to-r from-[#0066FF] to-[#00C853] mt-auto"
+            className="w-full flex items-center justify-center gap-1.5 py-3 rounded-[10px] text-white text-[13px] font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] mt-auto"
           >
             Choose Professional
             <ArrowRight className="w-4 h-4" />

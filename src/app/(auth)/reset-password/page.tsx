@@ -6,6 +6,14 @@ export const metadata: Metadata = {
   description: "Set a new secure password for your WorkNest account.",
 };
 
-export default function SetNewPasswordPage() {
-  return <SetNewPasswordView />;
+type ResetPasswordPageProps = {
+  searchParams?: Promise<{ token?: string | string[] }>;
+};
+
+export default async function SetNewPasswordPage({ searchParams }: ResetPasswordPageProps) {
+  const params = await searchParams;
+  const rawToken = params?.token;
+  const token = Array.isArray(rawToken) ? rawToken[0] : rawToken;
+
+  return <SetNewPasswordView token={token} />;
 }

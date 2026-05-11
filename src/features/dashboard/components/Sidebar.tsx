@@ -66,7 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Departments', icon: Building2, href: '/dashboard/settings/departments' },
   { name: 'Reports', icon: FileText, href: '#' },
   { name: 'Announcements', icon: Megaphone, href: '/dashboard/announcements' },
-  { name: 'Audit Log', icon: ShieldCheck, href: '#' },
+  { name: 'Audit Log', icon: ShieldCheck, href: '/dashboard/audit-log' },
   {
     name: 'Settings',
     icon: Settings,

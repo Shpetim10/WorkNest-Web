@@ -801,22 +801,19 @@ export function PayrollDashboardView() {
               })}
             </tbody>
           </table>
-        </div>
-
-        <div className="px-4 py-4 border-t border-slate-100">
-          <TablePagination
-            currentPage={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            pageSize={pageSize}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setPage(1);
-            }}
-            totalItems={filteredEmployees.length}
-          />
-        </div>
       </div>
+
+      <TablePagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        totalItems={filteredEmployees.length}
+      />
 
       {modal.kind === 'view' && (
         <ViewPayrollModal person={modal.person} initialDetails={modal.details} period={appliedPeriod} onClose={() => setModal({ kind: 'none' })} />

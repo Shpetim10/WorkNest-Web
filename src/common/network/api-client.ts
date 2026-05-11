@@ -1,6 +1,8 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { refreshAuthTokens } from '@/features/auth/api/refresh';
 import { setCookie } from '@/common/utils/cookies';
+import { toast } from 'sonner';
+import { handleApiError } from '@/common/utils/api-error-parser';
 
 /**
  * WorkNest Robust API Client
@@ -102,6 +104,14 @@ const PROACTIVE_REFRESH_BUFFER_MS = 30_000;
 
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    // Show global loading toast for mutations
+    if (typeof window !== 'undefined' && config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      // Allow opting out of toasts
+      if (!(config.headers as any)?.['X-Silent-Mutation']) {
+        (config as any).toastId = toast.loading('Processing request...');
+      }
+    }
+
     // 1. Prepend /api/v1 to relative paths
     if (config.url && !config.url.startsWith('http') && !config.url.startsWith(API_PREFIX)) {
       const separator = config.url.startsWith('/') ? '' : '/';
@@ -196,9 +206,17 @@ apiClient.interceptors.request.use(
 // ---------------------------------------------------------------------------
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const config = response.config as any;
+    if (typeof window !== 'undefined' && config.toastId) {
+      // Use the exact message provided by backend, or fallback
+      const msg = response.data?.message || 'Operation successful';
+      toast.success(msg, { id: config.toastId });
+    }
+    return response;
+  },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean, toastId?: string | number };
 
     // -----------------------------------------------------------------------
     // 401 Handler
@@ -345,6 +363,10 @@ apiClient.interceptors.response.use(
         status: error.response?.status,
         data: error.response?.data,
       });
+    }
+
+    if (typeof window !== 'undefined' && originalRequest?.toastId) {
+      handleApiError(error, { toastId: originalRequest.toastId });
     }
 
     return Promise.reject(error);

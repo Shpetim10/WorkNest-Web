@@ -21,7 +21,6 @@ import { StaffViewModal } from './StaffViewModal';
 import { resolvePersonDetailTarget } from '../utils/people';
 
 const TABLE_HEADERS = ['Name', 'Role', 'Employment Type', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
-const ITEMS_PER_PAGE = 10;
 
 function getInitials(name?: string | null) {
   if (!name) return '??';
@@ -42,11 +41,16 @@ function getErrorMessage(error: unknown, fallback: string) {
 export function EmployeeListView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError } = useCompanyPeople({ search: searchQuery });
+  const { data, isLoading, isError } = useCompanyPeople({
+    search: searchQuery || undefined,
+    page: currentPage,
+    size: pageSize,
+  });
 
   // Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -159,12 +163,10 @@ export function EmployeeListView() {
 
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
-  const employees = data?.data || [];
-  const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
-  const paginatedEmployees = employees.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
+  const employees = data?.data.items || [];
+  const totalPages = Math.max(1, data?.data.totalPages ?? 1);
+  const totalItems = data?.data.totalItems ?? employees.length;
+  // Use pageSize from state
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
@@ -280,12 +282,12 @@ export function EmployeeListView() {
                     <p className="text-[14px] font-medium">Failed to load employees</p>
                   </td>
                 </tr>
-              ) : paginatedEmployees.length === 0 ? (
+              ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
                 </tr>
               ) : (
-                paginatedEmployees.map((person, index) => (
+                employees.map((person, index) => (
                   <tr
                     key={person.id}
                     onClick={() => setViewPerson(person)}
@@ -419,7 +421,17 @@ export function EmployeeListView() {
         </div>
       </div>
 
-      <TablePagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={totalItems}
+      />
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
 

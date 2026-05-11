@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Plus, Search, Edit2, Trash2, Eye, Loader2, Building2 } from 'lucide-react';
 import { useDepartments } from '../api';
@@ -9,11 +9,8 @@ import { EditDepartmentModal } from './EditDepartmentModal';
 import { DeleteDepartmentModal } from './DeleteDepartmentModal';
 import { DepartmentDetailsModal } from './DepartmentDetailsModal';
 
-const ITEMS_PER_PAGE = 10;
 
 export function DepartmentsView() {
-  const { data: departments, isLoading, isError, error } = useDepartments();
-  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -21,33 +18,28 @@ export function DepartmentsView() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Reset page on search
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
+  const [pageSize, setPageSize] = useState(10);
+  const { data: departments, isLoading, isError } = useDepartments({
+    page: currentPage,
+    size: pageSize,
+  });
 
   const filteredDepartments = useMemo(() => {
-    if (!departments) return [];
-    if (!searchQuery.trim()) return departments;
+    const items = departments?.items ?? [];
+    if (!searchQuery.trim()) return items;
     const query = searchQuery.toLowerCase();
-    return departments.filter(dept => 
+    return items.filter(dept => 
       dept.name.toLowerCase().includes(query) || 
       dept.description?.toLowerCase().includes(query)
     );
   }, [departments, searchQuery]);
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredDepartments.length / ITEMS_PER_PAGE);
-  const paginatedDepartments = useMemo(() => {
-    return filteredDepartments.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE
-    );
-  }, [filteredDepartments, currentPage]);
+  const totalPages = Math.max(1, departments?.totalPages ?? 1);
+  const totalItems = departments?.totalItems ?? filteredDepartments.length;
+  // Use pageSize from state
 
   const selectedDepartment = useMemo(() => {
-    return departments?.find(d => d.id === selectedDeptId) || null;
+    return departments?.items.find(d => d.id === selectedDeptId) || null;
   }, [departments, selectedDeptId]);
 
   const TABLE_HEADERS = ['NAME', 'STATUS', 'DESCRIPTION', 'EMPLOYEES', 'CREATED AT', 'ACTIONS'];
@@ -115,7 +107,10 @@ export function DepartmentsView() {
             type="text"
             placeholder="Search departments..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
@@ -161,7 +156,7 @@ export function DepartmentsView() {
                     </div>
                   </td>
                 </tr>
-              ) : paginatedDepartments.length === 0 ? (
+              ) : filteredDepartments.length === 0 ? (
                 <tr className="hover:bg-gray-50/50 transition-colors">
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3 opacity-40 font-[Inter,sans-serif]">
@@ -173,7 +168,7 @@ export function DepartmentsView() {
                   </td>
                 </tr>
               ) : (
-                paginatedDepartments.map((dept, index) => (
+                filteredDepartments.map((dept, index) => (
                   <tr 
                     key={dept.id} 
                     className={`border-b border-[#E5E7EB] hover:bg-blue-50/30 transition-colors group cursor-pointer ${
@@ -242,6 +237,12 @@ export function DepartmentsView() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={totalItems}
       />
 
       <AddDepartmentModal

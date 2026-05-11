@@ -17,8 +17,12 @@ export const useAttendanceDashboard = (filters: AttendanceDashboardFilters, isAd
       const endpoint = isAdmin
         ? '/admin/attendance/dashboard'
         : '/staff/attendance';
+      const { page, ...restFilters } = filters;
       const response = await apiClient.get<{ status: string; data: AttendanceDashboardData }>(endpoint, {
-        params: filters,
+        params: {
+          ...restFilters,
+          page: page !== undefined ? Math.max(0, page - 1) : undefined,
+        },
       });
       return response.data.data;
     },

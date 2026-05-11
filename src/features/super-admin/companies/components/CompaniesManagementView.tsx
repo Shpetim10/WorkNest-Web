@@ -5,8 +5,6 @@ import { createPortal } from 'react-dom';
 import {
   Ban,
   Building2,
-  ChevronLeft,
-  ChevronRight,
   CheckCircle2,
   ChevronDown,
   Eye,
@@ -14,13 +12,12 @@ import {
   Search,
   XCircle,
 } from 'lucide-react';
-import { PageHeaderDecorativeCircles } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { CompanyManagementRow, CompanyManagementStatus } from '../types';
 import { CompanyDetailsModal } from './CompanyDetailsModal';
 import { SuspendCompanyModal } from './SuspendCompanyModal';
 
 const TABLE_HEADERS = ['Company Name', 'Legal Name', 'NIPT', 'Email', 'Plan', 'Status', 'Created', 'Actions'];
-const ITEMS_PER_PAGE = 5;
 const STATUS_FILTERS = ['All statuses', 'Active', 'Suspended'] as const;
 const PLAN_FILTERS = ['All plans', 'Starter', 'Professional', 'Enterprise'] as const;
 
@@ -67,88 +64,12 @@ function SelectField({
   );
 }
 
-function CompaniesPagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  const getPageNumbers = () => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    if (currentPage <= 3) return [1, 2, 3, '...', totalPages - 1, totalPages];
-    if (currentPage >= totalPages - 2) return [1, 2, '...', totalPages - 2, totalPages - 1, totalPages];
-
-    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-  };
-
-  return (
-    <div className="flex w-full justify-center pt-2">
-      <div className="flex items-center gap-3 rounded-[10px] bg-white px-3 py-2 shadow-[0_4px_10px_rgba(15,23,42,0.18)]">
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="flex h-7 min-w-[82px] items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-3 text-[12px] font-medium leading-none text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          <ChevronLeft size={13} strokeWidth={1.9} />
-          Previous
-        </button>
-
-        <div className="flex items-center gap-1.5">
-          {getPageNumbers().map((page, index) => {
-            if (page === '...') {
-              return (
-                <span key={`ellipsis-${index}`} className="px-1 text-[12px] font-medium leading-none text-[#00A3D9]">
-                  ...
-                </span>
-              );
-            }
-
-            const pageNumber = page as number;
-            const isActive = pageNumber === currentPage;
-
-            return (
-              <button
-                key={pageNumber}
-                type="button"
-                onClick={() => onPageChange(pageNumber)}
-                className={`flex h-7 min-w-7 items-center justify-center rounded-md text-[12px] font-medium leading-none transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-2 text-white shadow-[0_3px_7px_rgba(43,127,255,0.22)]'
-                    : 'px-2 text-[#00A3D9] hover:bg-[#EAF4FF]'
-                }`}
-              >
-                {pageNumber}
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-          className="flex h-7 min-w-[74px] items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-3 text-[12px] font-medium leading-none text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          Next
-          <ChevronRight size={13} strokeWidth={1.9} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function CompaniesManagementView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('All statuses');
   const [planFilter, setPlanFilter] = useState<(typeof PLAN_FILTERS)[number]>('All plans');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [detailsCompany, setDetailsCompany] = useState<CompanyManagementRow | null>(null);
@@ -173,8 +94,8 @@ export function CompaniesManagementView() {
     });
   }, [planFilter, searchQuery, statusFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / ITEMS_PER_PAGE));
-  const visibleRows = filteredRows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const resetPage = () => setCurrentPage(1);
 
@@ -367,7 +288,17 @@ export function CompaniesManagementView() {
         </div>
       </div>
 
-      <CompaniesPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={filteredRows.length}
+      />
 
       {openDropdownId && dropdownPosition && (() => {
         const activeCompany = visibleRows.find((company) => company.id === openDropdownId);

@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
 import { ApiResponse } from '@/common/types/api';
 import { AnnouncementListResponse, CreateAnnouncementBody } from '../types';
+import { EmployeeDTO } from '@/features/employees/types';
+import { normalizeCompanyPersonRow } from '@/features/employees/utils/people';
 
 export interface EmployeeLookupItem {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
+  fullName: string;
   email: string;
   departmentId?: string;
   departmentName?: string;

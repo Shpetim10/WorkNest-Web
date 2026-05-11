@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { name: 'Attendance', icon: Clock, href: '/dashboard/attendance' },
   { name: 'Leave', icon: Calendar, href: '/dashboard/leave' },
-  { name: 'Payroll', icon: DollarSign, href: '#', hasChevron: true },
+  { name: 'Payroll', icon: DollarSign, href: '/dashboard/payroll' },
   {
     name: 'Locations',
     icon: MapPin,

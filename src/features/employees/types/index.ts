@@ -13,6 +13,8 @@ export enum EmploymentType {
   INTERN = 'INTERN',
 }
 
+export type PlatformRole = 'EMPLOYEE' | 'STAFF' | 'ADMIN' | 'SUPERADMIN' | string;
+
 export enum PaymentMethod {
   FIXED_MONTHLY = 'FIXED_MONTHLY',
   HOURLY = 'HOURLY',
@@ -37,6 +39,7 @@ export interface EmployeeDTO {
   supervisorName?: string;
   supervisorJobTitle?: string;
   companyId?: string;
+  platformRole?: PlatformRole | null;
   // Employment & Contract
   employmentType?: EmploymentType | null;
   contractDocumentKey?: string | null;
@@ -46,6 +49,22 @@ export interface EmployeeDTO {
   paymentMethod?: PaymentMethod | null;
   monthlySalary?: number | null;
   hourlyRate?: number | null;
+}
+
+export interface CompanyPersonRow {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  jobTitle: string;
+  departmentName: string;
+  companySiteName: string;
+  platformRole: PlatformRole;
+  employmentType: EmploymentType | null;
+  employmentTypeLabel: string;
+  displayRoleLabel: string;
+  status: EmployeeStatus;
+  raw: EmployeeDTO;
 }
 
 export interface EmployeeFilters {

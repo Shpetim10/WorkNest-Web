@@ -46,7 +46,7 @@ export function EmployeeListView() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError } = useEmployees({ search: searchQuery });
+  const { data, isLoading, isError } = useCompanyPeople({ search: searchQuery });
 
   // Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -285,7 +285,7 @@ export function EmployeeListView() {
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
                 </tr>
               ) : (
-                paginatedEmployees.map((employee, index) => (
+                paginatedEmployees.map((person, index) => (
                   <tr
                     key={person.id}
                     onClick={() => setViewPerson(person)}
@@ -353,7 +353,7 @@ export function EmployeeListView() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         {/* Resend invitation (pending only) */}
-                        {isEmployeeRow && person.status === EmployeeStatus.PENDING && (
+                        {person.platformRole === 'EMPLOYEE' && person.status === EmployeeStatus.PENDING && (
                           <button
                             onClick={() => handleResend(person.id)}
                             disabled={resendMutation.isPending}
@@ -374,7 +374,7 @@ export function EmployeeListView() {
                         </button>
 
                         {/* Update Dropdown */}
-                        {isEmployeeRow && (
+                        {person.platformRole === 'EMPLOYEE' && (
                         <div className="relative">
                           <button
                             data-employee-dropdown-trigger={person.id}
@@ -388,9 +388,9 @@ export function EmployeeListView() {
                         )}
 
                         {/* Delete */}
-                        {isEmployeeRow && (person.status === EmployeeStatus.ACTIVE || person.status === EmployeeStatus.INACTIVE || person.status === EmployeeStatus.TERMINATED) && (
+                        {person.platformRole === 'EMPLOYEE' && (person.status === EmployeeStatus.ACTIVE || person.status === EmployeeStatus.INACTIVE || person.status === EmployeeStatus.TERMINATED) && (
                           <button
-                            onClick={() => setStatusActionEmployee(employee)}
+                            onClick={() => setStatusActionEmployee(person.raw)}
                             title={person.status === EmployeeStatus.ACTIVE ? 'Terminate Employee' : 'Activate Employee'}
                             className={`rounded-lg p-2 text-gray-400 transition-all ${
                               person.status === EmployeeStatus.ACTIVE
@@ -402,8 +402,8 @@ export function EmployeeListView() {
                           </button>
                         )}
 
-                        {isEmployeeRow && <button
-                          onClick={() => setDeleteEmployee(employee)}
+                        {person.platformRole === 'EMPLOYEE' && <button
+                          onClick={() => setDeleteEmployee(person.raw)}
                           title="Delete Employee"
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-red-50 hover:text-red-600"
                         >
@@ -412,7 +412,7 @@ export function EmployeeListView() {
                       </div>
                     </td>
                   </tr>
-                )})
+                ))
               )}
             </tbody>
           </table>
@@ -493,7 +493,7 @@ export function EmployeeListView() {
       )}
 
       {openDropdownId && dropdownPosition && (() => {
-        const activeEmployee = people.find((person) => person.id === openDropdownId)?.raw;
+        const activeEmployee = employees.find((person) => person.id === openDropdownId)?.raw;
         if (!activeEmployee) return null;
 
         return createPortal(

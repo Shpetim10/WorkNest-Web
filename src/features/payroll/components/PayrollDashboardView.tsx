@@ -801,6 +801,7 @@ export function PayrollDashboardView() {
               })}
             </tbody>
           </table>
+        </div>
       </div>
 
       <TablePagination

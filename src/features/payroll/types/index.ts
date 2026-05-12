@@ -7,6 +7,8 @@ export type PayrollStatus =
   | 'CANCELLED';
 
 export type PaymentMethod = 'FIXED_MONTHLY' | 'HOURLY';
+export type PayrollAdjustmentType = 'BONUS' | 'DEDUCTION';
+export type PayrollCalculationStatus = 'SUCCESS' | 'FAILED' | 'SKIPPED';
 
 export interface PayrollPeriod {
   year: number;
@@ -18,7 +20,6 @@ export interface PayrollAdjustmentLine {
   amount: number;
   reason?: string | null;
   notes?: string | null;
-  createdAt?: string | null;
 }
 
 export interface PayrollCalculationResponse {
@@ -28,12 +29,10 @@ export interface PayrollCalculationResponse {
   month: number;
   currency: string;
   paymentMethod: PaymentMethod;
-  calculationStatus: 'SUCCESS' | string;
+  calculationStatus: PayrollCalculationStatus;
   payrollStatus: PayrollStatus;
   preview: boolean;
   employmentPeriod?: {
-    startDate?: string | null;
-    endDate?: string | null;
     employmentStartDate?: string | null;
     employmentEndDate?: string | null;
     payableFrom?: string | null;
@@ -51,8 +50,11 @@ export interface PayrollCalculationResponse {
     formula?: string;
     monthlySalary?: number;
     hourlyRate?: number;
+    payableWorkingDays?: number;
+    workingDaysInMonth?: number;
     payableHours?: number;
     basePay: number;
+    prorationMethod?: string;
   } | null;
   leaveCalculation?: {
     annualPaidLeaveAllowanceDays?: number;
@@ -82,10 +84,21 @@ export interface PayrollCalculationResponse {
     basePay: number;
     grossEarnings: number;
     totalDeductions: number;
-    netPay: number;
-    negativeNetPay: boolean;
   } | null;
   warnings: string[] | null;
+}
+
+export interface PayrollAdjustmentResponse {
+  id: string;
+  employeeId: string;
+  year: number;
+  month: number;
+  type: PayrollAdjustmentType;
+  amount: number;
+  reason: string;
+  notes: string | null;
+  createdByUserId: string;
+  createdAt: string;
 }
 
 export interface PayrollAdjustmentRequest {
@@ -109,13 +122,29 @@ export interface PayrollBatchCalculateRequest {
   employeeIds?: string[] | null;
 }
 
+export interface SickLeavePolicyResponse {
+  companyPaidPercentage: number;
+  maxCompanyPaidDays: number;
+  isDefault: boolean;
+}
+
+export interface UpsertSickLeavePolicyRequest {
+  companyPaidPercentage: number;
+  maxCompanyPaidDays: number;
+}
+
 export interface PayrollBatchCalculateResponse {
-  successCount?: number;
-  failedCount?: number;
-  skippedCount?: number;
-  failures?: Array<{
-    employeeId?: string;
-    employeeName?: string;
-    message: string;
+  year: number;
+  month: number;
+  totalEmployees: number;
+  successfulCalculations: number;
+  failedCalculations: number;
+  skippedCalculations: number;
+  results: Array<{
+    employeeId: string;
+    status: PayrollCalculationStatus;
+    grossEarnings: number;
+    errorCode: string | null;
+    message: string | null;
   }>;
 }

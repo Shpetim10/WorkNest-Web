@@ -103,12 +103,14 @@ function paymentLabel(value?: string | null): string {
 }
 
 function payrollTotals(details?: PayrollCalculationResponse | null) {
+  const basePay = details?.totals?.basePay ?? 0;
+  const grossEarnings = details?.totals?.grossEarnings ?? 0;
+  const totalDeductions = details?.totals?.totalDeductions ?? 0;
   return {
-    basePay: details?.totals?.basePay ?? 0,
-    grossEarnings: details?.totals?.grossEarnings ?? 0,
-    totalDeductions: details?.totals?.totalDeductions ?? 0,
-    netPay: details?.totals?.netPay ?? 0,
-    negativeNetPay: details?.totals?.negativeNetPay ?? false,
+    basePay,
+    grossEarnings,
+    totalDeductions,
+    negativeNetPay: grossEarnings - totalDeductions < 0,
   };
 }
 
@@ -624,9 +626,9 @@ export function PayrollDashboardView() {
       },
       {
         onSuccess: (result) => {
-          const success = result.successCount ?? filteredEmployees.length;
-          const failed = result.failedCount ?? 0;
-          const skipped = result.skippedCount ?? 0;
+          const success = result.successfulCalculations ?? filteredEmployees.length;
+          const failed = result.failedCalculations ?? 0;
+          const skipped = result.skippedCalculations ?? 0;
           setBatchMessage(`Calculated ${success} employees. Failed: ${failed}. Skipped: ${skipped}.`);
         },
         onError: (error) => setBatchMessage(extractErrorMessage(error)),

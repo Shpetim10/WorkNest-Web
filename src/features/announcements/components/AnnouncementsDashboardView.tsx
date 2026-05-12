@@ -64,7 +64,8 @@ export function AnnouncementsDashboardView() {
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
       {/* Hero banner */}
       <div
-        className="relative overflow-hidden rounded-2xl px-8 py-8"
+        className="relative overflow-hidden rounded-2xl px-8 py-8 flex items-center justify-between cursor-pointer group"
+        onClick={() => setIsCreateOpen(true)}
         style={{
           background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)',
           minHeight: 120,
@@ -81,17 +82,10 @@ export function AnnouncementsDashboardView() {
             <p className="text-white/80 text-sm mt-0.5">Create and manage company announcements</p>
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-end px-2">
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-[0px_4px_12px_rgba(43,127,255,0.24)] transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
-        >
-          <Plus size={16} />
-          Create Announcement
-        </button>
+        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
+          <Plus size={28} className="text-white" />
+        </div>
+        <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
       </div>
 
       {/* Announcement list */}
@@ -135,20 +129,25 @@ export function AnnouncementsDashboardView() {
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-start gap-2">
-                <span
-                  className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                  style={audienceBadgeStyle(item.targetAudience)}
-                >
-                  {audienceLabel(item.targetAudience)}
-                </span>
-                <button
-                  onClick={() => setToDelete(item)}
-                  className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
-                  title="Delete"
-                >
-                  <Trash2 size={15} />
-                </button>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={audienceBadgeStyle(item.targetAudience)}
+                  >
+                    {audienceLabel(item.targetAudience)}
+                  </span>
+                  <button
+                    onClick={() => setToDelete(item)}
+                    className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
+                    title="Delete"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+                {item.targetAudience === 'SPECIFIC_USERS' && item.targetEmployees && item.targetEmployees.length > 0 && (
+                  <TargetEmployeeChips employees={item.targetEmployees} />
+                )}
               </div>
             </div>
           ))}

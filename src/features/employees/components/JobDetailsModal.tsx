@@ -50,6 +50,7 @@ interface FormValues {
   paymentMethod: string;
   monthlySalary: string;
   hourlyRate: string;
+  dailyWorkingHours: string;
   leaveDaysPerYear: string;
   contractFile: File | null;
   contractDocumentKey: string;
@@ -63,6 +64,7 @@ const EMPTY: FormValues = {
   paymentMethod: '',
   monthlySalary: '',
   hourlyRate: '',
+  dailyWorkingHours: '',
   leaveDaysPerYear: '',
   contractFile: null,
   contractDocumentKey: '',
@@ -118,6 +120,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
       paymentMethod: entityData.paymentMethod || '',
       monthlySalary: entityData.monthlySalary != null ? String(entityData.monthlySalary) : '',
       hourlyRate: entityData.hourlyRate != null ? String(entityData.hourlyRate) : '',
+      dailyWorkingHours: entityData.dailyWorkingHours != null ? String(entityData.dailyWorkingHours) : '',
       leaveDaysPerYear: entityData.leaveDaysPerYear != null ? String(entityData.leaveDaysPerYear) : '',
       contractFile: null,
       contractDocumentKey: entityData.contractDocumentKey || '',
@@ -192,6 +195,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
         ? Number(values.monthlySalary) : null,
       hourlyRate: values.paymentMethod === 'HOURLY' && values.hourlyRate
         ? Number(values.hourlyRate) : null,
+      dailyWorkingHours: values.dailyWorkingHours ? Number(values.dailyWorkingHours) : null,
     };
 
     try {
@@ -390,6 +394,26 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                       />
                     </div>
                     <p className="text-[12px] text-gray-400 font-medium">Rate per hour worked</p>
+                  </div>
+                )}
+
+                {!!values.paymentMethod && (
+                  <div className="space-y-2">
+                    <label className={LABEL}>
+                      <Clock size={14} className="inline mr-1.5 -mt-0.5" />
+                      Daily Working Hours
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="24"
+                      step="0.5"
+                      placeholder="e.g. 8"
+                      value={values.dailyWorkingHours}
+                      onChange={set('dailyWorkingHours')}
+                      className={INPUT}
+                    />
+                    <p className="text-[12px] text-gray-400 font-medium">Used to calculate sick leave pay.</p>
                   </div>
                 )}
 

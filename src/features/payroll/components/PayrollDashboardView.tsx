@@ -81,19 +81,24 @@ function formatCurrency(
   locale = 'en-US',
 ): string {
   const safeValue = Number.isFinite(value ?? NaN) ? Number(value) : 0;
-  return new Intl.NumberFormat(locale, {
+  const parts = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     maximumFractionDigits: safeValue % 1 === 0 ? 0 : 2,
-  }).format(safeValue);
+    minimumFractionDigits: safeValue % 1 === 0 ? 0 : 2,
+  }).formatToParts(safeValue);
+
+  const currencyPart = parts.find((p) => p.type === 'currency');
+  const otherParts = parts.filter((p) => p.type !== 'currency');
+
+  const formattedValue = otherParts.map((p) => p.value).join('').trim();
+  const symbol = currencyPart?.value || currency;
+
+  return `${formattedValue} ${symbol}`;
 }
 
 function compactCurrency(value: number, currency = 'EUR', locale = 'en-US'): string {
-  const abs = Math.abs(value);
-  const compactValue = abs >= 1000 ? `${(value / 1000).toFixed(abs >= 10000 ? 0 : 1)}k` : `${value.toFixed(0)}`;
-  const formattedZero = formatCurrency(0, currency, locale);
-  const symbol = formattedZero.replace(/[\d\s.,]/g, '') || currency;
-  return `${symbol}${compactValue}`;
+  return formatCurrency(value, currency, locale);
 }
 
 function paymentLabel(value?: string | null): string {
@@ -121,9 +126,6 @@ function payrollAdjustments(details?: PayrollCalculationResponse | null) {
   };
 }
 
-function payrollWarnings(details?: PayrollCalculationResponse | null): string[] {
-  return details?.warnings ?? [];
-}
 
 function formatBasePayDisplay(
   details: PayrollCalculationResponse | undefined,
@@ -336,18 +338,6 @@ function ViewPayrollModal({
               </div>
             </div>
 
-            {payrollWarnings(details).length > 0 && (
-              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                  <div className="space-y-1">
-                    {payrollWarnings(details).map((warning) => (
-                      <p key={warning}>{warning}</p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
@@ -602,10 +592,9 @@ export function PayrollDashboardView() {
       acc.totalBonuses += adjustments.totalBonus;
       acc.totalDeductions += totals.totalDeductions;
       acc.pending += details.preview || details.payrollStatus === 'DRAFT' ? 1 : 0;
-      acc.warnings += payrollWarnings(details).length;
       return acc;
     },
-    { totalPayroll: 0, totalBonuses: 0, totalDeductions: 0, pending: 0, warnings: 0 },
+    { totalPayroll: 0, totalBonuses: 0, totalDeductions: 0, pending: 0 },
   );
 
   const batchCalculate = useBatchCalculatePayroll();
@@ -667,10 +656,10 @@ export function PayrollDashboardView() {
         <StatCard label="Page Pending" value={String(summary.pending)} />
       </div>
 
-      {(batchMessage || summary.warnings > 0) && (
+      {batchMessage && (
         <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>{batchMessage ?? `${summary.warnings} payroll warning${summary.warnings === 1 ? '' : 's'} visible in the current page.`}</span>
+          <span>{batchMessage}</span>
         </div>
       )}
 
@@ -689,12 +678,26 @@ export function PayrollDashboardView() {
         </div>
 
         <div className="relative">
-          <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <button
+            type="button"
+            onClick={(e) => {
+              const input = e.currentTarget.nextElementSibling as HTMLInputElement;
+              if (input && 'showPicker' in input) {
+                input.showPicker();
+              }
+            }}
+            className="h-10 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 flex items-center hover:border-blue-300 transition-colors w-full md:w-[200px] text-left"
+          >
+            <CalendarDays size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <span className="truncate">{monthName(period)}</span>
+            <ChevronDown size={14} className="ml-auto text-slate-400 shrink-0" />
+          </button>
           <input
             type="month"
             value={toMonthInput(period)}
             onChange={(event) => setPeriod(fromMonthInput(event.target.value))}
-            className="h-10 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-300"
+            className="absolute inset-0 opacity-0 pointer-events-none"
+            tabIndex={-1}
           />
         </div>
 

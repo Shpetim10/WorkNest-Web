@@ -51,8 +51,7 @@ function formatDateRange(start: string, end: string): string {
   return `${formatDate(start)} – ${formatDate(end)}`;
 }
 
-const PAGE_SIZE = 10;
-const STATUS_OPTIONS = (['REJECTED', 'APPROVED', 'PENDING', 'CANCELLED'] as LeaveStatus[]);
+const STATUS_OPTIONS = (['REJECTED', 'APPROVED', 'PENDING'] as LeaveStatus[]);
 
 // ─── Main View ───────────────────────────────────────────────────────────────
 
@@ -61,6 +60,7 @@ export function LeaveDashboardView() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<LeaveStatus | 'All'>('All');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequestDto | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -82,15 +82,17 @@ export function LeaveDashboardView() {
     search: debouncedSearch || undefined,
     status: filterStatus !== 'All' ? filterStatus : undefined,
     page,
-    size: PAGE_SIZE,
+     size: pageSize,
   };
 
   const { data, isLoading } = useLeaveRequests(queryParams);
   const approve = useApproveLeave();
   const reject = useRejectLeave();
 
-  const rows = data?.content ?? [];
-  const totalPages = data?.totalPages ?? 0;
+  const rows = data?.items ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const totalItems = data?.totalItems ?? rows.length;
+  // Use pageSize from state
 
   const handleApprove = (row: LeaveRequestDto) => {
     setSelectedLeave(row);
@@ -357,6 +359,12 @@ export function LeaveDashboardView() {
         currentPage={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        totalItems={totalItems}
         className="-mt-2"
       />
 

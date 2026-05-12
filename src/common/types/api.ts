@@ -30,6 +30,24 @@ export interface PaginatedResponse<T> {
 }
 
 /**
+ * Standard paginated collection used by the updated list APIs
+ */
+export interface OffsetPaginatedCollection<T> {
+  items: T[];
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  size?: number;
+}
+
+/**
  * Generic API success response (if used beyond raw body)
  */
 export interface ApiResponse<T> {

@@ -98,8 +98,8 @@ export function AssignModal({
         jobTitle: employee.jobTitle || '',
       });
 
-    setAvailable((boardData?.unassignedEmployees ?? []).map(mapBoardEmployee));
-    setAssigned((boardData?.assignedEmployees ?? []).map(mapBoardEmployee));
+    setAvailable((boardData?.unassignedEmployees.items ?? []).map(mapBoardEmployee));
+    setAssigned((boardData?.assignedEmployees.items ?? []).map(mapBoardEmployee));
     setSelectedAvailable(new Set());
     setSelectedAssigned(new Set());
     setAvailSearch('');

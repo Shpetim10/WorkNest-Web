@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Search, UserPlus2, Building2, Users2, Plus, ChevronDown } from 'lucide-react';
 import { AssignModal } from './AssignModal';
@@ -19,19 +19,22 @@ interface Supervisor {
 }
 
 const TABLE_HEADERS = ['Name', 'Job Title', 'Department', 'Assigned Employees', 'Action'];
-const ITEMS_PER_PAGE = 10;
 
 export function AssignEmployeesView() {
-  const { data: staffResponse } = useStaff();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSupervisor, setActiveSupervisor] = useState<Supervisor | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [date, setDate] = useState('2026-05-01');
   const [status, setStatus] = useState('All statuses');
   const [department, setDepartment] = useState('All departments');
+  const { data: staffResponse } = useStaff({
+    page: currentPage,
+    size: pageSize,
+  });
 
   const supervisors: Supervisor[] = React.useMemo(() => {
-    const rawData = staffResponse?.data || [];
+    const rawData = staffResponse?.data.items || [];
 
     return rawData.map(staff => ({
       id: staff.id,
@@ -51,21 +54,15 @@ export function AssignEmployeesView() {
     }));
   }, [staffResponse]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
   const filteredSupervisors = supervisors.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filteredSupervisors.length / ITEMS_PER_PAGE);
-  const paginatedSupervisors = filteredSupervisors.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = Math.max(1, staffResponse?.data.totalPages ?? 1);
+  const totalItems = staffResponse?.data.totalItems ?? filteredSupervisors.length;
+  // Use pageSize from state
 
   const handleUpdateAssignment = (_newCount: number) => {
     setActiveSupervisor(null);
@@ -107,7 +104,10 @@ export function AssignEmployeesView() {
             type="text"
             placeholder="Search employee locally..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
@@ -173,14 +173,14 @@ export function AssignEmployeesView() {
               </tr>
             </thead>
             <tbody className="bg-white">
-              {paginatedSupervisors.length === 0 ? (
+              {filteredSupervisors.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center">
                     <p className="text-[14px] font-medium text-gray-400">No supervisors found</p>
                   </td>
                 </tr>
               ) : (
-                paginatedSupervisors.map((supervisor, index) => (
+                filteredSupervisors.map((supervisor, index) => (
                   <tr 
                     key={supervisor.id} 
                     className={`border-b border-[#E5E7EB] group transition-colors hover:bg-blue-50/30 ${
@@ -238,6 +238,12 @@ export function AssignEmployeesView() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={totalItems}
       />
 
       {activeSupervisor && (

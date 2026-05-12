@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
+import type { ApiResponse } from '@/common/types/api';
 import { LeaveRequestDto, LeaveStatus, Page, RejectLeaveRequestBody } from '../types';
 
 export interface LeaveRequestParams {
@@ -20,10 +21,10 @@ export const useLeaveRequests = (params: LeaveRequestParams) => {
   return useQuery<Page<LeaveRequestDto>>({
     queryKey: leaveKeys.list(params),
     queryFn: async () => {
-      const { page = 1, ...rest } = params;
-      const response = await apiClient.get<{ status: string; data: Page<LeaveRequestDto> }>(
+      const { page = 1, size = 10, ...rest } = params;
+      const response = await apiClient.get<ApiResponse<Page<LeaveRequestDto>>>(
         '/admin/leave/requests',
-        { params: { ...rest, page: page - 1 } },
+        { params: { ...rest, page: page - 1, size } },
       );
       return response.data.data;
     },

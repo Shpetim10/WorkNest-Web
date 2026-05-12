@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
-import { ApiResponse } from '@/common/types/api';
+import { ApiResponse, OffsetPaginatedCollection, PaginationParams } from '@/common/types/api';
 import { AnnouncementListResponse, CreateAnnouncementBody } from '../types';
-import { EmployeeDTO } from '@/features/employees/types';
-import { normalizeCompanyPersonRow } from '@/features/employees/utils/people';
+import { fetchAllEmployees } from '@/features/employees/api/get-employees';
 
 export interface EmployeeLookupItem {
   id: string;
@@ -28,19 +27,25 @@ function getBasePath(companyId: string) {
 
 export const announcementKeys = {
   all: ['announcements'] as const,
-  list: () => [...announcementKeys.all, 'list'] as const,
+  list: (params: PaginationParams = {}) => [...announcementKeys.all, 'list', params] as const,
   employeeLookup: (departmentIds: string[], departmentNames: string[]) =>
     [...announcementKeys.all, 'employee-lookup', { departmentIds, departmentNames }] as const,
 };
 
-export const useAnnouncements = () => {
-  return useQuery<AnnouncementListResponse[]>({
-    queryKey: announcementKeys.list(),
+export const useAnnouncements = (params: PaginationParams = {}) => {
+  return useQuery<OffsetPaginatedCollection<AnnouncementListResponse>>({
+    queryKey: announcementKeys.list(params),
     queryFn: async () => {
       const companyId = getCurrentCompanyId();
       if (!companyId) throw new Error('Company context missing.');
-      const response = await apiClient.get<ApiResponse<AnnouncementListResponse[]>>(
+      const response = await apiClient.get<ApiResponse<OffsetPaginatedCollection<AnnouncementListResponse>>>(
         getBasePath(companyId),
+        {
+          params: {
+            page: Math.max(0, (params.page ?? 1) - 1),
+            size: params.size ?? 10,
+          },
+        },
       );
       return response.data.data;
     },
@@ -97,15 +102,30 @@ export const useEmployeeLookup = (
 
       const responses = await Promise.all(
         departmentIds.map((departmentId) =>
-          apiClient.get<ApiResponse<EmployeeLookupItem[]>>(`/companies/${companyId}/employees`, {
-            params: { departmentId },
-          }),
+          fetchAllEmployees(companyId, { departmentId }),
         ),
       );
 
       const employeesById = new Map<string, EmployeeLookupItem>();
-      responses.forEach((response) => {
-        response.data.data.forEach((employee) => employeesById.set(employee.id, employee));
+      responses.forEach((employees) => {
+        employees.forEach((employee) => {
+          employeesById.set(employee.id, {
+            id: employee.id,
+            fullName:
+              employee.name ||
+              [employee.firstName, employee.lastName].filter(Boolean).join(' ') ||
+              employee.email,
+            email: employee.email,
+            departmentId: employee.departmentId,
+            departmentName: employee.departmentName,
+            department: employee.departmentId || employee.departmentName
+              ? {
+                  id: employee.departmentId,
+                  name: employee.departmentName,
+                }
+              : undefined,
+          });
+        });
       });
 
       const selectedDepartmentIds = new Set(departmentIds);

@@ -37,7 +37,6 @@ import {
   usePersistPayrollCalculation,
 } from '../api';
 
-const PAGE_SIZE = 8;
 
 type ModalState =
   | { kind: 'none' }
@@ -550,6 +549,7 @@ export function PayrollDashboardView() {
   const [employeeType, setEmployeeType] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
   const [modal, setModal] = useState<ModalState>({ kind: 'none' });
   const [batchMessage, setBatchMessage] = useState<string | null>(null);
 
@@ -557,7 +557,7 @@ export function PayrollDashboardView() {
     status: EmployeeStatus.ACTIVE,
     size: 200,
   });
-  const people = useMemo(() => employeesData?.data ?? [], [employeesData?.data]);
+  const people = useMemo(() => employeesData?.data.items ?? [], [employeesData?.data.items]);
 
   const filteredEmployees = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -572,8 +572,8 @@ export function PayrollDashboardView() {
     });
   }, [employeeType, paymentMethod, people, search]);
 
-  const totalPages = Math.ceil(filteredEmployees.length / PAGE_SIZE);
-  const visiblePeople = filteredEmployees.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
+  const visiblePeople = filteredEmployees.slice((page - 1) * pageSize, page * pageSize);
 
   const detailQueries = useQueries({
     queries: visiblePeople.map((person) => ({
@@ -804,13 +804,19 @@ export function PayrollDashboardView() {
             </tbody>
           </table>
         </div>
-
-        {totalPages > 1 && (
-          <div className="px-4 py-4 border-t border-slate-100">
-            <TablePagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-          </div>
-        )}
       </div>
+
+      <TablePagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        totalItems={filteredEmployees.length}
+      />
 
       {modal.kind === 'view' && (
         <ViewPayrollModal person={modal.person} initialDetails={modal.details} period={appliedPeriod} onClose={() => setModal({ kind: 'none' })} />

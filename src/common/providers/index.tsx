@@ -1,8 +1,9 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState, ReactNode } from 'react';
+import { toast } from 'sonner';
 
 /**
  * Common Providers for the application
@@ -13,6 +14,20 @@ export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error, query) => {
+            if (query.meta?.silent) return;
+            
+            const apiError = error as any;
+            let errorMessage = 'Failed to fetch data';
+            if (apiError?.response?.data?.message) {
+              errorMessage = apiError.response.data.message;
+            }
+
+            // Only show errors for queries, not loading/success to avoid spam
+            toast.error(errorMessage);
+          }
+        }),
         defaultOptions: {
           queries: {
             staleTime: 5 * 60 * 1000, // 5 minutes

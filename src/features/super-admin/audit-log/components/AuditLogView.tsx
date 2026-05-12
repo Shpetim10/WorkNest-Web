@@ -6,20 +6,17 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Search,
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
-import { PageHeaderDecorativeCircles } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import type { AuditLogRow, AuditLogSeverity, AuditLogSummaryDto } from '../types';
 import { useSuperAdminAuditLog } from '../api/use-super-admin-audit-log';
 import { AuditLogDetailsModal } from './AuditLogDetailsModal';
 
 const TABLE_HEADERS = ['Event', 'Company', 'Description', 'Actor', 'Timestamp', 'Severity', 'View'];
-const ITEMS_PER_PAGE = 5;
 
 interface AuditSummaryCard {
   id: string;
@@ -133,83 +130,6 @@ function SummaryCard({ card, value }: { card: AuditSummaryCard; value: string })
   );
 }
 
-function AuditLogPagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  const getPageNumbers = () => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    if (currentPage <= 3) return [1, 2, 3, '...', totalPages - 1, totalPages];
-    if (currentPage >= totalPages - 2) return [1, 2, '...', totalPages - 2, totalPages - 1, totalPages];
-
-    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
-  };
-
-  return (
-    <div className="flex w-full justify-center pt-2">
-      <div className="flex items-center gap-3 rounded-[10px] bg-white px-3 py-2 shadow-[0_4px_10px_rgba(15,23,42,0.18)]">
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="flex h-7 min-w-[82px] items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-3 text-[12px] font-medium leading-none text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          <ChevronLeft size={13} strokeWidth={1.9} />
-          Previous
-        </button>
-
-        <div className="flex items-center gap-1.5">
-          {getPageNumbers().map((page, index) => {
-            if (page === '...') {
-              return (
-                <span key={`ellipsis-${index}`} className="px-1 text-[12px] font-medium leading-none text-[#00A3D9]">
-                  ...
-                </span>
-              );
-            }
-
-            const pageNumber = page as number;
-            const isActive = pageNumber === currentPage;
-
-            return (
-              <button
-                key={pageNumber}
-                type="button"
-                onClick={() => onPageChange(pageNumber)}
-                className={`flex h-7 min-w-7 items-center justify-center rounded-md text-[12px] font-medium leading-none transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-2 text-white shadow-[0_3px_7px_rgba(43,127,255,0.22)]'
-                    : 'px-2 text-[#00A3D9] hover:bg-[#EAF4FF]'
-                }`}
-              >
-                {pageNumber}
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-          className="flex h-7 min-w-[74px] items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-3 text-[12px] font-medium leading-none text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          Next
-          <ChevronRight size={13} strokeWidth={1.9} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 interface AuditLogViewProps {
   enableAuditLogQuery?: boolean;
 }
@@ -217,10 +137,11 @@ interface AuditLogViewProps {
 export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps = {}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [detailsAuditLog, setDetailsAuditLog] = useState<AuditLogRow | null>(null);
   const auditLogQuery = useSuperAdminAuditLog({
     page: currentPage - 1,
-    size: ITEMS_PER_PAGE,
+    size: pageSize,
     search: searchQuery,
   }, {
     enabled: enableAuditLogQuery,
@@ -370,7 +291,17 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
         </div>
       </div>
 
-      <AuditLogPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={auditLogData?.page.totalElements}
+      />
 
       <AuditLogDetailsModal
         isOpen={!!detailsAuditLog}

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
-import { ApiResponse, ApiErrorResponse } from '@/common/types/api';
+import { ApiResponse, ApiErrorResponse, OffsetPaginatedCollection, PaginationParams } from '@/common/types/api';
 import {
   DepartmentListItem,
   DepartmentDetails,
@@ -12,7 +12,7 @@ import {
 export const departmentKeys = {
   all: ['departments'] as const,
   lists: () => [...departmentKeys.all, 'list'] as const,
-  list: () => [...departmentKeys.lists()] as const,
+  list: (params: PaginationParams = {}) => [...departmentKeys.lists(), params] as const,
   details: () => [...departmentKeys.all, 'detail'] as const,
   detail: (id: string) => [...departmentKeys.details(), id] as const,
   lookup: () => [...departmentKeys.all, 'lookup'] as const,
@@ -33,17 +33,23 @@ function getDepartmentBasePath(companyId: string) {
 /**
  * Hook to fetch all departments for the current company
  */
-export const useDepartments = () => {
-  return useQuery<DepartmentListItem[]>({
-    queryKey: departmentKeys.list(),
+export const useDepartments = (params: PaginationParams = {}) => {
+  return useQuery<OffsetPaginatedCollection<DepartmentListItem>>({
+    queryKey: departmentKeys.list(params),
     queryFn: async () => {
       const companyId = getCurrentCompanyId();
       if (!companyId) {
         throw new Error('Current company ID is missing.');
       }
 
-      const response = await apiClient.get<ApiResponse<DepartmentListItem[]>>(
-        getDepartmentBasePath(companyId)
+      const response = await apiClient.get<ApiResponse<OffsetPaginatedCollection<DepartmentListItem>>>(
+        getDepartmentBasePath(companyId),
+        {
+          params: {
+            page: Math.max(0, (params.page ?? 1) - 1),
+            size: params.size ?? 10,
+          },
+        },
       );
       return response.data.data;
     },

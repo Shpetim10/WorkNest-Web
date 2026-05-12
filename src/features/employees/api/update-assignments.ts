@@ -30,16 +30,11 @@ export const useUpdateAssignments = () => {
 
       return response.data;
     },
-    onSuccess: (_, variables) => {
-      const companyId =
-        typeof window !== 'undefined' ? localStorage.getItem('current_company_id') : null;
-
-      if (!companyId) return;
-
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: assignmentBoardKeys.list(companyId, variables.roleAssignmentId),
+        queryKey: assignmentBoardKeys.lists(),
       });
-      queryClient.invalidateQueries({ queryKey: staffKeys.list(companyId) });
+      queryClient.invalidateQueries({ queryKey: staffKeys.lists() });
     },
   });
 };

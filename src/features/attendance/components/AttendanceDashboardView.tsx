@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   MoreHorizontal,
   Lock,
-  UserPlus,
   ChevronDown,
 } from 'lucide-react';
 import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
@@ -34,7 +33,6 @@ import {
   getStoredCompanyTimezone,
 } from '@/features/company-settings/storage';
 
-const ITEMS_PER_PAGE = 10;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -277,6 +275,7 @@ export function AttendanceDashboardView() {
     departmentId: '',
   });
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [modal, setModal] = useState<ModalState>({ kind: 'none' });
 
   const { data, isLoading, isError } = useAttendanceDashboard(
@@ -284,12 +283,14 @@ export function AttendanceDashboardView() {
       date: appliedFilters.date || undefined,
       siteId: isAdmin && appliedFilters.siteId ? appliedFilters.siteId : undefined,
       departmentId: isAdmin && appliedFilters.departmentId ? appliedFilters.departmentId : undefined,
+      page,
+      size: pageSize,
     },
     isAdmin,
   );
 
   const { data: departments } = useDepartmentLookup();
-  const { data: locationsData } = useLocations(isAdmin ? companyId : null);
+  const { data: locationsData } = useLocations(isAdmin ? companyId : null, { page: 1, size: 100 });
 
   const employees = data?.employees ?? [];
   const timezone = storedTimezone || data?.timezone || 'UTC';
@@ -311,8 +312,8 @@ export function AttendanceDashboardView() {
     )
     : employees;
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, data?.pagination.totalPages ?? 1);
+  const totalItems = data?.pagination.totalItems ?? filtered.length;
 
   const applyFilters = () => {
     const safeDate = date > todayInCompanyTz ? todayInCompanyTz : date;
@@ -516,14 +517,14 @@ export function AttendanceDashboardView() {
                 </td>
               </tr>
             )}
-            {!isLoading && !isError && paginated.length === 0 && (
+            {!isLoading && !isError && filtered.length === 0 && (
               <tr>
                 <td colSpan={10} className="py-12 text-center text-gray-400 text-sm">
                   No attendance records found.
                 </td>
               </tr>
             )}
-            {paginated.map((row, idx) => {
+            {filtered.map((row, idx) => {
               const stateBadge = attendanceStateBadge(row.attendanceState);
               const dsBadge = dayStatusBadge(row.dayStatus);
               return (
@@ -622,6 +623,12 @@ export function AttendanceDashboardView() {
         currentPage={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        totalItems={totalItems}
         className="-mt-2"
       />
 

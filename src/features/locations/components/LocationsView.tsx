@@ -15,7 +15,6 @@ import { DeleteLocationModal } from './DeleteLocationModal';
 
 const SITE_TYPE_OPTIONS: Array<SiteType | 'All'> = ['All', 'FIELD_ZONE', 'BRANCH', 'WAREHOUSE', 'HQ', 'CLIENT_SITE', 'STORE'];
 const SITE_STATUS_OPTIONS: Array<SiteStatus | 'All'> = ['All', 'PENDING_REVIEW', 'ACTIVE', 'DISABLED', 'ARCHIVED', 'DRAFT'];
-const ITEMS_PER_PAGE = 10;
 
 function formatDate(dateString: string) {
   if (!dateString) return '-';
@@ -63,17 +62,16 @@ export function LocationsView() {
   const [companyId] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : localStorage.getItem('current_company_id'),
   );
-  const { data, isLoading, isError } = useLocations(companyId);
-  const listUnavailable = data?.listUnavailable ?? false;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<SiteType | 'All'>('All');
   const [selectedStatus, setSelectedStatus] = useState<SiteStatus | 'All'>('All');
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Reset page when any filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedType, selectedStatus]);
+  const [pageSize, setPageSize] = useState(10);
+  const { data, isLoading, isError } = useLocations(companyId, {
+    page: currentPage,
+    size: pageSize,
+  });
+  const listUnavailable = data?.listUnavailable ?? false;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
@@ -114,11 +112,9 @@ export function LocationsView() {
   }, [data?.items, searchQuery, selectedStatus, selectedType]);
 
   // Pagination Logic
-  const totalPages = Math.ceil(filteredLocations.length / ITEMS_PER_PAGE);
-  const paginatedLocations = filteredLocations.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const totalItems = data?.totalItems ?? filteredLocations.length;
+  // Use pageSize from state
 
   const TABLE_HEADERS = ['Site Name', 'Site Code', 'Site Type', 'Country', 'Status', 'Created At', 'Actions'];
 
@@ -165,7 +161,10 @@ export function LocationsView() {
             type="text"
             placeholder="Search by site name or code..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-[13px] font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
@@ -174,7 +173,10 @@ export function LocationsView() {
           <div className="relative min-w-[140px]">
             <select
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value as SiteType | 'All')}
+              onChange={(e) => {
+                setSelectedType(e.target.value as SiteType | 'All');
+                setCurrentPage(1);
+              }}
               className="h-8 w-full appearance-none rounded-lg border border-gray-100 bg-gray-50 pl-3 pr-8 text-[12px] font-semibold text-gray-600 outline-none transition-all focus:border-blue-400/40"
             >
               {SITE_TYPE_OPTIONS.map((option) => (
@@ -189,7 +191,10 @@ export function LocationsView() {
           <div className="relative min-w-[140px]">
             <select
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value as SiteStatus | 'All')}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value as SiteStatus | 'All');
+                setCurrentPage(1);
+              }}
               className="h-8 w-full appearance-none rounded-lg border border-gray-100 bg-gray-50 pl-3 pr-8 text-[12px] font-semibold text-gray-600 outline-none transition-all focus:border-blue-400/40"
             >
               {SITE_STATUS_OPTIONS.map((option) => (
@@ -248,14 +253,14 @@ export function LocationsView() {
                     <p className="text-[14px] font-medium">Failed to load locations</p>
                   </td>
                 </tr>
-              ) : paginatedLocations.length === 0 ? (
+              ) : filteredLocations.length === 0 ? (
                 <tr>
                   <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center text-gray-400 font-[Inter,sans-serif]">
                     <p className="text-[14px] font-medium">No locations found</p>
                   </td>
                 </tr>
               ) : (
-                paginatedLocations.map((location, index) => (
+                filteredLocations.map((location, index) => (
                   <tr
                     key={location.id}
                     onClick={() => { setSelectedSiteId(location.id); setIsDetailsModalOpen(true); }}
@@ -366,6 +371,12 @@ export function LocationsView() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
+        pageSize={pageSize}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setCurrentPage(1);
+        }}
+        totalItems={totalItems}
       />
 
       <AddLocationModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} companyId={companyId} onCompleted={() => setIsAddModalOpen(false)} />

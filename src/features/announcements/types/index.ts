@@ -10,6 +10,12 @@ export interface CreateAnnouncementBody {
   priority?: AnnouncementPriority;
 }
 
+export interface AnnouncementTargetEmployee {
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface AnnouncementListResponse {
   id: string;
   title: string;
@@ -18,4 +24,5 @@ export interface AnnouncementListResponse {
   priority: AnnouncementPriority;
   createdByName: string;
   createdAt: string;
+  targetEmployees: AnnouncementTargetEmployee[] | null;
 }

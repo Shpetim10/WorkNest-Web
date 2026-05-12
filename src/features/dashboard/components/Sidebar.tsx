@@ -52,7 +52,16 @@ const NAV_ITEMS: NavItem[] = [
   },
   { name: 'Attendance', icon: Clock, href: '/dashboard/attendance' },
   { name: 'Leave', icon: Calendar, href: '/dashboard/leave' },
-  { name: 'Payroll', icon: DollarSign, href: '/dashboard/payroll' },
+  {
+    name: 'Payroll',
+    icon: DollarSign,
+    href: '#',
+    hasChevron: true,
+    subItems: [
+      { name: 'Payroll', href: '/dashboard/payroll' },
+      { name: 'Sick Leave Policy', href: '/dashboard/payroll/settings' },
+    ],
+  },
   {
     name: 'Locations',
     icon: MapPin,

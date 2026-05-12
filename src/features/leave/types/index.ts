@@ -1,11 +1,12 @@
-export type LeaveType = 'VACATION' | 'SICK' | 'PERSONAL';
-export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type LeaveType = 'VACATION' | 'SICK' | 'PERSONAL' | 'UNPAID' | 'MATERNITY' | 'PATERNITY' | 'OTHER';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
 export interface CreateLeaveRequestBody {
   leaveType: LeaveType;
   startDate: string;
   endDate: string;
   note?: string | null;
+  medicalReportDocumentId?: string | null;
 }
 
 export interface RejectLeaveRequestBody {
@@ -28,10 +29,12 @@ export interface LeaveRequestDto {
   leaveType: LeaveType;
   startDate: string;
   endDate: string;
-  totalDays: number;
+  daysCount: number;
   status: LeaveStatus;
   note: string | null;
+  medicalReportDocumentId: string | null;
   rejectionReason: string | null;
+  approvalNote: string | null;
   reviewedAt: string | null;
   createdAt: string;
 }

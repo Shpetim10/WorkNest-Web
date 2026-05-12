@@ -49,6 +49,7 @@ export interface EmployeeDTO {
   paymentMethod?: PaymentMethod | null;
   monthlySalary?: number | null;
   hourlyRate?: number | null;
+  dailyWorkingHours?: number | null;
 }
 
 export interface CompanyPersonRow {
@@ -114,4 +115,5 @@ export interface StaffDTO {
   paymentMethod?: PaymentMethod | null;
   monthlySalary?: number | null;
   hourlyRate?: number | null;
+  dailyWorkingHours?: number | null;
 }

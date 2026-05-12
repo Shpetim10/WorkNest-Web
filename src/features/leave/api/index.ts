@@ -45,9 +45,10 @@ export const useLeaveRequest = (id: string) => {
 
 export const useApproveLeave = () => {
   const queryClient = useQueryClient();
-  return useMutation<void, unknown, string>({
-    mutationFn: async (id) => {
-      await apiClient.post(`/admin/leave/requests/${id}/approve`);
+  return useMutation<void, unknown, { id: string; note?: string }>({
+    mutationFn: async ({ id, note }) => {
+      const body = note?.trim() ? { note: note.trim() } : undefined;
+      await apiClient.post(`/admin/leave/requests/${id}/approve`, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leaveKeys.requests() });

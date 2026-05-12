@@ -3,11 +3,14 @@ import { apiClient } from '@/common/network/api-client';
 import { ApiResponse } from '@/common/types/api';
 import {
   PayrollAdjustmentRequest,
+  PayrollAdjustmentResponse,
   PayrollBatchCalculateRequest,
   PayrollBatchCalculateResponse,
   PayrollCalculationResponse,
   PayrollPeriod,
   PayrollPersistRequest,
+  SickLeavePolicyResponse,
+  UpsertSickLeavePolicyRequest,
 } from '../types';
 
 export const payrollKeys = {
@@ -15,6 +18,7 @@ export const payrollKeys = {
   details: () => [...payrollKeys.all, 'details'] as const,
   detail: (employeeId: string, period: PayrollPeriod) =>
     [...payrollKeys.details(), employeeId, period.year, period.month] as const,
+  sickLeavePolicy: () => [...payrollKeys.all, 'sick-leave-policy'] as const,
 };
 
 export function usePayrollDetails(employeeId: string | null, period: PayrollPeriod) {
@@ -35,9 +39,9 @@ export function usePayrollDetails(employeeId: string | null, period: PayrollPeri
 
 export function useAddPayrollBonus() {
   const queryClient = useQueryClient();
-  return useMutation<PayrollCalculationResponse, unknown, PayrollAdjustmentRequest>({
+  return useMutation<PayrollAdjustmentResponse, unknown, PayrollAdjustmentRequest>({
     mutationFn: async ({ employeeId, year, month, amount, reason, notes }) => {
-      const response = await apiClient.post<ApiResponse<PayrollCalculationResponse>>(
+      const response = await apiClient.post<ApiResponse<PayrollAdjustmentResponse>>(
         `/admin/payroll/employees/${employeeId}/adjustments/bonus`,
         { year, month, amount, reason, notes },
       );
@@ -54,9 +58,9 @@ export function useAddPayrollBonus() {
 
 export function useAddPayrollDeduction() {
   const queryClient = useQueryClient();
-  return useMutation<PayrollCalculationResponse, unknown, PayrollAdjustmentRequest>({
+  return useMutation<PayrollAdjustmentResponse, unknown, PayrollAdjustmentRequest>({
     mutationFn: async ({ employeeId, year, month, amount, reason, notes }) => {
-      const response = await apiClient.post<ApiResponse<PayrollCalculationResponse>>(
+      const response = await apiClient.post<ApiResponse<PayrollAdjustmentResponse>>(
         `/admin/payroll/employees/${employeeId}/adjustments/deduction`,
         { year, month, amount, reason, notes },
       );
@@ -86,6 +90,34 @@ export function usePersistPayrollCalculation() {
         queryKey: payrollKeys.detail(vars.employeeId, { year: vars.year, month: vars.month }),
       });
       queryClient.invalidateQueries({ queryKey: payrollKeys.details() });
+    },
+  });
+}
+
+export function useSickLeavePolicy() {
+  return useQuery<SickLeavePolicyResponse>({
+    queryKey: payrollKeys.sickLeavePolicy(),
+    queryFn: async () => {
+      const response = await apiClient.get<ApiResponse<SickLeavePolicyResponse>>(
+        '/admin/payroll/sick-leave-policy',
+      );
+      return response.data.data;
+    },
+  });
+}
+
+export function useUpsertSickLeavePolicy() {
+  const queryClient = useQueryClient();
+  return useMutation<SickLeavePolicyResponse, unknown, UpsertSickLeavePolicyRequest>({
+    mutationFn: async (body) => {
+      const response = await apiClient.put<ApiResponse<SickLeavePolicyResponse>>(
+        '/admin/payroll/sick-leave-policy',
+        body,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.sickLeavePolicy() });
     },
   });
 }

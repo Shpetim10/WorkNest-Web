@@ -24,6 +24,7 @@ export interface CreateStaffRequest {
   paymentMethod?: string | null;
   monthlySalary?: number | null;
   hourlyRate?: number | null;
+  dailyWorkingHours?: number | null;
 }
 
 export interface ProvisioningResponse {

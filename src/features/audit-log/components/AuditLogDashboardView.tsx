@@ -3,12 +3,20 @@
 import React, { useState } from 'react';
 import { Eye, Loader2, SquareCheck } from 'lucide-react';
 import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { AuditLogEntry } from '../types';
 import { AuditLogDetailsModal } from './AuditLogDetailsModal';
 import { useAuditLogs } from '../api';
 
 
-const TABLE_HEADERS = ['User', 'Role', 'Action', 'Details', 'Timestamp', 'View'];
+const TABLE_HEADER_KEYS = [
+  'auditLog.headers.user',
+  'common.fields.role',
+  'auditLog.headers.action',
+  'auditLog.headers.details',
+  'auditLog.headers.timestamp',
+  'common.actions.view',
+];
 
 function roleBadgeClass(role: string): string {
   return role.toLowerCase().includes('admin')
@@ -17,6 +25,7 @@ function roleBadgeClass(role: string): string {
 }
 
 export function AuditLogDashboardView() {
+  const { t } = useI18n();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLogEntry | null>(null);
@@ -28,6 +37,7 @@ export function AuditLogDashboardView() {
 
   const rows = data?.content ?? [];
   const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const tableHeaders = TABLE_HEADER_KEYS.map((key) => t(key));
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4 pb-10">
@@ -56,9 +66,9 @@ export function AuditLogDashboardView() {
             <SquareCheck size={25} strokeWidth={1.55} className="text-white/95" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Audit Log</h1>
+            <h1 className="text-3xl font-bold text-white">{t('shell.nav.auditLog')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Track all system activities and changes
+              {t('auditLog.subtitle')}
             </p>
           </div>
         </div>
@@ -77,7 +87,7 @@ export function AuditLogDashboardView() {
                 className="text-xs font-semibold text-white uppercase tracking-wide"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th key={header} className="px-4 py-3.5 text-left font-semibold">
                     {header}
                   </th>
@@ -87,29 +97,29 @@ export function AuditLogDashboardView() {
             <tbody className="bg-white text-left">
               {isLoading ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Loader2 className="w-8 h-8 text-[#155DFC] animate-spin" />
                       <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">
-                        Loading audit logs...
+                        {t('auditLog.loading')}
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
-                    <p className="text-[14px] font-medium">Failed to load audit logs</p>
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
+                    <p className="text-[14px] font-medium">{t('auditLog.failed')}</p>
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3 opacity-40 font-[Inter,sans-serif]">
                       <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
                         <SquareCheck size={22} strokeWidth={1.5} />
                       </div>
-                      <p className="text-[14px] font-medium text-gray-500">No audit logs found</p>
+                      <p className="text-[14px] font-medium text-gray-500">{t('auditLog.empty')}</p>
                     </div>
                   </td>
                 </tr>
@@ -151,7 +161,7 @@ export function AuditLogDashboardView() {
                         type="button"
                         onClick={() => setSelectedAuditLog(row)}
                         className="p-2 hover:bg-blue-50 text-gray-400 hover:text-[#155DFC] rounded-lg transition-all"
-                        title="View audit log"
+                        title={t('auditLog.viewAuditLog')}
                       >
                         <Eye size={18} />
                       </button>

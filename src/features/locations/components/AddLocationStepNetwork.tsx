@@ -3,6 +3,7 @@
 import React from 'react';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Input, Select, Textarea } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { Issue, IpVersion, LocationStep3Data, LocationStep3Errors } from '../types';
 
 interface AddLocationStepNetworkProps {
@@ -17,11 +18,11 @@ interface AddLocationStepNetworkProps {
 }
 
 const NETWORK_TYPE_OPTIONS = [
-  { value: 'OFFICE_NETWORK', label: 'Office Network' },
-  { value: 'DEDICATED_HOST', label: 'Dedicated Host' },
-  { value: 'VPN_GATEWAY', label: 'VPN Gateway' },
-  { value: 'MOBILE_CARRIER', label: 'Mobile Carrier' },
-  { value: 'MANUAL_CIDR', label: 'Manual CIDR' },
+  { value: 'OFFICE_NETWORK', labelKey: 'locations.networkTypes.OFFICE_NETWORK' },
+  { value: 'DEDICATED_HOST', labelKey: 'locations.networkTypes.DEDICATED_HOST' },
+  { value: 'VPN_GATEWAY', labelKey: 'locations.networkTypes.VPN_GATEWAY' },
+  { value: 'MOBILE_CARRIER', labelKey: 'locations.networkTypes.MOBILE_CARRIER' },
+  { value: 'MANUAL_CIDR', labelKey: 'locations.networkTypes.MANUAL_CIDR' },
 ];
 
 export function AddLocationStepNetwork({
@@ -34,6 +35,7 @@ export function AddLocationStepNetwork({
   onDetect,
   onClear,
 }: AddLocationStepNetworkProps) {
+  const { t } = useI18n();
   const inputBase =
     'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[14px] placeholder:text-[rgba(10,10,10,0.5)]';
   const labelBase = 'text-[13px] font-semibold text-[#364153] leading-[20px] mb-1';
@@ -49,7 +51,7 @@ export function AddLocationStepNetwork({
             className="flex h-[40px] items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-5 text-sm font-medium text-white shadow-md shadow-blue-200 transition-all hover:opacity-90 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
             <ShieldCheck size={16} className="text-white" strokeWidth={2.5} />
-            {isDetecting ? 'Detecting...' : 'Detect Network'}
+            {isDetecting ? t('locations.form.detecting') : t('locations.form.detectNetwork')}
           </button>
 
           <button
@@ -57,12 +59,12 @@ export function AddLocationStepNetwork({
             onClick={onClear}
             className="text-[12px] font-semibold text-[#667085] transition-colors hover:text-[#101828]"
           >
-            Remove suggestion
+            {t('locations.form.removeSuggestion')}
           </button>
         </div>
 
         <span className="rounded-[8px] bg-[#EEF4FF] px-3 py-1 text-[12px] font-semibold text-[#155DFC]">
-          {data.confidence || 'MANUAL'}
+          {data.confidence || t('locations.form.manual')}
         </span>
       </div>
 
@@ -77,19 +79,19 @@ export function AddLocationStepNetwork({
           {data.torExitNode && (
             <div className="flex items-start gap-2 text-[13px] text-rose-700">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>Tor exit nodes are blocked for trusted network setup.</span>
+              <span>{t('locations.form.torExitBlocked')}</span>
             </div>
           )}
           {data.vpnDetected && (
             <div className="flex items-start gap-2 text-[13px] text-amber-800">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>VPN activity was detected. Confidence may be lower until you are on the office network.</span>
+              <span>{t('locations.form.vpnDetected')}</span>
             </div>
           )}
           {data.cgnatDetected && (
             <div className="flex items-start gap-2 text-[13px] text-amber-800">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>CGNAT was detected. Review the suggested CIDR carefully before saving.</span>
+              <span>{t('locations.form.cgnatDetected')}</span>
             </div>
           )}
           {warnings.map((warning) => (
@@ -103,17 +105,17 @@ export function AddLocationStepNetwork({
 
       <div className="flex items-center justify-between rounded-[10px] border border-[#D1FAE5] bg-gradient-to-r from-[#F0FDF4] to-[#F0F9FF] px-4 py-3">
         <div>
-          <p className="mb-0.5 text-[13px] font-semibold leading-[20px] text-[#364153]">Detected IP Address</p>
+          <p className="mb-0.5 text-[13px] font-semibold leading-[20px] text-[#364153]">{t('locations.form.detectedIpAddress')}</p>
           <p className="font-mono text-[17px] font-bold leading-[24px] tracking-tight text-[#101828]">
-            {data.detectedIp || 'Not detected yet'}
+            {data.detectedIp || t('locations.form.notDetectedYet')}
           </p>
         </div>
       </div>
 
       <Input
         id="networkName"
-        label="Network Name"
-        placeholder="Office Network"
+        label={t('locations.form.networkName')}
+        placeholder={t('locations.networkTypes.OFFICE_NETWORK')}
         value={data.name}
         onChange={(e) => onChange({ name: e.target.value })}
         onBlur={() => onBlurField('trustedNetworks[0].name')}
@@ -123,7 +125,7 @@ export function AddLocationStepNetwork({
 
       <div>
         <label className={`block ${labelBase}`}>
-          CIDR Block <span className="text-red-500">*</span>
+          {t('locations.form.cidrBlock')} <span className="text-red-500">*</span>
         </label>
         <input
           id="cidrBlock"
@@ -141,18 +143,18 @@ export function AddLocationStepNetwork({
 
       <Select
         id="networkType"
-        label="Network Type"
+        label={t('locations.form.networkType')}
         value={data.networkType}
         onChange={(e) => onChange({ networkType: e.target.value })}
         onBlur={() => onBlurField('trustedNetworks[0].networkType')}
         error={errors.networkType}
         className={labelBase}
         style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-        options={NETWORK_TYPE_OPTIONS}
+        options={NETWORK_TYPE_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) }))}
       />
 
       <div>
-        <label className={`block ${labelBase}`}>IP Version</label>
+        <label className={`block ${labelBase}`}>{t('locations.form.ipVersion')}</label>
         <div className="mt-1 flex items-center gap-6">
           {(['IPV4', 'IPV6'] as IpVersion[]).map((version) => (
             <label key={version} className="flex cursor-pointer items-center gap-2">
@@ -174,7 +176,7 @@ export function AddLocationStepNetwork({
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <label className={labelBase}>Expiry Date</label>
+          <label className={labelBase}>{t('locations.form.expiryDate')}</label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
               type="checkbox"
@@ -182,7 +184,7 @@ export function AddLocationStepNetwork({
               onChange={(e) => onChange({ setExpiry: e.target.checked })}
               className="h-4 w-4 cursor-pointer rounded accent-[#155DFC]"
             />
-            <span className="text-[12px] font-medium text-[#155DFC]">Set expiry</span>
+            <span className="text-[12px] font-medium text-[#155DFC]">{t('locations.form.setExpiry')}</span>
           </label>
         </div>
 
@@ -201,7 +203,7 @@ export function AddLocationStepNetwork({
           <div className="flex items-start gap-2.5 rounded-[8px] border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2.5">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[#D97706]" />
             <p className="text-[13px] leading-[20px] text-[#BB4D00]">
-              Network configuration will not expire. Consider setting an expiry date for security.
+              {t('locations.form.noNetworkExpiry')}
             </p>
           </div>
         )}
@@ -209,8 +211,8 @@ export function AddLocationStepNetwork({
 
       <Textarea
         id="networkNotes"
-        label="Notes"
-        placeholder="Additional network information..."
+        label={t('locations.form.notes')}
+        placeholder={t('locations.form.networkNotesPlaceholder')}
         value={data.notes}
         onChange={(e) => onChange({ notes: e.target.value })}
         className="!min-h-[80px] resize-none rounded-[10px] border-[#E5E7EB] bg-[#F9FAFB] py-2 text-[14px]"

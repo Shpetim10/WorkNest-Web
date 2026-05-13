@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useAttendanceDashboard } from '../api/get-attendance';
 import { useDepartmentLookup } from '@/features/departments/api';
 import { useLocations } from '@/features/locations/api';
@@ -108,28 +109,34 @@ function isAdminRole(role: string): boolean {
 
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
-function attendanceStateBadge(state: AttendanceState): { label: string; cls: string } {
+function attendanceStateBadge(
+  state: AttendanceState,
+  t: (key: string) => string,
+): { label: string; cls: string } {
   const map: Record<AttendanceState, { label: string; cls: string }> = {
-    [AttendanceState.NOT_CHECKED_IN]: { label: 'Not Checked In', cls: 'bg-gray-100 text-gray-600' },
-    [AttendanceState.CHECKED_IN]: { label: 'Checked In', cls: 'bg-green-100 text-green-700' },
-    [AttendanceState.CHECKED_OUT]: { label: 'Checked Out', cls: 'bg-blue-100 text-blue-700' },
-    [AttendanceState.MISSING_CHECKOUT]: { label: 'Missing check out', cls: 'bg-orange-100 text-orange-700' },
-    [AttendanceState.PENDING_REVIEW]: { label: 'Pending Review', cls: 'bg-amber-100 text-amber-700' },
+    [AttendanceState.NOT_CHECKED_IN]: { label: t('attendance.states.notCheckedIn'), cls: 'bg-gray-100 text-gray-600' },
+    [AttendanceState.CHECKED_IN]: { label: t('attendance.states.checkedIn'), cls: 'bg-green-100 text-green-700' },
+    [AttendanceState.CHECKED_OUT]: { label: t('attendance.states.checkedOut'), cls: 'bg-blue-100 text-blue-700' },
+    [AttendanceState.MISSING_CHECKOUT]: { label: t('attendance.states.missingCheckout'), cls: 'bg-orange-100 text-orange-700' },
+    [AttendanceState.PENDING_REVIEW]: { label: t('common.statuses.pendingReview'), cls: 'bg-amber-100 text-amber-700' },
   };
   return map[state] ?? { label: state, cls: 'bg-gray-100 text-gray-600' };
 }
 
-function dayStatusBadge(status: AttendanceDayStatus): { label: string; cls: string } {
+function dayStatusBadge(
+  status: AttendanceDayStatus,
+  t: (key: string) => string,
+): { label: string; cls: string } {
   const map: Record<AttendanceDayStatus, { label: string; cls: string }> = {
-    [AttendanceDayStatus.PRESENT]: { label: 'Present', cls: 'bg-green-100 text-green-700' },
-    [AttendanceDayStatus.ABSENT]: { label: 'Absent', cls: 'bg-red-100 text-red-700' },
-    [AttendanceDayStatus.LATE]: { label: 'Late', cls: 'bg-orange-100 text-orange-700' },
-    [AttendanceDayStatus.HALF_DAY]: { label: 'Half Day', cls: 'bg-yellow-100 text-yellow-700' },
-    [AttendanceDayStatus.ON_LEAVE]: { label: 'On Leave', cls: 'bg-blue-100 text-blue-700' },
-    [AttendanceDayStatus.HOLIDAY]: { label: 'Holiday', cls: 'bg-purple-100 text-purple-700' },
-    [AttendanceDayStatus.MISSING_CHECKOUT]: { label: 'Missing check out', cls: 'bg-orange-100 text-orange-700' },
-    [AttendanceDayStatus.FLAGGED]: { label: 'Flagged', cls: 'bg-red-100 text-red-700' },
-    [AttendanceDayStatus.PENDING_REVIEW]: { label: 'Pending Review', cls: 'bg-amber-100 text-amber-700' },
+    [AttendanceDayStatus.PRESENT]: { label: t('common.statuses.present'), cls: 'bg-green-100 text-green-700' },
+    [AttendanceDayStatus.ABSENT]: { label: t('common.statuses.absent'), cls: 'bg-red-100 text-red-700' },
+    [AttendanceDayStatus.LATE]: { label: t('attendance.dayStatuses.late'), cls: 'bg-orange-100 text-orange-700' },
+    [AttendanceDayStatus.HALF_DAY]: { label: t('attendance.dayStatuses.halfDay'), cls: 'bg-yellow-100 text-yellow-700' },
+    [AttendanceDayStatus.ON_LEAVE]: { label: t('attendance.dayStatuses.onLeave'), cls: 'bg-blue-100 text-blue-700' },
+    [AttendanceDayStatus.HOLIDAY]: { label: t('attendance.dayStatuses.holiday'), cls: 'bg-purple-100 text-purple-700' },
+    [AttendanceDayStatus.MISSING_CHECKOUT]: { label: t('attendance.states.missingCheckout'), cls: 'bg-orange-100 text-orange-700' },
+    [AttendanceDayStatus.FLAGGED]: { label: t('attendance.dayStatuses.flagged'), cls: 'bg-red-100 text-red-700' },
+    [AttendanceDayStatus.PENDING_REVIEW]: { label: t('common.statuses.pendingReview'), cls: 'bg-amber-100 text-amber-700' },
   };
   return map[status] ?? { label: status, cls: 'bg-gray-100 text-gray-600' };
 }
@@ -152,6 +159,7 @@ interface ActionDropdownProps {
 }
 
 function ActionDropdown({ row, onAction, isToday, isAdmin }: ActionDropdownProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -200,7 +208,7 @@ function ActionDropdown({ row, onAction, isToday, isAdmin }: ActionDropdownProps
         ref={triggerRef}
         onClick={toggle}
         className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-        title="Actions"
+        title={t('common.fields.actions')}
       >
         <MoreHorizontal size={16} />
       </button>
@@ -212,11 +220,11 @@ function ActionDropdown({ row, onAction, isToday, isAdmin }: ActionDropdownProps
             style={{ position: 'absolute', top: pos.top, left: pos.left }}
             className="z-50 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 animate-in fade-in zoom-in-95 duration-150"
           >
-            <MenuItem label="View Detail" onClick={() => pick('view')} />
-            {canCheckIn && <MenuItem label="Manual Check-In" onClick={() => pick('checkIn')} />}
-            {canCheckOut && <MenuItem label="Manual Check-Out" onClick={() => pick('checkOut')} />}
-            {canDismiss && <MenuItem label="Dismiss Warnings" onClick={() => pick('dismiss')} />}
-            {canAdjust && <MenuItem label="Adjust Day Record" onClick={() => pick('adjust')} />}
+            <MenuItem label={t('attendance.actions.viewDetail')} onClick={() => pick('view')} />
+            {canCheckIn && <MenuItem label={t('attendance.actions.manualCheckIn')} onClick={() => pick('checkIn')} />}
+            {canCheckOut && <MenuItem label={t('attendance.actions.manualCheckOut')} onClick={() => pick('checkOut')} />}
+            {canDismiss && <MenuItem label={t('attendance.actions.dismissWarnings')} onClick={() => pick('dismiss')} />}
+            {canAdjust && <MenuItem label={t('attendance.actions.adjustDayRecord')} onClick={() => pick('adjust')} />}
           </div>,
           document.body,
         )}
@@ -238,6 +246,7 @@ function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 export function AttendanceDashboardView() {
+  const { t } = useI18n();
   const initialStoredTimezone =
     typeof window === 'undefined' ? 'UTC' : getStoredCompanyTimezone();
   const initialTodayInCompanyTz = new Intl.DateTimeFormat('sv-SE', {
@@ -326,7 +335,7 @@ export function AttendanceDashboardView() {
 
   const summaryCards = [
     {
-      label: 'Present',
+      label: t('common.statuses.present'),
       value: summary?.present ?? 0,
       icon: <CheckCircle2 size={22} className="text-green-500" />,
       badge: 'OK',
@@ -334,7 +343,7 @@ export function AttendanceDashboardView() {
       ring: 'border-green-100',
     },
     {
-      label: 'Absent',
+      label: t('common.statuses.absent'),
       value: summary?.absent ?? 0,
       icon: <XCircle size={22} className="text-red-500" />,
       badge: 'ABS',
@@ -342,7 +351,7 @@ export function AttendanceDashboardView() {
       ring: 'border-red-100',
     },
     {
-      label: 'Late',
+      label: t('attendance.dayStatuses.late'),
       value: summary?.late ?? 0,
       icon: <Clock size={22} className="text-orange-500" />,
       badge: 'LATE',
@@ -350,7 +359,7 @@ export function AttendanceDashboardView() {
       ring: 'border-orange-100',
     },
     {
-      label: 'On Leave',
+      label: t('attendance.dayStatuses.onLeave'),
       value: summary?.onLeave ?? 0,
       icon: <Briefcase size={22} className="text-blue-500" />,
       badge: 'LV',
@@ -358,7 +367,7 @@ export function AttendanceDashboardView() {
       ring: 'border-blue-100',
     },
     {
-      label: 'Warnings',
+      label: t('attendance.warnings'),
       value: summary?.withWarnings ?? 0,
       icon: <AlertTriangle size={22} className="text-amber-500" />,
       badge: 'WARN',
@@ -383,9 +392,9 @@ export function AttendanceDashboardView() {
             <Clock size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Attendance</h1>
+            <h1 className="text-3xl font-bold text-white">{t('attendance.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Track daily attendance for all employees
+              {t('attendance.subtitle')}
               {' · '}
               {displayWorkDate}
               {' · '}
@@ -427,7 +436,7 @@ export function AttendanceDashboardView() {
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search employee locally..."
+            placeholder={t('employees.searchPlaceholder')}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
@@ -448,7 +457,7 @@ export function AttendanceDashboardView() {
               onChange={(e) => setSiteId(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option value="">All sites</option>
+              <option value="">{t('attendance.allSites')}</option>
               {locationsData?.items.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.siteName}
@@ -464,7 +473,7 @@ export function AttendanceDashboardView() {
               onChange={(e) => setDepartmentId(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option value="">All departments</option>
+              <option value="">{t('employees.allDepartments')}</option>
               {departments?.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -478,7 +487,7 @@ export function AttendanceDashboardView() {
             onClick={applyFilters}
             className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            Apply
+            {t('common.actions.apply')}
           </button>
         </div>
       </div>
@@ -491,10 +500,21 @@ export function AttendanceDashboardView() {
               className="text-xs font-semibold text-white uppercase tracking-wide"
               style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
             >
-              {['Name', 'Site', 'Department', 'Status', 'Check In', 'Check Out', 'Day Status', 'Worked', 'Warnings', 'Actions'].map(
+              {[
+                'tables.headers.name',
+                'attendance.headers.site',
+                'tables.headers.department',
+                'tables.headers.status',
+                'attendance.headers.checkIn',
+                'attendance.headers.checkOut',
+                'attendance.headers.dayStatus',
+                'attendance.headers.worked',
+                'attendance.headers.warnings',
+                'tables.headers.actions',
+              ].map(
                 (h) => (
                   <th key={h} className="px-4 py-3.5 text-left font-semibold">
-                    {h}
+                    {t(h)}
                   </th>
                 ),
               )}
@@ -513,20 +533,20 @@ export function AttendanceDashboardView() {
             {isError && (
               <tr>
                 <td colSpan={10} className="py-12 text-center text-red-500 text-sm">
-                  Failed to load attendance data.
+                  {t('attendance.failed')}
                 </td>
               </tr>
             )}
             {!isLoading && !isError && filtered.length === 0 && (
               <tr>
                 <td colSpan={10} className="py-12 text-center text-gray-400 text-sm">
-                  No attendance records found.
+                  {t('attendance.empty')}
                 </td>
               </tr>
             )}
             {filtered.map((row, idx) => {
-              const stateBadge = attendanceStateBadge(row.attendanceState);
-              const dsBadge = dayStatusBadge(row.dayStatus);
+              const stateBadge = attendanceStateBadge(row.attendanceState, t);
+              const dsBadge = dayStatusBadge(row.dayStatus, t);
               return (
                 <tr
                   key={row.employeeId}
@@ -544,7 +564,7 @@ export function AttendanceDashboardView() {
                         {row.employeeName}
                       </span>
                       {row.payrollLocked && (
-                        <Lock size={12} className="text-gray-400 shrink-0" aria-label="Payroll locked" />
+                        <Lock size={12} className="text-gray-400 shrink-0" aria-label={t('attendance.payrollLocked')} />
                       )}
                     </div>
                   </td>
@@ -595,7 +615,7 @@ export function AttendanceDashboardView() {
                     {row.hasWarnings ? (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
                         <AlertTriangle size={11} />
-                        Warnings
+                        {t('attendance.warnings')}
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>

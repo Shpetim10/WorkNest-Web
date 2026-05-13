@@ -46,7 +46,7 @@ export const useProvisionEmployee = () => {
       );
       return response.data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       // Invalidate the employees list to reflect the newly provisioned employee
       queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },

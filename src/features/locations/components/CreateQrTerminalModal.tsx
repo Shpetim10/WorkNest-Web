@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, MonitorSmartphone } from 'lucide-react';
 import { Button, Input, Modal } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useCreateQrTerminal } from '../api';
 import { CreateQrTerminalRequest } from '../types';
 import { formatAttendanceFriendlyError } from '../utils/errors';
@@ -24,6 +25,7 @@ export function CreateQrTerminalModal({
   siteId,
   siteName,
 }: CreateQrTerminalModalProps) {
+  const { t } = useI18n();
   const createQrTerminalMutation = useCreateQrTerminal();
   const [name, setName] = useState('');
   const [rotationSeconds, setRotationSeconds] = useState('60');
@@ -43,11 +45,11 @@ export function CreateQrTerminalModal({
     const nextErrors: TerminalErrors = {};
 
     if (!payload.name) {
-      nextErrors.name = 'Terminal name is required.';
+      nextErrors.name = t('locations.modal.terminalNameRequired');
     }
 
     if (!Number.isInteger(payload.rotationSeconds) || payload.rotationSeconds < 20 || payload.rotationSeconds > 300) {
-      nextErrors.rotationSeconds = 'Rotation seconds must be between 20 and 300.';
+      nextErrors.rotationSeconds = t('locations.modal.rotationRange');
     }
 
     setErrors(nextErrors);
@@ -76,12 +78,12 @@ export function CreateQrTerminalModal({
     setSuccessMessage('');
 
     if (!companyId || !siteId) {
-      setFormError('This site is missing required context. Please close this window and try again.');
+      setFormError(t('locations.modal.missingContext'));
       return;
     }
 
     if (!validate()) {
-      setFormError("We couldn't create the QR terminal. Please try again.");
+      setFormError(t('locations.modal.createQrFailed'));
       return;
     }
 
@@ -91,7 +93,7 @@ export function CreateQrTerminalModal({
         siteId,
         data: payload,
       });
-      setSuccessMessage('QR terminal created successfully.');
+      setSuccessMessage(t('locations.modal.createQrSuccess'));
       setName('');
       setRotationSeconds('60');
       setErrors({});
@@ -99,7 +101,7 @@ export function CreateQrTerminalModal({
       setFormError(
         formatAttendanceFriendlyError(
           error,
-          "We couldn't create the QR terminal. Please try again.",
+          t('locations.modal.createQrFailed'),
         ),
       );
     }
@@ -120,9 +122,11 @@ export function CreateQrTerminalModal({
               <MonitorSmartphone size={20} />
             </div>
             <div>
-              <h2 className="text-[22px] font-bold text-[#101828]">Create QR Terminal</h2>
+              <h2 className="text-[22px] font-bold text-[#101828]">{t('locations.modal.createQrTitle')}</h2>
               <p className="text-[13px] font-medium text-[#4A5565]">
-                {siteName ? `Add another display terminal for ${siteName}.` : 'Add another QR display terminal for this site.'}
+                {siteName
+                  ? t('locations.modal.createQrSubtitleNamed', { siteName })
+                  : t('locations.modal.createQrSubtitleGeneric')}
               </p>
             </div>
           </div>
@@ -145,8 +149,8 @@ export function CreateQrTerminalModal({
 
           <Input
             id="terminalName"
-            label="Terminal Name"
-            placeholder="Reception Tablet"
+            label={t('locations.modal.terminalName')}
+            placeholder={t('locations.modal.terminalPlaceholder')}
             value={name}
             onChange={(event) => {
               setName(event.target.value);
@@ -157,7 +161,7 @@ export function CreateQrTerminalModal({
 
           <Input
             id="rotationSeconds"
-            label="Rotation Seconds"
+            label={t('locations.modal.rotationSeconds')}
             type="number"
             min={20}
             max={300}
@@ -170,7 +174,7 @@ export function CreateQrTerminalModal({
           />
 
           <p className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-[12px] font-medium text-[#4A5565]">
-            The display page will render only the backend token inside the QR code. No business data is encoded on the frontend.
+            {t('locations.modal.tokenPrivacyNote')}
           </p>
         </div>
 
@@ -180,10 +184,10 @@ export function CreateQrTerminalModal({
             onClick={handleClose}
             className="bg-transparent text-[#4A5565] hover:bg-gray-100"
           >
-            Close
+            {t('common.actions.close')}
           </Button>
           <Button onClick={() => void handleSubmit()} isLoading={createQrTerminalMutation.isPending}>
-            Create Terminal
+            {t('locations.modal.createTerminal')}
           </Button>
         </div>
       </div>

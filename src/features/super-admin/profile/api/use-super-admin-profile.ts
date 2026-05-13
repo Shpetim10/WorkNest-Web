@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
 import type { ApiResponse } from '@/common/types/api';
+import { persistUserProfileFromAuthPayload, resolveProfileImageUrl } from '@/common/utils/user-session-profile';
 import type { SuperAdminProfile, UpdateSuperAdminProfileRequest } from '../types';
 
 export const SUPER_ADMIN_PROFILE_ENDPOINT = '/super-admin/profile';
@@ -10,6 +11,7 @@ export const DEFAULT_SUPER_ADMIN_PROFILE: SuperAdminProfile = {
   email: 'superadmin@worknest.com',
   role: 'Super Admin',
   accountStatus: 'Active',
+  imageUrl: '',
 };
 
 export const superAdminProfileKeys = {
@@ -60,6 +62,27 @@ export function normalizeSuperAdminProfile(
       payload.accountStatus ?? payload.status ?? payload.state,
       fallback.accountStatus,
     ),
+    imageUrl: resolveProfileImageUrl(
+      getString(
+        payload.imageUrl ??
+          payload.photoUrl ??
+          payload.avatarUrl ??
+          payload.picture ??
+          payload.profileImageUrl ??
+          payload.profilePhotoUrl ??
+          payload.profilePictureUrl ??
+          payload.profileImageStoragePath,
+        fallback.imageUrl ?? '',
+      ),
+      getString(
+        payload.imageKey ??
+          payload.avatarKey ??
+          payload.profileImageKey ??
+          payload.profilePhotoKey ??
+          payload.profilePictureKey ??
+          payload.profileImageStorageKey,
+      ),
+    ),
   };
 }
 
@@ -72,12 +95,31 @@ function normalizeUpdatedProfile(payload: unknown): Partial<SuperAdminProfile> {
   const email = getOptionalString(payload.email ?? payload.emailAddress ?? payload.username);
   const role = getOptionalString(payload.role ?? payload.roleName ?? payload.authority ?? payload.userRole);
   const accountStatus = getOptionalString(payload.accountStatus ?? payload.status ?? payload.state);
+  const imageUrl = getOptionalString(
+    payload.imageUrl ??
+      payload.photoUrl ??
+      payload.avatarUrl ??
+      payload.picture ??
+      payload.profileImageUrl ??
+      payload.profilePhotoUrl ??
+      payload.profilePictureUrl ??
+      payload.profileImageStoragePath,
+  );
+  const imageKey = getOptionalString(
+    payload.imageKey ??
+      payload.avatarKey ??
+      payload.profileImageKey ??
+      payload.profilePhotoKey ??
+      payload.profilePictureKey ??
+      payload.profileImageStorageKey,
+  );
   const profile: Partial<SuperAdminProfile> = {};
 
   if (displayName) profile.displayName = displayName;
   if (email) profile.email = email;
   if (role) profile.role = role;
   if (accountStatus) profile.accountStatus = accountStatus;
+  if (imageUrl || imageKey) profile.imageUrl = resolveProfileImageUrl(imageUrl, imageKey);
 
   return profile;
 }
@@ -111,6 +153,12 @@ export function useUpdateSuperAdminProfile() {
   return useMutation<Partial<SuperAdminProfile>, Error, UpdateSuperAdminProfileRequest>({
     mutationFn: updateSuperAdminProfile,
     onSuccess: (profile, variables) => {
+      persistUserProfileFromAuthPayload(profile, {
+        displayName: profile.displayName ?? variables.displayName,
+        email: profile.email ?? variables.email,
+        role: profile.role,
+        imageUrl: profile.imageUrl,
+      });
       queryClient.setQueryData<SuperAdminProfile>(superAdminProfileKeys.detail(), (current) => ({
         ...(current ?? DEFAULT_SUPER_ADMIN_PROFILE),
         ...profile,

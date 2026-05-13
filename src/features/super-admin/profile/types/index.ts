@@ -3,6 +3,7 @@ export interface SuperAdminProfile {
   email: string;
   role: string;
   accountStatus: string;
+  imageUrl?: string;
 }
 
 export interface UpdateSuperAdminProfileRequest {

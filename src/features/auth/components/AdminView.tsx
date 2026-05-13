@@ -1,9 +1,10 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { User, Mail, ArrowLeft, ArrowRight, ChevronDown, Loader2 } from 'lucide-react';
+import { User, Mail, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { AuthLayout } from './AuthLayout';
 import { AuthHeader } from './AuthHeader';
 import { useRegistrationStore } from '../store/useRegistrationStore';
@@ -17,6 +18,7 @@ const notify = {
 };
 
 export function AdminView() {
+  const { locale, t } = useI18n();
   const router = useRouter();
   
   const { 
@@ -34,16 +36,22 @@ export function AdminView() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (preferredLanguage !== locale) {
+      setAdminData({ preferredLanguage: locale });
+    }
+  }, [locale, preferredLanguage, setAdminData]);
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!adminFirstName) newErrors.adminFirstName = 'First Name is required';
-    if (!adminLastName) newErrors.adminLastName = 'Last Name is required';
-    if (!adminPhone) newErrors.adminPhone = 'Phone Number is required';
+    if (!adminFirstName) newErrors.adminFirstName = t('validation.firstNameRequired');
+    if (!adminLastName) newErrors.adminLastName = t('validation.lastNameRequired');
+    if (!adminPhone) newErrors.adminPhone = t('validation.phoneRequired');
 
     if (!adminEmail) {
-      newErrors.adminEmail = 'Email Address is required';
+      newErrors.adminEmail = t('validation.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
-      newErrors.adminEmail = 'Please enter a valid email address';
+      newErrors.adminEmail = t('validation.validEmail');
     }
 
     setErrors(newErrors);
@@ -101,17 +109,17 @@ export function AdminView() {
       });
 
       // 3. Success
-      notify.success('Registration successful! Please check your email for activation.');
+      notify.success(t('auth.register.admin.success'));
       router.push('/register/done');
       // Reset store after a delay to ensure the "done" page doesn't glitch if it uses any data
       setTimeout(resetStore, 1000);
     } catch (error: unknown) {
-      let message = 'Something went wrong during registration';
+      let message = t('auth.register.admin.registrationError');
 
       if (axios.isAxiosError(error)) {
         if (!error.response) {
           message =
-            'Registration request could not reach the server. Check CORS/backend connectivity and try again.';
+            t('auth.register.admin.connectivityError');
         } else {
           message = error.response.data?.message || message;
         }
@@ -138,32 +146,13 @@ export function AdminView() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-[850px] relative z-20">
-        {/* Left: Language Selector */}
-        <div className="absolute left-0 top-[2px]">
-          <div className="relative">
-            <select
-              value={preferredLanguage}
-              onChange={(e) => setAdminData({ preferredLanguage: e.target.value as 'en' | 'sq' })}
-              className="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20 focus:border-[#0066FF] cursor-pointer transition-all"
-            >
-              <option value="en">English</option>
-              <option value="sq">Albanian</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400">
-              <ChevronDown size={13} strokeWidth={2.5} />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <AuthHeader currentStep={3} />
 
       <Card className="w-full max-w-[580px] px-5 pt-6 pb-8 md:px-8 md:pt-7 md:pb-9 flex flex-col relative z-20 mt-2">
         <div className="mb-4">
-          <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-1">Admin Profile</h1>
+          <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-1">{t('auth.register.admin.title')}</h1>
           <p className="text-[13.5px] md:text-[14px] text-gray-500 font-medium">
-            Set up your administrator account
+            {t('auth.register.admin.subtitle')}
           </p>
         </div>
 
@@ -177,7 +166,7 @@ export function AdminView() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
               id="adminFirstName"
-              label="First Name"
+              label={t('common.fields.firstName')}
               placeholder="John"
               disabled={isSubmitting}
               required
@@ -188,7 +177,7 @@ export function AdminView() {
             />
             <Input
               id="adminLastName"
-              label="Last Name"
+              label={t('common.fields.lastName')}
               placeholder="Doe"
               disabled={isSubmitting}
               required
@@ -200,7 +189,7 @@ export function AdminView() {
 
           <Input
             id="adminEmail"
-            label="Email Address"
+            label={t('common.fields.emailAddress')}
             type="text"
             placeholder="john@company.com"
             disabled={isSubmitting}
@@ -213,7 +202,7 @@ export function AdminView() {
 
           <Input
             id="adminPhone"
-            label="Phone Number"
+            label={t('common.fields.phoneNumber')}
             placeholder="+355 69 123 4567"
             disabled={isSubmitting}
             required
@@ -245,7 +234,7 @@ export function AdminView() {
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-50 text-gray-600 text-[13px] font-bold hover:bg-gray-100 hover:text-gray-800 transition-colors disabled:opacity-50"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
+              {t('common.actions.back')}
             </button>
 
             <Button
@@ -254,7 +243,7 @@ export function AdminView() {
               icon={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
               className="flex-1"
             >
-              {isSubmitting ? 'Processing...' : 'Complete Registration'}
+              {isSubmitting ? t('common.feedback.processing') : t('auth.register.admin.complete')}
             </Button>
           </div>
         </form>

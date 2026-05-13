@@ -3,10 +3,12 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Card, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { AuthLayout } from './AuthLayout';
 import { AuthHeader } from './AuthHeader';
 
 export function DoneView() {
+  const { t } = useI18n();
   return (
     <AuthLayout>
       <AuthHeader currentStep={4} />
@@ -49,26 +51,26 @@ export function DoneView() {
         </div>
 
         {/* Headings */}
-        <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-2">Email Sent Successfully</h1>
+        <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-2">{t('auth.register.done.title')}</h1>
         <p className="text-[13.5px] md:text-[14px] text-gray-500 font-medium mb-8 leading-relaxed max-w-[340px]">
-          Please check your inbox and follow the instructions to complete your account setup.
+          {t('auth.register.done.subtitle')}
         </p>
 
         {/* What's Next Box */}
         <div className="w-full bg-[#f8fafc] rounded-2xl p-5 mb-8 border border-gray-100 flex flex-col items-center">
-          <h3 className="text-[14px] font-bold text-gray-800 mb-4">What's Next?</h3>
+          <h3 className="text-[14px] font-bold text-gray-800 mb-4">{t('auth.register.done.whatsNext')}</h3>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-[#2178ff] text-white flex items-center justify-center text-[11px] font-bold shrink-0">1</div>
-              <span className="text-[13px] font-medium text-gray-600">Open your email</span>
+              <span className="text-[13px] font-medium text-gray-600">{t('auth.register.done.step1')}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-[#2178ff] text-white flex items-center justify-center text-[11px] font-bold shrink-0">2</div>
-              <span className="text-[13px] font-medium text-gray-600">Click the setup link</span>
+              <span className="text-[13px] font-medium text-gray-600">{t('auth.register.done.step2')}</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 rounded-full bg-[#2178ff] text-white flex items-center justify-center text-[11px] font-bold shrink-0">3</div>
-              <span className="text-[13px] font-medium text-gray-600">Create your password</span>
+              <span className="text-[13px] font-medium text-gray-600">{t('auth.register.done.step3')}</span>
             </div>
           </div>
         </div>
@@ -87,12 +89,12 @@ export function DoneView() {
             console.log('Open Email client');
           }}
         >
-          Open Email
+          {t('auth.register.done.openEmail')}
         </Button>
 
         {/* Footer Help */}
         <p className="mt-6 text-[12px] text-gray-400 font-medium tracking-wide">
-          Need help getting started? <Link href="#" className="font-bold text-[#2178ff] hover:text-[#1a60cc] transition-colors">Check our guide</Link>
+          {t('auth.register.done.helpPrefix')} <Link href="#" className="font-bold text-[#2178ff] hover:text-[#1a60cc] transition-colors">{t('auth.register.done.helpLink')}</Link>
         </p>
       </Card>
     </AuthLayout>

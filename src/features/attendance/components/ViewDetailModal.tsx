@@ -7,6 +7,7 @@ import { useAttendanceEmployeeDetail } from '../api/get-employee-detail';
 import { ReviewEventModal } from './ReviewEventModal';
 import { AttendanceEvent, AttendanceEventType, AttendanceReviewStatus } from '../types';
 import { getStoredCompanyTimezone } from '@/features/company-settings/storage';
+import { useI18n } from '@/common/i18n';
 
 interface Props {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface Props {
 }
 
 function formatTime(utcString: string | null, timezone: string): string {
-  if (!utcString) return '—';
+  if (!utcString) return 'â€”';
   try {
     return new Date(utcString).toLocaleTimeString('en-US', {
       timeZone: timezone,
@@ -25,12 +26,12 @@ function formatTime(utcString: string | null, timezone: string): string {
       hour12: false,
     });
   } catch {
-    return '—';
+    return 'â€”';
   }
 }
 
 function formatDateTime(utcString: string | null, timezone: string): string {
-  if (!utcString) return '—';
+  if (!utcString) return 'â€”';
   try {
     return new Date(utcString).toLocaleString('en-US', {
       timeZone: timezone,
@@ -41,17 +42,17 @@ function formatDateTime(utcString: string | null, timezone: string): string {
       hour12: false,
     });
   } catch {
-    return '—';
+    return 'â€”';
   }
 }
 
-const EVENT_TYPE_LABELS: Record<AttendanceEventType, string> = {
-  [AttendanceEventType.CHECK_IN]: 'Check-In',
-  [AttendanceEventType.CHECK_OUT]: 'Check-Out',
-  [AttendanceEventType.MANUAL_CHECK_IN]: 'Manual Check-In',
-  [AttendanceEventType.MANUAL_CHECK_OUT]: 'Manual Check-Out',
-  [AttendanceEventType.AUTO_CHECK_OUT]: 'Auto Check-Out',
-  [AttendanceEventType.ADJUSTMENT]: 'Adjustment',
+const EVENT_TYPE_LABEL_KEYS: Record<AttendanceEventType, string> = {
+  [AttendanceEventType.CHECK_IN]: 'attendance.headers.checkIn',
+  [AttendanceEventType.CHECK_OUT]: 'attendance.headers.checkOut',
+  [AttendanceEventType.MANUAL_CHECK_IN]: 'attendance.actions.manualCheckIn',
+  [AttendanceEventType.MANUAL_CHECK_OUT]: 'attendance.actions.manualCheckOut',
+  [AttendanceEventType.AUTO_CHECK_OUT]: 'attendance.modal.autoCheckOut',
+  [AttendanceEventType.ADJUSTMENT]: 'attendance.modal.adjustment',
 };
 
 function isCheckInType(type: AttendanceEventType): boolean {
@@ -78,13 +79,16 @@ function eventRowCls(type: AttendanceEventType): string {
   return 'border-l-2 border-amber-400 bg-amber-50/60';
 }
 
-function reviewBadge(status: AttendanceReviewStatus): { label: string; cls: string } | null {
+function reviewBadge(
+  status: AttendanceReviewStatus,
+  t: (key: string) => string,
+): { label: string; cls: string } | null {
   if (status === AttendanceReviewStatus.APPROVED)
-    return { label: 'Approved', cls: 'bg-green-100 text-green-700' };
+    return { label: t('common.statuses.approved'), cls: 'bg-green-100 text-green-700' };
   if (status === AttendanceReviewStatus.REJECTED)
-    return { label: 'Rejected', cls: 'bg-red-100 text-red-700' };
+    return { label: t('common.statuses.rejected'), cls: 'bg-red-100 text-red-700' };
   if (status === AttendanceReviewStatus.CORRECTED)
-    return { label: 'Corrected', cls: 'bg-purple-100 text-purple-700' };
+    return { label: t('attendance.modal.corrected'), cls: 'bg-purple-100 text-purple-700' };
   return null;
 }
 
@@ -98,6 +102,7 @@ function deduplicateEvents(events: AttendanceEvent[]): AttendanceEvent[] {
 }
 
 export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
+  const { t } = useI18n();
   const [reviewEvent, setReviewEvent] = useState<AttendanceEvent | null>(null);
   const { data, isLoading } = useAttendanceEmployeeDetail(isOpen ? employeeId : null, date);
 
@@ -124,10 +129,10 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
           style={{ background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 50%, #10B981 100%)' }}
         >
           <div>
-            <h2 className="text-base font-bold text-white">Attendance Detail</h2>
+            <h2 className="text-base font-bold text-white">{t('attendance.modal.detailTitle')}</h2>
             {data && (
               <p className="text-xs text-white/70 mt-0.5">
-                {data.employeeName} · {data.workDate} · {timezone}
+                {data.employeeName} Â· {data.workDate} Â· {timezone}
               </p>
             )}
           </div>
@@ -149,7 +154,7 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-green-50 rounded-xl px-4 py-3 border border-green-100">
                   <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-0.5">
-                    Effective Check-In
+                    {t('attendance.modal.effectiveCheckIn')}
                   </p>
                   <p className="text-sm font-bold text-gray-900">
                     {formatTime(data.firstCheckInAt, timezone)}
@@ -157,7 +162,7 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
                 </div>
                 <div className="bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
                   <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-0.5">
-                    Effective Check-Out
+                    {t('attendance.modal.effectiveCheckOut')}
                   </p>
                   <p className="text-sm font-bold text-gray-900">
                     {formatTime(data.lastCheckOutAt, timezone)}
@@ -168,15 +173,15 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
               {/* Detail rows */}
               <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-2.5">
                 {[
-                  { label: 'Department', value: data.departmentName ?? '—' },
-                  { label: 'Site', value: data.siteName ?? '—' },
-                  { label: 'Attendance state', value: data.attendanceState.replace(/_/g, ' ') },
-                  { label: 'Day status', value: data.dayStatus.replace(/_/g, ' ') },
+                  { label: t('tables.headers.department'), value: data.departmentName ?? '-' },
+                  { label: t('attendance.headers.site'), value: data.siteName ?? '-' },
+                  { label: t('attendance.modal.attendanceState'), value: data.attendanceState.replace(/_/g, ' ') },
+                  { label: t('attendance.headers.dayStatus'), value: data.dayStatus.replace(/_/g, ' ') },
                   {
-                    label: 'Worked / Late / Break',
+                    label: t('attendance.modal.workedLateBreak'),
                     value: `${data.workedMinutes}m / ${data.lateMinutes}m / ${data.breakMinutes}m`,
                   },
-                  { label: 'Payroll locked', value: data.payrollLocked ? 'Yes' : 'No' },
+                  { label: t('attendance.payrollLocked'), value: data.payrollLocked ? t('common.yes') : t('common.no') },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">{label}</span>
@@ -190,17 +195,17 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                      Events ({events.length})
+                      {t('attendance.modal.events')} ({events.length})
                     </p>
                     {pendingCount > 0 && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                        {pendingCount} pending review
+                        {t('attendance.modal.pendingReviewCount', { count: pendingCount })}
                       </span>
                     )}
                   </div>
                   <div className="space-y-2">
                     {events.map((event) => {
-                      const badge = reviewBadge(event.reviewStatus);
+                      const badge = reviewBadge(event.reviewStatus, t);
                       return (
                         <div
                           key={event.eventId}
@@ -212,17 +217,17 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
                               <div className="min-w-0">
                                 <p className="text-sm font-bold text-gray-900 leading-tight">
                                   {formatDateTime(event.serverRecordedAt, timezone)}
-                                  {' · '}
+                                  {' Â· '}
                                   <span className="font-semibold">
-                                    {EVENT_TYPE_LABELS[event.eventType] ?? event.eventType}
+                                    {t(EVENT_TYPE_LABEL_KEYS[event.eventType] ?? event.eventType)}
                                   </span>
                                 </p>
                                 <p className="text-[11px] text-gray-500 mt-0.5">
                                   {event.captureMethod.replace(/_/g, ' ')}
-                                  {' · '}
+                                  {' Â· '}
                                   {event.attendanceDecision.toLowerCase().replace(/_/g, ' ')}
                                   {event.warningFlags.length > 0 && (
-                                    <> · <span className="text-red-500">{event.warningFlags.join(', ')}</span></>
+                                    <> Â· <span className="text-red-500">{event.warningFlags.join(', ')}</span></>
                                   )}
                                 </p>
                               </div>
@@ -238,14 +243,14 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
                                   onClick={() => setReviewEvent(event)}
                                   className="text-blue-600 text-xs font-semibold hover:underline"
                                 >
-                                  Review
+                                  {t('attendance.modal.review')}
                                 </button>
                               )}
                             </div>
                           </div>
                           {event.reviewNote && (
                             <p className="text-[11px] text-gray-500 mt-1.5 pt-1.5 border-t border-white/60">
-                              Note: {event.reviewNote}
+                              {t('attendance.modal.note')}: {event.reviewNote}
                             </p>
                           )}
                         </div>
@@ -258,7 +263,7 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
               {events.length === 0 && !isLoading && (
                 <div className="flex flex-col items-center gap-2 py-6 text-gray-400">
                   <Clock size={28} className="text-gray-300" />
-                  <p className="text-sm">No events recorded for this day.</p>
+                  <p className="text-sm">{t('attendance.modal.noEvents')}</p>
                 </div>
               )}
             </>
@@ -270,7 +275,7 @@ export function ViewDetailModal({ isOpen, onClose, employeeId, date }: Props) {
             onClick={onClose}
             className="w-28 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
           >
-            Close
+            {t('common.actions.close')}
           </button>
         </div>
       </div>

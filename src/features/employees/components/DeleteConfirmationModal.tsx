@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
+import { useI18n } from '@/common/i18n';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function DeleteConfirmationModal({
   message,
   itemName,
 }: DeleteConfirmationModalProps) {
+  const { t } = useI18n();
   
   // Escape key closes the modal
   useEffect(() => {
@@ -71,8 +73,8 @@ export function DeleteConfirmationModal({
             </h2>
             <p className="text-[14px] leading-[22px] text-gray-500 font-[Inter,sans-serif]">
               {message} {itemName && (
-                <span className="font-bold text-gray-900">"{itemName}"</span>
-              )}? This action cannot be undone.
+                <span className="font-bold text-gray-900">&ldquo;{itemName}&rdquo;</span>
+              )}? {t('common.feedback.cannotBeUndone')}
             </p>
           </div>
 
@@ -82,13 +84,13 @@ export function DeleteConfirmationModal({
               onClick={onClose}
               className="flex-1 h-11 rounded-xl border border-gray-200 bg-white text-[14px] font-semibold text-gray-600 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300 font-[Inter,sans-serif]"
             >
-              Cancel
+              {t('common.actions.cancel')}
             </button>
             <button
               onClick={onConfirm}
               className="flex-1 h-11 rounded-xl bg-red-600 text-[14px] font-semibold text-white shadow-md transition-all hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/20 font-[Inter,sans-serif]"
             >
-              Delete
+              {t('common.actions.delete')}
             </button>
           </div>
         </div>

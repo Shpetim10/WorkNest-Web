@@ -15,8 +15,17 @@ import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import type { AuditLogRow, AuditLogSeverity, AuditLogSummaryDto } from '../types';
 import { useSuperAdminAuditLog } from '../api/use-super-admin-audit-log';
 import { AuditLogDetailsModal } from './AuditLogDetailsModal';
+import { useI18n } from '@/common/i18n';
 
-const TABLE_HEADERS = ['Event', 'Company', 'Description', 'Actor', 'Timestamp', 'Severity', 'View'];
+const TABLE_HEADER_KEYS = [
+  'superAdmin.auditLog.headers.event',
+  'superAdmin.auditLog.headers.company',
+  'superAdmin.auditLog.headers.description',
+  'superAdmin.auditLog.headers.actor',
+  'superAdmin.auditLog.headers.timestamp',
+  'superAdmin.auditLog.headers.severity',
+  'superAdmin.auditLog.headers.view',
+];
 
 interface AuditSummaryCard {
   id: string;
@@ -30,7 +39,7 @@ interface AuditSummaryCard {
 const SUMMARY_CARDS: AuditSummaryCard[] = [
   {
     id: 'info-events',
-    label: 'Info Events',
+    label: 'superAdmin.auditLog.infoEvents',
     valueKey: 'infoEvents',
     icon: CheckCircle2,
     iconClassName: 'text-[#00A65A]',
@@ -38,7 +47,7 @@ const SUMMARY_CARDS: AuditSummaryCard[] = [
   },
   {
     id: 'warnings',
-    label: 'Warnings',
+    label: 'superAdmin.auditLog.warnings',
     valueKey: 'warnings',
     icon: AlertTriangle,
     iconClassName: 'text-[#D97706]',
@@ -46,7 +55,7 @@ const SUMMARY_CARDS: AuditSummaryCard[] = [
   },
   {
     id: 'errors',
-    label: 'Errors',
+    label: 'superAdmin.auditLog.errors',
     valueKey: 'errors',
     icon: XCircle,
     iconClassName: 'text-[#DC2626]',
@@ -54,7 +63,7 @@ const SUMMARY_CARDS: AuditSummaryCard[] = [
   },
   {
     id: 'today',
-    label: 'Today',
+    label: 'superAdmin.auditLog.today',
     valueKey: 'today',
     icon: CalendarDays,
     iconClassName: 'text-[#155DFC]',
@@ -111,6 +120,7 @@ function formatMetric(value?: number | null): string {
 }
 
 function SummaryCard({ card, value }: { card: AuditSummaryCard; value: string }) {
+  const { t } = useI18n();
   return (
     <div
       className="flex min-h-[76px] items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3"
@@ -124,7 +134,7 @@ function SummaryCard({ card, value }: { card: AuditSummaryCard; value: string })
       </div>
       <div className="min-w-0">
         <p className="text-[22px] font-bold leading-none text-[#1a1c23]">{value}</p>
-        <p className="mt-1 text-[11px] font-medium text-gray-500">{card.label}</p>
+        <p className="mt-1 text-[11px] font-medium text-gray-500">{t(card.label)}</p>
       </div>
     </div>
   );
@@ -135,6 +145,7 @@ interface AuditLogViewProps {
 }
 
 export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps = {}) {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -151,6 +162,7 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
   const totalPages = Math.max(1, auditLogData?.page.totalPages ?? 1);
   const isInitialLoading = auditLogQuery.isLoading && !auditLogData;
   const isInitialError = auditLogQuery.isError && !auditLogData;
+  const tableHeaders = TABLE_HEADER_KEYS.map((key) => t(key));
 
   const resetPage = () => setCurrentPage(1);
   const getSummaryValue = (key: keyof AuditLogSummaryDto) => {
@@ -174,8 +186,8 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
             <ShieldCheck size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Audit Log</h1>
-            <p className="mt-0.5 text-sm text-white/80">Monitor all platform-level events and actions</p>
+            <h1 className="text-3xl font-bold text-white">{t('superAdmin.auditLog.title')}</h1>
+            <p className="mt-0.5 text-sm text-white/80">{t('superAdmin.auditLog.monitorSubtitle')}</p>
           </div>
         </div>
         <div className="absolute inset-0 bg-white/0 transition-colors group-hover:bg-white/5" />
@@ -195,7 +207,7 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search audit events locally..."
+            placeholder={t('superAdmin.auditLog.searchPlaceholder')}
             value={searchQuery}
             onChange={(event) => {
               setSearchQuery(event.target.value);
@@ -218,7 +230,7 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
                 className="text-xs font-semibold uppercase tracking-wide text-white"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th key={header} className="px-4 py-3.5 text-left font-semibold">
                     {header}
                   </th>
@@ -229,19 +241,19 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
               {isInitialLoading ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-16 text-center text-[14px] font-medium text-gray-400">
-                    Loading audit logs...
+                    {t('superAdmin.auditLog.loading')}
                   </td>
                 </tr>
               ) : isInitialError ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-16 text-center text-[14px] font-medium text-gray-400">
-                    Unable to load audit logs
+                    {t('superAdmin.auditLog.unable')}
                   </td>
                 </tr>
               ) : visibleRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-16 text-center text-[14px] font-medium text-gray-400">
-                    No audit logs found
+                    {t('superAdmin.auditLog.empty')}
                   </td>
                 </tr>
               ) : (
@@ -276,7 +288,7 @@ export function AuditLogView({ enableAuditLogQuery = false }: AuditLogViewProps 
                     <td className="px-4 py-3.5">
                       <button
                         type="button"
-                        title="View audit details"
+                        title={t('superAdmin.auditLog.viewDetails')}
                         onClick={() => setDetailsAuditLog(row)}
                         className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                       >

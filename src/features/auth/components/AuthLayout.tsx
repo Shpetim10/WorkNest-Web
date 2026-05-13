@@ -1,5 +1,6 @@
 "use client";
 import React, { ReactNode } from 'react';
+import { LanguageSwitcher } from '@/common/i18n';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -16,6 +17,9 @@ export function AuthLayout({
 
   return (
     <div className={`flex flex-col min-h-screen w-full items-center ${containerClass} bg-white font-sans relative pb-10`}>
+      <div className="absolute right-5 top-5 z-20">
+        <LanguageSwitcher />
+      </div>
 
       {/* Background Glows Wrapper - Shared Auth Decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

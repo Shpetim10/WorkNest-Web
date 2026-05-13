@@ -3,6 +3,7 @@ import { AxiosError } from 'axios';
 import { apiClient } from '@/common/network/api-client';
 import type { ApiErrorResponse, ApiResponse } from '@/common/types/api';
 import { setCookie } from '@/common/utils/cookies';
+import { persistUserProfileFromAuthPayload } from '@/common/utils/user-session-profile';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import type { LoginRequest, LoginResponse } from '@/features/auth/types';
 
@@ -39,6 +40,7 @@ export const useSuperAdminLogin = () => {
 
         setCookie('auth_token', data.accessToken, 7);
       }
+      persistUserProfileFromAuthPayload(data, { email: variables.email, role: data.role });
 
       setLoginResponse(data);
     },

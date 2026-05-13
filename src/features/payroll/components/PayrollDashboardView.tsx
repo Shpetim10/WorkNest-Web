@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { TablePagination } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useCompanyPeople } from '@/features/employees/api/get-employees';
 import { CompanyPersonRow, EmployeeStatus } from '@/features/employees/types';
 import { apiClient } from '@/common/network/api-client';
@@ -37,6 +38,8 @@ import {
   usePersistPayrollCalculation,
 } from '../api';
 
+
+type Translate = ReturnType<typeof useI18n>['t'];
 
 type ModalState =
   | { kind: 'none' }
@@ -58,8 +61,15 @@ function fromMonthInput(value: string): PayrollPeriod {
   return { year, month };
 }
 
-function monthName(period: PayrollPeriod): string {
-  return new Date(period.year, period.month - 1, 1).toLocaleDateString('en-US', {
+function localeToDateLocale(locale: string): string {
+  if (locale === 'sq') return 'sq-AL';
+  if (locale === 'de') return 'de-DE';
+  if (locale === 'it') return 'it-IT';
+  return 'en-US';
+}
+
+function monthName(period: PayrollPeriod, locale: string): string {
+  return new Date(period.year, period.month - 1, 1).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   });
@@ -96,10 +106,10 @@ function compactCurrency(value: number, currency = 'EUR', locale = 'en-US'): str
   return `${symbol}${compactValue}`;
 }
 
-function paymentLabel(value?: string | null): string {
-  if (value === 'HOURLY') return 'Hourly';
-  if (value === 'FIXED_MONTHLY') return 'Fixed monthly';
-  return 'Not set';
+function paymentLabel(value: string | null | undefined, t: Translate): string {
+  if (value === 'HOURLY') return t('payroll.payment.hourly');
+  if (value === 'FIXED_MONTHLY') return t('payroll.payment.fixedMonthly');
+  return t('payroll.payment.notSet');
 }
 
 function payrollTotals(details?: PayrollCalculationResponse | null) {
@@ -130,38 +140,39 @@ function formatBasePayDisplay(
   person: CompanyPersonRow,
   currency: string,
   locale: string,
+  t: Translate,
 ): string {
   const paymentMethod = details?.paymentMethod ?? person.raw.paymentMethod;
   if (paymentMethod === 'HOURLY') {
     const hourlyRate = details?.basePayCalculation?.hourlyRate ?? person.raw.hourlyRate;
     if (typeof hourlyRate === 'number') {
-      return `${formatCurrency(hourlyRate, currency, locale)}/hour`;
+      return `${formatCurrency(hourlyRate, currency, locale)}${t('payroll.perHour')}`;
     }
   }
   return formatCurrency(payrollTotals(details).basePay, currency, locale);
 }
 
-function statusBadge(status?: PayrollStatus, preview?: boolean): { label: string; cls: string } {
-  if (preview) return { label: 'Preview', cls: 'bg-sky-100 text-sky-700' };
+function statusBadge(status: PayrollStatus | undefined, preview: boolean | undefined, t: Translate): { label: string; cls: string } {
+  if (preview) return { label: t('payroll.status.preview'), cls: 'bg-sky-100 text-sky-700' };
   const map: Record<PayrollStatus, { label: string; cls: string }> = {
-    DRAFT: { label: 'Draft', cls: 'bg-gray-100 text-gray-600' },
-    CALCULATED: { label: 'Calculated', cls: 'bg-blue-100 text-blue-700' },
-    APPROVED: { label: 'Approved', cls: 'bg-emerald-100 text-emerald-700' },
-    FINALIZED: { label: 'Finalized', cls: 'bg-teal-100 text-teal-700' },
-    PAID: { label: 'Paid', cls: 'bg-green-100 text-green-700' },
-    CANCELLED: { label: 'Cancelled', cls: 'bg-red-100 text-red-700' },
+    DRAFT: { label: t('payroll.status.draft'), cls: 'bg-gray-100 text-gray-600' },
+    CALCULATED: { label: t('payroll.status.calculated'), cls: 'bg-blue-100 text-blue-700' },
+    APPROVED: { label: t('payroll.status.approved'), cls: 'bg-emerald-100 text-emerald-700' },
+    FINALIZED: { label: t('payroll.status.finalized'), cls: 'bg-teal-100 text-teal-700' },
+    PAID: { label: t('payroll.status.paid'), cls: 'bg-green-100 text-green-700' },
+    CANCELLED: { label: t('payroll.status.cancelled'), cls: 'bg-red-100 text-red-700' },
   };
-  return status && map[status] ? map[status] : { label: 'Unavailable', cls: 'bg-red-50 text-red-600' };
+  return status && map[status] ? map[status] : { label: t('payroll.status.unavailable'), cls: 'bg-red-50 text-red-600' };
 }
 
-function extractErrorMessage(error: unknown): string {
+function extractErrorMessage(error: unknown, t: Translate): string {
   if (!error || typeof error !== 'object') {
-    return 'Action failed. Please try again.';
+    return t('payroll.errors.actionFailed');
   }
   const axiosError = error as AxiosError<{ message?: string; code?: string; errorCode?: string }>;
   const code = axiosError.response?.data?.code ?? axiosError.response?.data?.errorCode;
-  if (code === 'PAYROLL_PERIOD_LOCKED') return 'This payroll period is locked.';
-  return axiosError.response?.data?.message ?? 'Action failed. Please try again.';
+  if (code === 'PAYROLL_PERIOD_LOCKED') return t('payroll.errors.periodLocked');
+  return axiosError.response?.data?.message ?? t('payroll.errors.actionFailed');
 }
 
 function isLockedError(error: unknown): boolean {
@@ -171,6 +182,15 @@ function isLockedError(error: unknown): boolean {
     axiosError.response?.data?.code === 'PAYROLL_PERIOD_LOCKED' ||
     axiosError.response?.data?.errorCode === 'PAYROLL_PERIOD_LOCKED'
   );
+}
+
+function platformRoleLabel(person: CompanyPersonRow, t: Translate): string {
+  return person.platformRole === 'STAFF' ? t('staff.entity') : t('employees.entity');
+}
+
+function employmentTypeLabel(person: CompanyPersonRow, t: Translate): string {
+  const employmentType = employeeTypeValue(person);
+  return employmentType ? t(`employees.employmentTypes.${employmentType}`) : person.employmentTypeLabel;
 }
 
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: 'danger' | 'success' }) {
@@ -212,6 +232,8 @@ function PayrollModalShell({
   children: React.ReactNode;
   width?: string;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-black/35 backdrop-blur-[2px]" onClick={onClose} />
@@ -221,7 +243,7 @@ function PayrollModalShell({
             <h2 className="text-2xl font-bold">{title}</h2>
             <p className="text-sm text-white/80 mt-1">{subtitle}</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-white/90 hover:bg-white/15" aria-label="Close modal">
+          <button onClick={onClose} className="p-1 rounded-lg text-white/90 hover:bg-white/15" aria-label={t('common.actions.close')}>
             <X size={18} />
           </button>
         </div>
@@ -232,7 +254,10 @@ function PayrollModalShell({
 }
 
 function PersonHeader({ person, details, period }: { person: CompanyPersonRow; details?: PayrollCalculationResponse; period: PayrollPeriod }) {
+  const { locale, t } = useI18n();
   const name = details?.employeeName ?? person.fullName;
+  const periodLabel = monthName(period, localeToDateLocale(locale));
+
   return (
     <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}>
@@ -240,7 +265,7 @@ function PersonHeader({ person, details, period }: { person: CompanyPersonRow; d
       </div>
       <div>
         <p className="font-bold text-slate-900 text-lg leading-tight">{name}</p>
-        <p className="text-xs text-slate-500">{monthName(period)} payroll</p>
+        <p className="text-xs text-slate-500">{t('payroll.periodPayroll', { period: periodLabel })}</p>
       </div>
     </div>
   );
@@ -257,8 +282,10 @@ function ViewPayrollModal({
   period: PayrollPeriod;
   onClose: () => void;
 }) {
+  const { locale, t } = useI18n();
   const companyCurrency = getStoredCompanyCurrency();
   const companyLocale = getStoredCompanyLocale();
+  const displayLocale = localeToDateLocale(locale);
   const detailsQuery = usePayrollDetails(person.id, period);
   const details = detailsQuery.data ?? initialDetails;
   const currency = companyCurrency;
@@ -269,14 +296,14 @@ function ViewPayrollModal({
     setError(null);
     persist.mutate(
       { employeeId: person.id, ...period },
-      { onError: (err) => setError(extractErrorMessage(err)) },
+      { onError: (err) => setError(extractErrorMessage(err, t)) },
     );
   };
 
   return (
     <PayrollModalShell
-      title="View Details"
-      subtitle="View the payroll details for this employee"
+      title={t('payroll.modal.viewTitle')}
+      subtitle={t('payroll.modal.viewSubtitle')}
       width="max-w-[640px]"
       onClose={onClose}
     >
@@ -287,34 +314,34 @@ function ViewPayrollModal({
             <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
           </div>
         ) : !details ? (
-          <p className="py-10 text-sm text-red-600">Payroll details are unavailable for this employee.</p>
+          <p className="py-10 text-sm text-red-600">{t('payroll.modal.detailsUnavailable')}</p>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-5">
               <div>
-                <p className="text-xs text-slate-500 mb-2">Employee Name</p>
+                <p className="text-xs text-slate-500 mb-2">{t('payroll.modal.employeeName')}</p>
                 <p className="text-sm font-semibold text-slate-900">{details.employeeName}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-2">Payment Method</p>
-                <p className="text-sm font-semibold text-slate-900">{paymentLabel(details.paymentMethod)}</p>
+                <p className="text-xs text-slate-500 mb-2">{t('payroll.modal.paymentMethod')}</p>
+                <p className="text-sm font-semibold text-slate-900">{paymentLabel(details.paymentMethod, t)}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <MoneyTile label="Base Pay" value={formatCurrency(payrollTotals(details).basePay, currency, companyLocale)} />
-              <MoneyTile label="Bonuses" value={formatCurrency(payrollAdjustments(details).totalBonus, currency, companyLocale)} tone="good" />
-              <MoneyTile label="Deductions" value={`-${formatCurrency(payrollTotals(details).totalDeductions, currency, companyLocale)}`} tone="bad" />
+              <MoneyTile label={t('payroll.modal.basePay')} value={formatCurrency(payrollTotals(details).basePay, currency, companyLocale)} />
+              <MoneyTile label={t('payroll.modal.bonuses')} value={formatCurrency(payrollAdjustments(details).totalBonus, currency, companyLocale)} tone="good" />
+              <MoneyTile label={t('payroll.modal.deductions')} value={`-${formatCurrency(payrollTotals(details).totalDeductions, currency, companyLocale)}`} tone="bad" />
             </div>
 
             <div className={`mt-4 rounded-2xl border overflow-hidden ${payrollTotals(details).negativeNetPay ? 'border-red-200' : 'border-cyan-100'}`}>
               <div className={`px-5 py-5 flex items-center justify-between ${payrollTotals(details).negativeNetPay ? 'bg-red-50' : 'bg-cyan-50'}`}>
                 <div>
-                  <p className="text-lg font-bold text-slate-900">{monthName(period)}</p>
-                  <p className="text-xs text-slate-500">Payroll status: {statusBadge(details.payrollStatus, details.preview).label}</p>
+                  <p className="text-lg font-bold text-slate-900">{monthName(period, displayLocale)}</p>
+                  <p className="text-xs text-slate-500">{t('payroll.statusLine', { status: statusBadge(details.payrollStatus, details.preview, t).label })}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-slate-500">Gross Earnings</p>
+                  <p className="text-xs text-slate-500">{t('payroll.modal.grossEarnings')}</p>
                   <p className={`text-3xl font-bold ${payrollTotals(details).negativeNetPay ? 'text-red-600' : 'text-slate-950'}`}>
                     {formatCurrency(payrollTotals(details).grossEarnings, currency, companyLocale)}
                   </p>
@@ -322,16 +349,16 @@ function ViewPayrollModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-5 py-5">
                 <div>
-                  <p className="text-sm font-bold text-slate-800 mb-3">Earnings</p>
-                  <Line label="Base Pay" value={formatCurrency(payrollTotals(details).basePay, currency, companyLocale)} />
-                  <Line label="Adjustments" value={formatCurrency(payrollAdjustments(details).totalBonus, currency, companyLocale)} />
-                  <Line label="Gross Earnings" value={formatCurrency(payrollTotals(details).grossEarnings, currency, companyLocale)} strong />
+                  <p className="text-sm font-bold text-slate-800 mb-3">{t('payroll.modal.earnings')}</p>
+                  <Line label={t('payroll.modal.basePay')} value={formatCurrency(payrollTotals(details).basePay, currency, companyLocale)} />
+                  <Line label={t('payroll.modal.adjustments')} value={formatCurrency(payrollAdjustments(details).totalBonus, currency, companyLocale)} />
+                  <Line label={t('payroll.modal.grossEarnings')} value={formatCurrency(payrollTotals(details).grossEarnings, currency, companyLocale)} strong />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800 mb-3">Deductions</p>
-                  <Line label="Manual deductions" value={`-${formatCurrency(payrollAdjustments(details).totalManualDeduction, currency, companyLocale)}`} danger />
-                  <Line label="Leave deduction" value={`-${formatCurrency(details.leaveCalculation?.unpaidLeaveDeduction ?? 0, currency, companyLocale)}`} danger />
-                  <Line label="Total Deductions" value={formatCurrency(payrollTotals(details).totalDeductions, currency, companyLocale)} strong danger />
+                  <p className="text-sm font-bold text-slate-800 mb-3">{t('payroll.modal.deductions')}</p>
+                  <Line label={t('payroll.modal.manualDeductions')} value={`-${formatCurrency(payrollAdjustments(details).totalManualDeduction, currency, companyLocale)}`} danger />
+                  <Line label={t('payroll.modal.leaveDeduction')} value={`-${formatCurrency(details.leaveCalculation?.unpaidLeaveDeduction ?? 0, currency, companyLocale)}`} danger />
+                  <Line label={t('payroll.modal.totalDeductions')} value={formatCurrency(payrollTotals(details).totalDeductions, currency, companyLocale)} strong danger />
                 </div>
               </div>
             </div>
@@ -353,7 +380,7 @@ function ViewPayrollModal({
 
             <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap justify-between gap-3">
               <button onClick={onClose} className="h-11 px-8 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200">
-                Close
+                {t('common.actions.close')}
               </button>
               <div className="flex gap-3">
                 <button
@@ -361,7 +388,7 @@ function ViewPayrollModal({
                   className="h-11 px-5 rounded-xl border border-blue-100 text-blue-700 text-sm font-bold hover:bg-blue-50 inline-flex items-center gap-2"
                 >
                   <Download size={16} />
-                  Download Payslip
+                  {t('payroll.modal.downloadPayslip')}
                 </button>
                 <button
                   onClick={saveCalculation}
@@ -370,7 +397,7 @@ function ViewPayrollModal({
                   style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
                 >
                   <CheckCircle2 size={16} />
-                  {persist.isPending ? 'Saving...' : 'Save Calculation'}
+                  {persist.isPending ? t('common.actions.saving') : t('payroll.modal.saveCalculation')}
                 </button>
               </div>
             </div>
@@ -403,8 +430,10 @@ function AdjustmentModal({
   period: PayrollPeriod;
   onClose: () => void;
 }) {
+  const { locale, t } = useI18n();
   const companyCurrency = getStoredCompanyCurrency();
   const companyLocale = getStoredCompanyLocale();
+  const displayLocale = localeToDateLocale(locale);
   const detailsQuery = usePayrollDetails(person.id, period);
   const details = detailsQuery.data ?? initialDetails;
   const currency = companyCurrency;
@@ -412,7 +441,7 @@ function AdjustmentModal({
   const deductionMutation = useAddPayrollDeduction();
   const mutation = kind === 'bonus' ? bonusMutation : deductionMutation;
   const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState(kind === 'bonus' ? 'Performance bonus' : 'Salary advance repayment');
+  const [reason, setReason] = useState(kind === 'bonus' ? t('payroll.modal.bonusDefaultReason') : t('payroll.modal.deductionDefaultReason'));
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const locked = isLockedError(detailsQuery.error);
@@ -422,17 +451,17 @@ function AdjustmentModal({
       ? payrollAdjustments(details).totalBonus
       : payrollAdjustments(details).totalManualDeduction;
   const newTotal = currentTotal + parsedAmount;
-  const title = kind === 'bonus' ? 'Add Bonus' : 'Add Deduction';
-  const label = kind === 'bonus' ? 'Bonus' : 'Deduction';
+  const title = kind === 'bonus' ? t('payroll.modal.addBonus') : t('payroll.modal.addDeduction');
+  const label = kind === 'bonus' ? t('payroll.modal.bonus') : t('payroll.modal.deduction');
 
   const submit = () => {
     setError(null);
     if (parsedAmount <= 0) {
-      setError('Enter an amount greater than zero.');
+      setError(t('payroll.errors.amountGreaterThanZero'));
       return;
     }
     if (!reason.trim()) {
-      setError('Reason is required.');
+      setError(t('payroll.errors.reasonRequired'));
       return;
     }
     mutation.mutate(
@@ -445,7 +474,7 @@ function AdjustmentModal({
       },
       {
         onSuccess: onClose,
-        onError: (err) => setError(extractErrorMessage(err)),
+        onError: (err) => setError(extractErrorMessage(err, t)),
       },
     );
   };
@@ -453,16 +482,16 @@ function AdjustmentModal({
   return (
     <PayrollModalShell
       title={title}
-      subtitle={`Add a payroll ${kind} for this employee`}
+      subtitle={t('payroll.modal.addAdjustmentSubtitle', { kind: label.toLowerCase() })}
       onClose={onClose}
     >
       <div className="p-7">
         <PersonHeader person={person} details={details} period={period} />
 
         <div className="grid grid-cols-2 gap-3 py-5">
-          <MoneyTile label={`Current ${label}`} value={formatCurrency(currentTotal, currency, companyLocale)} />
+          <MoneyTile label={t('payroll.modal.currentLabel', { label })} value={formatCurrency(currentTotal, currency, companyLocale)} />
           <MoneyTile
-            label={`New ${label}`}
+            label={t('payroll.modal.newLabel', { label })}
             value={`${kind === 'deduction' ? '-' : ''}${formatCurrency(newTotal, currency, companyLocale)}`}
             tone={kind === 'bonus' ? 'good' : 'bad'}
           />
@@ -470,12 +499,12 @@ function AdjustmentModal({
 
         {locked && (
           <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
-            This payroll period is locked. Adjustments are disabled.
+            {t('payroll.modal.locked')}
           </div>
         )}
 
         <div className="space-y-4">
-          <Field label={`${label} Amount`}>
+          <Field label={t('payroll.modal.amount', { label })}>
             <input
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
@@ -485,7 +514,7 @@ function AdjustmentModal({
               className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-500/10 disabled:opacity-60"
             />
           </Field>
-          <Field label={`${label} Type`}>
+          <Field label={t('payroll.modal.type', { label })}>
             <input
               value={reason}
               onChange={(event) => setReason(event.target.value)}
@@ -493,27 +522,30 @@ function AdjustmentModal({
               className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-500/10 disabled:opacity-60"
             />
           </Field>
-          <Field label="Notes">
+          <Field label={t('payroll.modal.notes')}>
             <textarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               disabled={locked}
               rows={3}
-              placeholder={kind === 'bonus' ? 'Employee exceeded monthly performance targets.' : 'Payroll adjustment approved after review.'}
+              placeholder={kind === 'bonus' ? t('payroll.modal.bonusNotePlaceholder') : t('payroll.modal.deductionNotePlaceholder')}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-500/10 disabled:opacity-60 resize-none"
             />
           </Field>
         </div>
 
         <div className={`mt-4 rounded-xl px-4 py-3 text-xs ${kind === 'bonus' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-          This amount will be {kind === 'bonus' ? 'added to' : 'subtracted from'} the employee&apos;s payroll for {monthName(period)}.
+          {t('payroll.modal.effect', {
+            action: kind === 'bonus' ? t('payroll.modal.addedTo') : t('payroll.modal.subtractedFrom'),
+            period: monthName(period, displayLocale),
+          })}
         </div>
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
         <div className="mt-6 pt-5 border-t border-slate-100 flex justify-between gap-3">
           <button onClick={onClose} className="h-11 px-7 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200">
-            Cancel
+            {t('common.actions.cancel')}
           </button>
           <button
             onClick={submit}
@@ -521,7 +553,7 @@ function AdjustmentModal({
             className="h-11 px-7 rounded-xl text-white text-sm font-bold disabled:opacity-60"
             style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
-            {mutation.isPending ? 'Saving...' : `Save ${label}`}
+            {mutation.isPending ? t('common.actions.saving') : t('payroll.modal.saveLabel', { label })}
           </button>
         </div>
       </div>
@@ -539,8 +571,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function PayrollDashboardView() {
+  const { locale, t } = useI18n();
   const companyCurrency = getStoredCompanyCurrency();
   const companyLocale = getStoredCompanyLocale();
+  const displayLocale = localeToDateLocale(locale);
   const [period, setPeriod] = useState<PayrollPeriod>(currentPeriod);
   const [appliedPeriod, setAppliedPeriod] = useState<PayrollPeriod>(currentPeriod);
   const [search, setSearch] = useState('');
@@ -627,12 +661,24 @@ export function PayrollDashboardView() {
           const success = result.successCount ?? filteredEmployees.length;
           const failed = result.failedCount ?? 0;
           const skipped = result.skippedCount ?? 0;
-          setBatchMessage(`Calculated ${success} employees. Failed: ${failed}. Skipped: ${skipped}.`);
+          setBatchMessage(t('payroll.messages.calculated', { success, failed, skipped }));
         },
-        onError: (error) => setBatchMessage(extractErrorMessage(error)),
+        onError: (error) => setBatchMessage(extractErrorMessage(error, t)),
       },
     );
   };
+
+  const tableHeaders = [
+    t('payroll.table.employeeName'),
+    t('payroll.table.typeOfEmployee'),
+    t('payroll.table.payment'),
+    t('payroll.table.basePay'),
+    t('payroll.table.bonuses'),
+    t('payroll.table.deductions'),
+    t('payroll.table.grossEarnings'),
+    t('payroll.table.status'),
+    t('payroll.table.actions'),
+  ];
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4 pb-10">
@@ -645,8 +691,8 @@ export function PayrollDashboardView() {
             <ReceiptText size={25} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Payroll Overview</h1>
-            <p className="text-white/80 text-sm mt-0.5">Manage monthly payroll for {monthName(appliedPeriod)}</p>
+            <h1 className="text-3xl font-bold text-white">{t('payroll.title')}</h1>
+            <p className="text-white/80 text-sm mt-0.5">{t('payroll.subtitle', { period: monthName(appliedPeriod, displayLocale) })}</p>
           </div>
         </div>
         <button
@@ -655,22 +701,24 @@ export function PayrollDashboardView() {
           className="h-12 px-5 rounded-xl bg-white/20 hover:bg-white/25 text-white font-bold text-sm inline-flex items-center gap-2 disabled:opacity-60"
         >
           <RefreshCw size={18} className={batchCalculate.isPending ? 'animate-spin' : ''} />
-          Calculate All
+          {t('payroll.calculateAll')}
         </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard label="Page Gross Earnings" value={compactCurrency(summary.totalPayroll, currency, companyLocale)} />
-        <StatCard label="Previewed Employees" value={String(loadedDetails.length)} />
-        <StatCard label="Page Bonuses" value={compactCurrency(summary.totalBonuses, currency, companyLocale)} tone="success" />
-        <StatCard label="Page Deductions" value={compactCurrency(summary.totalDeductions, currency, companyLocale)} tone="danger" />
-        <StatCard label="Page Pending" value={String(summary.pending)} />
+        <StatCard label={t('payroll.stats.pageGrossEarnings')} value={compactCurrency(summary.totalPayroll, currency, companyLocale)} />
+        <StatCard label={t('payroll.stats.previewedEmployees')} value={String(loadedDetails.length)} />
+        <StatCard label={t('payroll.stats.pageBonuses')} value={compactCurrency(summary.totalBonuses, currency, companyLocale)} tone="success" />
+        <StatCard label={t('payroll.stats.pageDeductions')} value={compactCurrency(summary.totalDeductions, currency, companyLocale)} tone="danger" />
+        <StatCard label={t('payroll.stats.pagePending')} value={String(summary.pending)} />
       </div>
 
       {(batchMessage || summary.warnings > 0) && (
         <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>{batchMessage ?? `${summary.warnings} payroll warning${summary.warnings === 1 ? '' : 's'} visible in the current page.`}</span>
+          <span>
+            {batchMessage ?? t(summary.warnings === 1 ? 'payroll.messages.visibleWarningOne' : 'payroll.messages.visibleWarningMany', { count: summary.warnings })}
+          </span>
         </div>
       )}
 
@@ -683,7 +731,7 @@ export function PayrollDashboardView() {
               setSearch(event.target.value);
               setPage(1);
             }}
-            placeholder="Search employee locally..."
+            placeholder={t('payroll.filters.searchPlaceholder')}
             className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-300"
           />
         </div>
@@ -699,19 +747,19 @@ export function PayrollDashboardView() {
         </div>
 
         <SelectFilter value={employeeType} onChange={setEmployeeType} options={[
-          ['', 'All employee types'],
-          ['FULL_TIME', 'Full-time'],
-          ['PART_TIME', 'Part-time'],
-          ['CONTRACT', 'Contract'],
-          ['INTERN', 'Intern'],
+          ['', t('payroll.filters.allEmployeeTypes')],
+          ['FULL_TIME', t('payroll.filters.fullTime')],
+          ['PART_TIME', t('payroll.filters.partTime')],
+          ['CONTRACT', t('payroll.filters.contract')],
+          ['INTERN', t('payroll.filters.intern')],
         ]} />
         <SelectFilter value={paymentMethod} onChange={setPaymentMethod} options={[
-          ['','All payment types'],
-          ['FIXED_MONTHLY','Fixed monthly'],
-          ['HOURLY','Hourly'],
+          ['', t('payroll.filters.allPaymentTypes')],
+          ['FIXED_MONTHLY', t('payroll.filters.fixedMonthly')],
+          ['HOURLY', t('payroll.filters.hourly')],
         ]} />
         <button onClick={applyFilters} className="h-10 px-7 bg-[#2B7FFF] hover:bg-blue-700 text-white text-sm font-bold rounded-xl">
-          Apply
+          {t('common.actions.apply')}
         </button>
       </div>
 
@@ -720,7 +768,7 @@ export function PayrollDashboardView() {
           <table className="w-full text-sm min-w-[980px]">
             <thead>
               <tr className="text-xs font-semibold text-white uppercase tracking-wide" style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}>
-                {['Employee Name', 'Type of Employee', 'Payment', 'Base Pay', 'Bonuses', 'Deductions', 'Gross Earnings', 'Status', 'Actions'].map((heading) => (
+                {tableHeaders.map((heading) => (
                   <th key={heading} className="px-6 py-4 text-left font-semibold">{heading}</th>
                 ))}
               </tr>
@@ -735,19 +783,19 @@ export function PayrollDashboardView() {
               )}
               {employeesError && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-red-600">Failed to load employees.</td>
+                  <td colSpan={9} className="py-12 text-center text-red-600">{t('payroll.table.failedEmployees')}</td>
                 </tr>
               )}
               {!employeesLoading && !employeesError && visiblePeople.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">No employees found for these filters.</td>
+                  <td colSpan={9} className="py-12 text-center text-slate-400">{t('payroll.table.emptyEmployees')}</td>
                 </tr>
               )}
               {visiblePeople.map((person) => {
                 const details = detailByEmployeeId.get(person.id);
                 const query = detailQueries[visiblePeople.findIndex((candidate) => candidate.id === person.id)];
                 const name = details?.employeeName ?? person.fullName;
-                const badge = statusBadge(details?.payrollStatus, details?.preview);
+                const badge = statusBadge(details?.payrollStatus, details?.preview, t);
                 return (
                   <tr key={person.id} className="border-b border-slate-100 hover:bg-blue-50/30">
                     <td className="px-6 py-4">
@@ -757,7 +805,7 @@ export function PayrollDashboardView() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-bold text-slate-900 truncate">{name}</p>
-                          {query?.isError && <p className="text-xs text-red-500">Preview unavailable</p>}
+                          {query?.isError && <p className="text-xs text-red-500">{t('payroll.table.previewUnavailable')}</p>}
                         </div>
                       </div>
                     </td>
@@ -766,32 +814,32 @@ export function PayrollDashboardView() {
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                           person.platformRole === 'STAFF' ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'
                         }`}>
-                          {person.displayRoleLabel}
+                          {platformRoleLabel(person, t)}
                         </span>
                         <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2.5 py-1 rounded-full">
-                          {person.employmentTypeLabel}
+                          {employmentTypeLabel(person, t)}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{paymentLabel(details?.paymentMethod ?? person.raw.paymentMethod)}</td>
-                    <td className="px-6 py-4 text-slate-600">{details ? formatBasePayDisplay(details, person, companyCurrency, companyLocale) : query?.isLoading ? 'Loading...' : '—'}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-semibold">{details ? formatCurrency(payrollAdjustments(details).totalBonus, companyCurrency, companyLocale) : '—'}</td>
-                    <td className="px-6 py-4 text-red-600 font-semibold">{details ? `-${formatCurrency(payrollTotals(details).totalDeductions, companyCurrency, companyLocale)}` : '—'}</td>
+                    <td className="px-6 py-4 text-slate-600">{paymentLabel(details?.paymentMethod ?? person.raw.paymentMethod, t)}</td>
+                    <td className="px-6 py-4 text-slate-600">{details ? formatBasePayDisplay(details, person, companyCurrency, companyLocale, t) : query?.isLoading ? t('common.feedback.loading') : '-'}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-semibold">{details ? formatCurrency(payrollAdjustments(details).totalBonus, companyCurrency, companyLocale) : '-'}</td>
+                    <td className="px-6 py-4 text-red-600 font-semibold">{details ? `-${formatCurrency(payrollTotals(details).totalDeductions, companyCurrency, companyLocale)}` : '-'}</td>
                     <td className={`px-6 py-4 font-semibold ${payrollTotals(details).negativeNetPay ? 'text-red-600' : 'text-slate-700'}`}>
-                      {details ? formatCurrency(payrollTotals(details).grossEarnings, companyCurrency, companyLocale) : '—'}
+                      {details ? formatCurrency(payrollTotals(details).grossEarnings, companyCurrency, companyLocale) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badge.cls}`}>{badge.label}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <IconAction label="View details" onClick={() => setModal({ kind: 'view', person, details })}>
+                        <IconAction label={t('payroll.actions.viewDetails')} onClick={() => setModal({ kind: 'view', person, details })}>
                           <Eye size={15} />
                         </IconAction>
-                        <IconAction label="Add bonus" tone="success" onClick={() => setModal({ kind: 'bonus', person, details })}>
+                        <IconAction label={t('payroll.actions.addBonus')} tone="success" onClick={() => setModal({ kind: 'bonus', person, details })}>
                           <Plus size={15} />
                         </IconAction>
-                        <IconAction label="Add deduction" tone="danger" onClick={() => setModal({ kind: 'deduction', person, details })}>
+                        <IconAction label={t('payroll.actions.addDeduction')} tone="danger" onClick={() => setModal({ kind: 'deduction', person, details })}>
                           <Minus size={15} />
                         </IconAction>
                       </div>

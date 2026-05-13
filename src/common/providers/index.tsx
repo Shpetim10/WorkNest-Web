@@ -1,9 +1,17 @@
 'use client';
 
-import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState, ReactNode } from 'react';
 import { toast } from 'sonner';
+
+type ErrorWithResponseMessage = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+};
 
 /**
  * Common Providers for the application
@@ -17,8 +25,8 @@ export function Providers({ children }: { children: ReactNode }) {
         queryCache: new QueryCache({
           onError: (error, query) => {
             if (query.meta?.silent) return;
-            
-            const apiError = error as any;
+
+            const apiError = error as ErrorWithResponseMessage;
             let errorMessage = 'Failed to fetch data';
             if (apiError?.response?.data?.message) {
               errorMessage = apiError.response.data.message;

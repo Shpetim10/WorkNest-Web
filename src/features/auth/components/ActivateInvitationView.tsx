@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button, Card, Checkbox, Input } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 import { useActivateInvitation } from '../api/activate-invitation';
 import { usePublicMediaUpload } from '../api/register-company';
 import { MediaCategory } from '../types/registration';
@@ -61,6 +62,7 @@ function getErrorMessage(error: unknown) {
 }
 
 function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationViewProps) {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,11 +97,11 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
 
   const passwordChecks = useMemo(
     () => [
-      { key: 'length', label: 'At least 8 characters', passed: formData.password.length >= 8 },
-      { key: 'uppercase', label: 'One uppercase letter', passed: /[A-Z]/.test(formData.password) },
-      { key: 'number', label: 'One number', passed: /\d/.test(formData.password) },
+      { key: 'length', label: t('passwordRules.atLeast8'), passed: formData.password.length >= 8 },
+      { key: 'uppercase', label: t('passwordRules.uppercase'), passed: /[A-Z]/.test(formData.password) },
+      { key: 'number', label: t('passwordRules.number'), passed: /\d/.test(formData.password) },
     ],
-    [formData.password]
+    [formData.password, t]
   );
 
   const passwordsMatch =
@@ -143,7 +145,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
     if (file.size > MAX_IMAGE_BYTES) {
       setErrors((current) => ({
         ...current,
-        profileImage: 'Image must be smaller than 2MB.',
+        profileImage: t('auth.activateInvitation.imageSize'),
       }));
       event.target.value = '';
       return;
@@ -178,27 +180,27 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
 
     if (!token) {
       nextErrors.submit =
-        'Activation token is missing. Please reopen the original invitation link.';
+        t('auth.activateInvitation.missingToken');
     }
 
     if (!formData.password) {
-      nextErrors.password = 'Password is required.';
+      nextErrors.password = t('validation.passwordRequired');
     } else if (formData.password.length < 8) {
-      nextErrors.password = 'Password must be at least 8 characters.';
+      nextErrors.password = t('validation.passwordMin');
     } else if (!/[A-Z]/.test(formData.password)) {
-      nextErrors.password = 'Password must include an uppercase letter.';
+      nextErrors.password = t('auth.activateInvitation.uppercaseRequired');
     } else if (!/\d/.test(formData.password)) {
-      nextErrors.password = 'Password must include a number.';
+      nextErrors.password = t('auth.activateInvitation.numberRequired');
     }
 
     if (!formData.confirmPassword) {
-      nextErrors.confirmPassword = 'Please confirm your password.';
+      nextErrors.confirmPassword = t('auth.activateInvitation.confirmPasswordRequired');
     } else if (formData.password !== formData.confirmPassword) {
-      nextErrors.confirmPassword = 'Passwords do not match.';
+      nextErrors.confirmPassword = t('validation.passwordsDoNotMatch');
     }
 
     if (!formData.gdprConsent) {
-      nextErrors.gdprConsent = 'You must accept the terms to continue.';
+      nextErrors.gdprConsent = t('auth.activateInvitation.termsRequired');
     }
 
     setErrors(nextErrors);
@@ -232,7 +234,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
         token: tokenToSubmit,
         password: formData.password,
         gdprConsent: formData.gdprConsent,
-        preferredLanguage: 'sq',
+        preferredLanguage: locale,
         profileImageStorageKey,
         profileImageStoragePath,
       });
@@ -243,7 +245,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
       setErrors({
         submit:
           getErrorMessage(error) ||
-          'Activation failed. Please verify the invitation link and try again.',
+          t('auth.activateInvitation.activationFailed'),
       });
     }
   };
@@ -256,9 +258,9 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
             <AlertTriangle className="w-10 h-10" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">Invalid Link</h2>
+        <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">{t('auth.activateInvitation.invalidLink')}</h2>
         <p className="text-gray-500 text-[14px] leading-relaxed mb-8">
-          The activation link is missing its security token. Please check your e-mail and use the full link provided.
+          {t('auth.activateInvitation.invalidLinkBody')}
         </p>
         <Button
           type="button"
@@ -267,7 +269,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
           variant="secondary"
           icon={<LogIn className="w-4 h-4" />}
         >
-          Return to Login
+          {t('auth.activateInvitation.returnToLogin')}
         </Button>
       </Card>
     );
@@ -281,12 +283,12 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
             <CheckCircle2 className="w-10 h-10" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">Account Activated!</h2>
+        <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">{t('auth.activateInvitation.activatedTitle')}</h2>
         <p className="text-gray-500 text-[14px] leading-relaxed mb-8">
-          Your workspace is now ready. You can now log in with your new password.
+          {t('auth.activateInvitation.activatedBody')}
         </p>
         <Button type="button" fullWidth onClick={() => router.push('/login')}>
-          Go to Login
+          {t('auth.activateInvitation.goToLogin')}
         </Button>
       </Card>
     );
@@ -300,9 +302,9 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
             WorkTrezz
           </h1>
         </div>
-        <h2 className="text-2xl font-bold text-[#1a1c23] mb-2 tracking-tight">Complete Setup</h2>
+        <h2 className="text-2xl font-bold text-[#1a1c23] mb-2 tracking-tight">{t('auth.activateInvitation.title')}</h2>
         <p className="text-gray-500 text-[14px] leading-relaxed">
-          Set your password and upload a profile photo.
+          {t('auth.activateInvitation.subtitle')}
         </p>
       </div>
 
@@ -324,9 +326,10 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
             >
               {previewUrl ? (
                 <>
-                  <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewUrl} alt={t('auth.activateInvitation.previewAlt')} className="h-full w-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="text-[11px] font-bold text-white">Change</span>
+                    <span className="text-[11px] font-bold text-white">{t('auth.activateInvitation.changePhoto')}</span>
                   </div>
                 </>
               ) : (
@@ -341,7 +344,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
                 type="button"
                 onClick={handleRemoveFile}
                 className="absolute -top-1 -right-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-md transition-all duration-200 hover:bg-red-600"
-                title="Remove photo"
+                title={t('auth.activateInvitation.removePhoto')}
               >
                 <X size={14} />
               </button>
@@ -354,7 +357,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
             )}
           </div>
 
-          {/* Hidden file input — OUTSIDE the relative container so it never overlaps other elements */}
+          {/* Hidden file input stays outside the relative container so it never overlaps other elements. */}
           <input
             id="profile-image-upload"
             ref={fileInputRef}
@@ -367,16 +370,16 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
           {errors.profileImage && (
             <p className="mt-2 text-xs font-medium text-red-500">{errors.profileImage}</p>
           )}
-          <p className="mt-2 text-[12px] text-gray-400 font-medium">Upload profile photo (max 2MB)</p>
+          <p className="mt-2 text-[12px] text-gray-400 font-medium">{t('auth.activateInvitation.uploadHelp')}</p>
         </div>
 
         <div className="space-y-5">
           <div className="space-y-2">
             <Input
               id="activation-password"
-              label="Password"
+              label={t('common.fields.password')}
               type={showPassword ? 'text' : 'password'}
-              placeholder="Min. 8 chars, 1 uppercase, 1 digit"
+              placeholder={t('auth.activateInvitation.passwordPlaceholder')}
               icon={<Lock className="h-[18px] w-[18px]" />}
               iconRight={
                 showPassword ? (
@@ -418,9 +421,9 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
           <div className="space-y-2">
             <Input
               id="activation-confirm-password"
-              label="Confirm Password"
+              label={t('auth.resetPassword.confirmPassword')}
               type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="Repeat your password"
+              placeholder={t('auth.activateInvitation.confirmPasswordPlaceholder')}
               icon={<Lock className="h-[18px] w-[18px]" />}
               iconRight={
                 showConfirmPassword ? (
@@ -451,7 +454,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
                     <X className="h-3 w-3 stroke-[3px]" />
                   )}
                 </div>
-                <span>{passwordsMatch ? 'Passwords match' : 'Passwords do not match yet'}</span>
+                <span>{passwordsMatch ? t('auth.activateInvitation.passwordsMatch') : t('auth.activateInvitation.passwordsDoNotMatchYet')}</span>
               </div>
             )}
           </div>
@@ -459,7 +462,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
 
         <Checkbox
           id="gdprConsent"
-          label="I accept the Terms of Service and GDPR Privacy Policy"
+          label={t('auth.activateInvitation.termsLabel')}
           checked={formData.gdprConsent}
           onChange={handleFieldChange('gdprConsent')}
           error={errors.gdprConsent}
@@ -471,7 +474,7 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
           isLoading={activateMutation.isPending || uploadMutation.isPending}
           icon={<ArrowRight className="h-[18px] w-[18px]" />}
         >
-          Activate Account
+          {t('auth.activateInvitation.activateAccount')}
         </Button>
       </form>
     </Card>
@@ -479,8 +482,13 @@ function ActivateInvitationContent({ initialToken = '' }: ActivateInvitationView
 }
 
 export function ActivateInvitationView({ initialToken = '' }: ActivateInvitationViewProps) {
+  const { t } = useI18n();
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] font-sans p-4 relative overflow-hidden">
+      <div className="absolute right-5 top-5 z-20">
+        <LanguageSwitcher />
+      </div>
       <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-[#0066FF]/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#00C853]/5 rounded-full blur-[120px] pointer-events-none" />
 
@@ -488,7 +496,7 @@ export function ActivateInvitationView({ initialToken = '' }: ActivateInvitation
         fallback={
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0066FF]" />
-            <p className="text-gray-400 font-medium">Loading activation...</p>
+            <p className="text-gray-400 font-medium">{t('auth.activateInvitation.loading')}</p>
           </div>
         }
       >

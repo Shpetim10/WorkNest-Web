@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 import { CompanyManagementRow } from '../types';
+import { useI18n } from '@/common/i18n';
 
 interface CompanyDetailsModalProps {
   company: CompanyManagementRow | null;
@@ -21,6 +22,7 @@ function DetailField({ label, value }: { label: string; value: React.ReactNode }
 }
 
 function StatusPill({ status }: { status: CompanyManagementRow['status'] }) {
+  const { t } = useI18n();
   const isActive = status === 'active';
 
   return (
@@ -29,12 +31,13 @@ function StatusPill({ status }: { status: CompanyManagementRow['status'] }) {
         isActive ? 'bg-[#DCFCE7] text-[#008F45]' : 'bg-[#FEE2E2] text-[#DC2626]'
       }`}
     >
-      {isActive ? 'active' : 'suspended'}
+      {isActive ? t('superAdmin.companies.active') : t('superAdmin.companies.suspended')}
     </span>
   );
 }
 
 function AccountStatusPill({ status }: { status: CompanyManagementRow['status'] }) {
+  const { t } = useI18n();
   const isActive = status === 'active';
 
   return (
@@ -43,12 +46,14 @@ function AccountStatusPill({ status }: { status: CompanyManagementRow['status'] 
         isActive ? 'bg-[#DCFCE7] text-[#008F45]' : 'bg-[#FEE2E2] text-[#DC2626]'
       }`}
     >
-      {isActive ? 'Active' : 'Suspended'}
+      {isActive ? t('common.statuses.active') : t('superAdmin.companies.suspended')}
     </span>
   );
 }
 
 export function CompanyDetailsModal({ company, isOpen, onClose }: CompanyDetailsModalProps) {
+  const { t } = useI18n();
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -82,8 +87,8 @@ export function CompanyDetailsModal({ company, isOpen, onClose }: CompanyDetails
             style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
             <div>
-              <h2 className="text-[20px] font-bold leading-7 text-white">Company Details</h2>
-              <p className="mt-1 text-[13px] font-medium text-white/85">View the Company details</p>
+              <h2 className="text-[20px] font-bold leading-7 text-white">{t('superAdmin.companies.modal.detailsTitle')}</h2>
+              <p className="mt-1 text-[13px] font-medium text-white/85">{t('superAdmin.companies.modal.detailsSubtitle')}</p>
             </div>
             <button
               type="button"
@@ -96,44 +101,43 @@ export function CompanyDetailsModal({ company, isOpen, onClose }: CompanyDetails
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
             <section className="space-y-3">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">Basic Information</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">{t('superAdmin.companies.modal.basicInformation')}</h3>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                <DetailField label="Company Name" value={company.companyName} />
-                <DetailField label="Legal Name" value={company.legalName} />
+                <DetailField label={t('common.fields.companyName')} value={company.companyName} />
+                <DetailField label={t('common.fields.legalName')} value={company.legalName} />
                 <DetailField label="NIPT" value={company.nipt} />
-                <DetailField label="Registration Number" value={company.registrationNumber} />
+                <DetailField label={t('superAdmin.companies.modal.registrationNumber')} value={company.registrationNumber} />
               </div>
             </section>
 
             <section className="space-y-3">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">Contact Information</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">{t('superAdmin.companies.modal.contactInformation')}</h3>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                <DetailField label="Primary Email" value={company.email} />
-                <DetailField label="Country" value={company.countryCode} />
+                <DetailField label={t('superAdmin.companies.modal.primaryEmail')} value={company.email} />
+                <DetailField label={t('tables.headers.country')} value={company.countryCode} />
               </div>
             </section>
 
             <section className="space-y-3">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">Subscription</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">{t('superAdmin.companies.modal.subscription')}</h3>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                <DetailField label="Plan" value={company.plan} />
-                <DetailField label="Status" value={<StatusPill status={company.status} />} />
-                <DetailField label="Created At" value={company.createdAt} />
+                <DetailField label={t('common.fields.plan')} value={company.plan} />
+                <DetailField label={t('common.fields.status')} value={<StatusPill status={company.status} />} />
+                <DetailField label={t('tables.headers.createdAt')} value={company.createdAt} />
               </div>
             </section>
 
             <section className="space-y-3">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">Account Status</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">{t('superAdmin.profile.accountStatus')}</h3>
               <AccountStatusPill status={company.status} />
             </section>
 
             <div className="flex gap-3 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-[#B45309]">
               <AlertTriangle size={17} strokeWidth={2.2} className="mt-0.5 shrink-0" />
               <div>
-                <p className="text-[13px] font-semibold">Platform-Level View Only</p>
+                <p className="text-[13px] font-semibold">{t('superAdmin.companies.modal.platformViewOnly')}</p>
                 <p className="mt-1 text-[11px] leading-4">
-                  You are viewing company metadata only. Employee data, payroll, attendance, and other internal HR
-                  information are not accessible at the platform level.
+                  {t('superAdmin.companies.modal.platformViewOnlyBody')}
                 </p>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { setCookie } from '@/common/utils/cookies';
 import { fetchCompanySettings } from '@/features/company-settings/api/get-company-settings';
 import { persistCompanySettings } from '@/features/company-settings/storage';
+import { persistUserProfileFromAuthPayload } from '@/common/utils/user-session-profile';
 
 /**
  * Mutation hook for user login
@@ -53,6 +54,7 @@ export const useLogin = () => {
         }
         setCookie('auth_token', data.accessToken, 7);
       }
+      persistUserProfileFromAuthPayload(data, { email: variables.email, role: data.role });
 
       if (companyId) {
         try {
@@ -96,6 +98,7 @@ export const useSelectRole = () => {
         }
         setCookie('auth_token', data.accessToken, 7);
       }
+      persistUserProfileFromAuthPayload(data, { role: data.platformRole });
 
       if (companyId) {
         try {

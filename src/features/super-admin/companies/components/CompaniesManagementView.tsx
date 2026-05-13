@@ -16,14 +16,24 @@ import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { CompanyManagementRow, CompanyManagementStatus } from '../types';
 import { CompanyDetailsModal } from './CompanyDetailsModal';
 import { SuspendCompanyModal } from './SuspendCompanyModal';
+import { useI18n } from '@/common/i18n';
 
-const TABLE_HEADERS = ['Company Name', 'Legal Name', 'NIPT', 'Email', 'Plan', 'Status', 'Created', 'Actions'];
+const TABLE_HEADER_KEYS = [
+  'common.fields.companyName',
+  'common.fields.legalName',
+  'common.fields.nipt',
+  'common.fields.email',
+  'common.fields.plan',
+  'tables.headers.status',
+  'tables.headers.createdAt',
+  'tables.headers.actions',
+];
 const STATUS_FILTERS = ['All statuses', 'Active', 'Suspended'] as const;
 const PLAN_FILTERS = ['All plans', 'Starter', 'Professional', 'Enterprise'] as const;
 
 const COMPANY_ROWS: CompanyManagementRow[] = [];
 
-function statusBadge(status: CompanyManagementStatus) {
+function statusBadge(status: CompanyManagementStatus, t: (key: string) => string) {
   const isActive = status === 'active';
   const Icon = isActive ? CheckCircle2 : XCircle;
 
@@ -34,7 +44,7 @@ function statusBadge(status: CompanyManagementStatus) {
       }`}
     >
       <Icon size={12} strokeWidth={2.4} />
-      {isActive ? 'active' : 'suspended'}
+      {isActive ? t('superAdmin.companies.active') : t('superAdmin.companies.suspended')}
     </span>
   );
 }
@@ -42,10 +52,12 @@ function statusBadge(status: CompanyManagementStatus) {
 function SelectField({
   value,
   options,
+  getLabel,
   onChange,
 }: {
   value: string;
   options: readonly string[];
+  getLabel?: (value: string) => string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -56,7 +68,9 @@ function SelectField({
         className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
       >
         {options.map((option) => (
-          <option key={option}>{option}</option>
+          <option key={option} value={option}>
+            {getLabel?.(option) ?? option}
+          </option>
         ))}
       </select>
       <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -65,6 +79,7 @@ function SelectField({
 }
 
 export function CompaniesManagementView() {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('All statuses');
   const [planFilter, setPlanFilter] = useState<(typeof PLAN_FILTERS)[number]>('All plans');
@@ -96,6 +111,17 @@ export function CompaniesManagementView() {
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const tableHeaders = TABLE_HEADER_KEYS.map((key) => t(key));
+  const statusFilterLabel = (value: string) => {
+    if (value === 'All statuses') return t('superAdmin.companies.allStatuses');
+    if (value === 'Active') return t('common.statuses.active');
+    if (value === 'Suspended') return t('superAdmin.companies.suspended');
+    return value;
+  };
+  const planFilterLabel = (value: string) => {
+    if (value === 'All plans') return t('superAdmin.companies.allPlans');
+    return value;
+  };
 
   const resetPage = () => setCurrentPage(1);
 
@@ -164,8 +190,8 @@ export function CompaniesManagementView() {
             <Building2 size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Companies Management</h1>
-            <p className="text-white/80 text-sm mt-0.5">Platform-level company administration</p>
+            <h1 className="text-3xl font-bold text-white">{t('superAdmin.companies.managementTitle')}</h1>
+            <p className="text-white/80 text-sm mt-0.5">{t('superAdmin.companies.subtitle')}</p>
           </div>
         </div>
         <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors" />
@@ -179,7 +205,7 @@ export function CompaniesManagementView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search companies locally..."
+            placeholder={t('superAdmin.companies.searchPlaceholder')}
             value={searchQuery}
             onChange={(event) => {
               setSearchQuery(event.target.value);
@@ -193,6 +219,7 @@ export function CompaniesManagementView() {
           <SelectField
             value={statusFilter}
             options={STATUS_FILTERS}
+            getLabel={statusFilterLabel}
             onChange={(value) => {
               setStatusFilter(value as (typeof STATUS_FILTERS)[number]);
               resetPage();
@@ -201,6 +228,7 @@ export function CompaniesManagementView() {
           <SelectField
             value={planFilter}
             options={PLAN_FILTERS}
+            getLabel={planFilterLabel}
             onChange={(value) => {
               setPlanFilter(value as (typeof PLAN_FILTERS)[number]);
               resetPage();
@@ -211,7 +239,7 @@ export function CompaniesManagementView() {
             onClick={resetPage}
             className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            Apply
+            {t('common.actions.apply')}
           </button>
         </div>
       </div>
@@ -227,7 +255,7 @@ export function CompaniesManagementView() {
                 className="text-xs font-semibold uppercase tracking-wide text-white"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th key={header} className="px-4 py-3.5 text-left font-semibold">
                     {header}
                   </th>
@@ -238,7 +266,7 @@ export function CompaniesManagementView() {
               {visibleRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-16 text-center text-[14px] font-medium text-gray-400">
-                    No companies found
+                    {t('superAdmin.companies.noCompanies')}
                   </td>
                 </tr>
               ) : (
@@ -265,12 +293,12 @@ export function CompaniesManagementView() {
                     </td>
                     <td className="px-4 py-3.5 text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{company.email}</td>
                     <td className="px-4 py-3.5 text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{company.plan}</td>
-                    <td className="px-4 py-3.5">{statusBadge(company.status)}</td>
+                    <td className="px-4 py-3.5">{statusBadge(company.status, t)}</td>
                     <td className="px-4 py-3.5 text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">{company.createdAt}</td>
                     <td className="px-4 py-3.5">
                       <button
                         type="button"
-                        title="Company actions"
+                        title={t('superAdmin.companies.actions')}
                         data-company-dropdown-trigger={company.id}
                         onClick={(event) => handleDropdownToggle(event, company.id)}
                         className={`rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC] ${
@@ -320,7 +348,7 @@ export function CompaniesManagementView() {
               className="flex h-10 w-full items-center gap-3 px-4 text-left text-[13px] font-medium text-[#1F2937] transition-colors hover:bg-[#F6F9FF] hover:text-[#155DFC]"
             >
               <Eye size={15} strokeWidth={2.1} className="shrink-0 text-[#155DFC]" />
-              <span>View Details</span>
+              <span>{t('superAdmin.companies.viewDetails')}</span>
             </button>
 
             <div className="mx-3 h-px bg-[#EEF2F7]" />
@@ -335,7 +363,7 @@ export function CompaniesManagementView() {
               className="flex h-10 w-full items-center gap-3 px-4 text-left text-[13px] font-medium text-[#B45309] transition-colors hover:bg-[#FFF7ED] hover:text-[#C2410C]"
             >
               <Ban size={15} strokeWidth={2.1} className="shrink-0 text-[#F59E0B]" />
-              <span>{activeCompany.status === 'suspended' ? 'Unsuspend' : 'Suspend'}</span>
+              <span>{activeCompany.status === 'suspended' ? t('superAdmin.companies.unsuspend') : t('superAdmin.companies.suspend')}</span>
             </button>
           </div>,
           document.body,

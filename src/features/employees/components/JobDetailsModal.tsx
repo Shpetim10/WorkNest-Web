@@ -12,6 +12,7 @@ import { useUpdateEmployeeJobDetails } from '../api/update-employee-job-details'
 import { useUpdateStaffJobDetails } from '../api/update-staff-job-details';
 import { uploadContractDocument } from '../api/upload-media';
 import { getCurrencySymbol, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
+import { useI18n } from '@/common/i18n';
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const LABEL = 'block font-[Inter,sans-serif] text-[13px] font-bold uppercase tracking-wider text-[#4A5565] mb-2';
@@ -23,17 +24,8 @@ const CHEVRON = (
   </svg>
 );
 
-const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
-  FULL_TIME: 'Full-Time',
-  PART_TIME: 'Part-Time',
-  CONTRACT: 'Fixed-Term Contract',
-  INTERN: 'Internship',
-};
-
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  FIXED_MONTHLY: 'Fixed Monthly Salary',
-  HOURLY: 'Hourly Rate',
-};
+const EMPLOYMENT_TYPE_VALUES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'] as const;
+const PAYMENT_METHOD_VALUES = ['FIXED_MONTHLY', 'HOURLY'] as const;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface JobDetailsModalProps {
@@ -70,8 +62,22 @@ const EMPTY: FormValues = {
   contractFileName: '',
 };
 
+type ApiMessageError = {
+  response?: {
+    data?: {
+      message?: unknown;
+    };
+  };
+};
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const message = (error as ApiMessageError).response?.data?.message;
+  return typeof message === 'string' ? message : fallback;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId }: JobDetailsModalProps) {
+  const { t } = useI18n();
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
   const currencyCode = getStoredCompanyCurrency();
   const currencySymbol = getCurrencySymbol(currencyCode, getStoredCompanyLocale());
@@ -101,16 +107,22 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
   // Prefill from fetched data
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
+
     if (!entityData) {
-      setValues(EMPTY);
-      return;
+      queueMicrotask(() => {
+        if (!cancelled) setValues(EMPTY);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
     const contractFileName = entityData.contractDocumentKey
       ? entityData.contractDocumentKey.split('/').pop() || 'contract'
       : '';
 
-    setValues({
+    const nextValues = {
       employmentType: entityData.employmentType || '',
       contractExpiryDate: entityData.contractExpiryDate
         ? entityData.contractExpiryDate.split('T')[0]
@@ -123,8 +135,17 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
       contractDocumentKey: entityData.contractDocumentKey || '',
       contractDocumentPath: '',
       contractFileName,
+    };
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setValues(nextValues);
+      setSubmitError('');
     });
-    setSubmitError('');
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, entityData]);
 
   // Escape key handler
@@ -172,9 +193,9 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
         const uploaded = await uploadContractDocument(values.contractFile);
         contractDocumentKey = uploaded.storageKey;
         contractDocumentPath = uploaded.storagePath;
-      } catch (err: any) {
+      } catch (err: unknown) {
         setIsUploadingFile(false);
-        setSubmitError(err?.response?.data?.message || 'Failed to upload contract document');
+        setSubmitError(getApiErrorMessage(err, t('employees.jobModal.uploadFailed')));
         return;
       }
       setIsUploadingFile(false);
@@ -202,12 +223,12 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
       }
       onSave();
       onClose();
-    } catch (err: any) {
-      setSubmitError(err?.response?.data?.message || 'Failed to update job details');
+    } catch (err: unknown) {
+      setSubmitError(getApiErrorMessage(err, t('employees.jobModal.updateFailed')));
     }
   }
 
-  const title = entityType === 'employee' ? 'Update Job & Contract' : 'Update Employment & Contract';
+  const title = entityType === 'employee' ? t('employees.jobModal.employeeTitle') : t('employees.jobModal.staffTitle');
 
   return createPortal(
     <>
@@ -225,7 +246,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
             <div className="space-y-1">
               <h2 className="text-[24px] font-bold text-[#1E2939] tracking-tight">{title}</h2>
               <p className="text-[14px] font-medium text-gray-400">
-                Configure employment type, contract details, and compensation
+                {t('employees.jobModal.subtitle')}
               </p>
             </div>
             <button onClick={onClose} className="p-2.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all active:scale-95">
@@ -238,11 +259,11 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-[#155DFC]" />
-                <p className="text-gray-400 font-medium text-[14px]">Loading current details...</p>
+                <p className="text-gray-400 font-medium text-[14px]">{t('employees.jobModal.loadingDetails')}</p>
               </div>
             ) : isError ? (
               <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 text-red-600 text-[14px] font-medium">
-                Failed to load current job details. You can still update below.
+                {t('employees.jobModal.loadFailed')}
               </div>
             ) : (
               <>
@@ -250,13 +271,13 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <Briefcase size={14} className="inline mr-1.5 -mt-0.5" />
-                    Employment Type
+                    {t('employees.view.employmentType')}
                   </label>
                   <div className="relative">
                     <select value={values.employmentType} onChange={set('employmentType')} className={SELECT}>
-                      <option value="">Select Employment Type</option>
-                      {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([val, label]) => (
-                        <option key={val} value={val}>{label}</option>
+                      <option value="">{t('employees.jobModal.selectEmploymentType')}</option>
+                      {EMPLOYMENT_TYPE_VALUES.map((val) => (
+                        <option key={val} value={val}>{t(`employees.employmentTypes.${val}`)}</option>
                       ))}
                     </select>
                     {CHEVRON}
@@ -267,13 +288,13 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <FileText size={14} className="inline mr-1.5 -mt-0.5" />
-                    Contract Document
+                    {t('employees.jobModal.contractDocument')}
                   </label>
                   <div className="flex items-center gap-3">
                     <div
                       className={`flex-1 h-12 rounded-xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] px-4 flex items-center text-[14px] font-medium ${values.contractFileName ? 'text-[#155DFC]' : 'text-gray-400'}`}
                     >
-                      {values.contractFileName || 'No contract uploaded'}
+                      {values.contractFileName || t('employees.jobModal.noContractUploaded')}
                     </div>
                     <button
                       type="button"
@@ -281,7 +302,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                       className="h-12 px-5 rounded-xl border border-[#155DFC]/30 bg-[#E8F1FF] text-[#155DFC] text-[13px] font-bold flex items-center gap-2 hover:bg-[#155DFC] hover:text-white transition-all active:scale-95"
                     >
                       <Upload size={16} />
-                      {values.contractFileName ? 'Replace' : 'Upload'}
+                      {values.contractFileName ? t('employees.jobModal.replace') : t('employees.jobModal.upload')}
                     </button>
                     <input
                       ref={fileInputRef}
@@ -291,14 +312,14 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                       className="hidden"
                     />
                   </div>
-                  <p className="text-[12px] text-gray-400 font-medium">PDF or DOCX only</p>
+                  <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.pdfDocxOnly')}</p>
                 </div>
 
                 {/* Contract Expiry Date */}
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <Calendar size={14} className="inline mr-1.5 -mt-0.5" />
-                    Contract Expiry Date
+                    {t('employees.view.contractExpiry')}
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -316,7 +337,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <Sun size={14} className="inline mr-1.5 -mt-0.5" />
-                    Paid Leave Days / Year
+                    {t('employees.view.paidLeaveDays')}
                   </label>
                   <div className="relative">
                     <Sun className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -324,7 +345,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                       type="number"
                       min="0"
                       max="365"
-                      placeholder="e.g. 30"
+                      placeholder={t('employees.form.leaveDaysPlaceholder')}
                       value={values.leaveDaysPerYear}
                       onChange={set('leaveDaysPerYear')}
                       className={`${INPUT} pl-11`}
@@ -336,13 +357,13 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <CreditCard size={14} className="inline mr-1.5 -mt-0.5" />
-                    Payment Method
+                    {t('employees.view.paymentMethod')}
                   </label>
                   <div className="relative">
                     <select value={values.paymentMethod} onChange={set('paymentMethod')} className={SELECT}>
-                      <option value="">Select Payment Method</option>
-                      {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                        <option key={val} value={val}>{label}</option>
+                      <option value="">{t('employees.jobModal.selectPaymentMethod')}</option>
+                      {PAYMENT_METHOD_VALUES.map((val) => (
+                        <option key={val} value={val}>{t(`employees.paymentMethods.${val}`)}</option>
                       ))}
                     </select>
                     {CHEVRON}
@@ -354,7 +375,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                   <div className="space-y-2">
                     <label className={LABEL}>
                       <CreditCard size={14} className="inline mr-1.5 -mt-0.5" />
-                      Monthly Salary
+                      {t('employees.jobModal.monthlySalary')}
                     </label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
@@ -362,7 +383,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                         type="number"
                         min="0"
                         step="0.01"
-                        placeholder="e.g. 3500.00"
+                        placeholder={t('employees.form.monthlySalaryPlaceholder')}
                         value={values.monthlySalary}
                         onChange={set('monthlySalary')}
                         className={`${INPUT} pl-8`}
@@ -375,7 +396,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                   <div className="space-y-2">
                     <label className={LABEL}>
                       <Clock size={14} className="inline mr-1.5 -mt-0.5" />
-                      Hourly Rate
+                      {t('employees.jobModal.hourlyRate')}
                     </label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
@@ -383,13 +404,13 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
                         type="number"
                         min="0"
                         step="0.01"
-                        placeholder="e.g. 22.50"
+                        placeholder={t('employees.form.hourlyRatePlaceholder')}
                         value={values.hourlyRate}
                         onChange={set('hourlyRate')}
                         className={`${INPUT} pl-8`}
                       />
                     </div>
-                    <p className="text-[12px] text-gray-400 font-medium">Rate per hour worked</p>
+                    <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.ratePerHour')}</p>
                   </div>
                 )}
 
@@ -409,7 +430,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
               onClick={onClose}
               className="h-12 rounded-xl bg-gray-50 px-8 text-[14px] font-bold text-gray-500 transition-all hover:bg-gray-100 active:scale-95 font-[Inter,sans-serif]"
             >
-              Cancel
+              {t('common.actions.cancel')}
             </button>
             <button
               type="button"
@@ -417,7 +438,7 @@ export function JobDetailsModal({ isOpen, onClose, onSave, entityType, entityId 
               disabled={isSaving || isUploadingFile || isLoading}
               className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif] disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isUploadingFile ? 'Uploading...' : isSaving ? 'Saving...' : 'Save Changes'}
+              {isUploadingFile ? t('employees.jobModal.uploading') : isSaving ? t('common.actions.saving') : t('common.actions.saveChanges')}
             </button>
           </div>
         </div>

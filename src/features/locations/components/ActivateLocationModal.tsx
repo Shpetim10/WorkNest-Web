@@ -3,6 +3,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import { Modal, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useActivateSite } from '../api';
 
 interface ActivateLocationModalProps {
@@ -20,6 +21,7 @@ export function ActivateLocationModal({
   companyId,
   locationName,
 }: ActivateLocationModalProps) {
+  const { t } = useI18n();
   const activateMutation = useActivateSite();
 
   const handleActivate = async () => {
@@ -29,7 +31,7 @@ export function ActivateLocationModal({
       await activateMutation.mutateAsync({ companyId, siteId });
       onClose();
     } catch (error) {
-      console.error('Failed to activate site:', error);
+      console.error(t('locations.modal.activateFailed'), error);
     }
   };
 
@@ -47,11 +49,11 @@ export function ActivateLocationModal({
         </div>
 
         <h2 className="text-[24px] font-bold text-[#101828] leading-[32px] mb-2 font-sans">
-          Activate Location?
+          {t('locations.modal.activateTitle')}
         </h2>
 
         <p className="text-[16px] font-normal text-[#4A5565] leading-[24px] mb-8 font-sans">
-          Are you sure you want to activate <span className="font-semibold">{locationName}</span>? It will immediately become available for tracking and attendance.
+          {t('locations.modal.activatePrefix')} <span className="font-semibold">{locationName}</span>? {t('locations.modal.activateSuffix')}
         </p>
 
         <div className="flex gap-4 w-full">
@@ -61,14 +63,14 @@ export function ActivateLocationModal({
             disabled={activateMutation.isPending}
             className="flex-1 h-12 border-none bg-transparent hover:bg-gray-100 text-[#364153] text-[16px] font-medium rounded-[14px] transition-all"
           >
-            Cancel
+            {t('common.actions.cancel')}
           </Button>
           <Button
             onClick={() => void handleActivate()}
             isLoading={activateMutation.isPending}
             className="flex-1 h-12 bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] hover:opacity-90 text-white text-[16px] font-medium rounded-[14px] shadow-lg shadow-emerald-200 transition-all border-none"
           >
-            Activate
+            {t('locations.activateSite')}
           </Button>
         </div>
       </div>

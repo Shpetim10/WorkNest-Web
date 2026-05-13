@@ -1,5 +1,6 @@
 import React from 'react';
 import { Checkbox, Input, Select, Textarea } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import {
   AttendanceSettings,
   LocationFormData,
@@ -31,17 +32,17 @@ const ATTENDANCE_BOOLEAN_FIELDS: Array<{
     | 'allowManualCorrection'
     | 'allowManagerManualEntry'
   >;
-  label: string;
+  labelKey: string;
 }> = [
-  { key: 'requireLocation', label: 'Require Location' },
-  { key: 'requireQr', label: 'Require QR' },
-  { key: 'checkInEnabled', label: 'Check-In Enabled' },
-  { key: 'checkOutEnabled', label: 'Check-Out Enabled' },
-  { key: 'useNetworkAsWarning', label: 'Use Network As Warning' },
-  { key: 'rejectOutsideGeofence', label: 'Reject Outside Geofence' },
-  { key: 'rejectPoorAccuracy', label: 'Reject Poor Accuracy' },
-  { key: 'allowManualCorrection', label: 'Allow Manual Correction' },
-  { key: 'allowManagerManualEntry', label: 'Allow Manager Manual Entry' },
+  { key: 'requireLocation', labelKey: 'locations.modal.requireLocation' },
+  { key: 'requireQr', labelKey: 'locations.modal.requireQr' },
+  { key: 'checkInEnabled', labelKey: 'locations.modal.checkInEnabled' },
+  { key: 'checkOutEnabled', labelKey: 'locations.modal.checkOutEnabled' },
+  { key: 'useNetworkAsWarning', labelKey: 'locations.modal.useNetworkAsWarning' },
+  { key: 'rejectOutsideGeofence', labelKey: 'locations.modal.rejectOutsideGeofence' },
+  { key: 'rejectPoorAccuracy', labelKey: 'locations.modal.rejectPoorAccuracy' },
+  { key: 'allowManualCorrection', labelKey: 'locations.modal.allowManualCorrection' },
+  { key: 'allowManagerManualEntry', labelKey: 'locations.modal.allowManagerManualEntry' },
 ];
 
 export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
@@ -52,6 +53,7 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
   onAttendanceChange,
   onBlurField,
 }) => {
+  const { t } = useI18n();
   const labelClasses = 'text-[14px] font-semibold text-[#364153] leading-[20px] mb-1 font-inter';
   const inputOverrideClasses =
     'h-[40px] rounded-[10px] bg-[#F9FAFB] border-[#E5E7EB] text-[16px] text-[#0A0A0A] placeholder:text-[rgba(10,10,10,0.5)] placeholder:text-[16px] placeholder:leading-[24px] font-inter';
@@ -60,7 +62,7 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
     <div className="space-y-4">
       <Select
         id="siteType"
-        label="Site Type"
+        label={t('locations.form.siteType')}
         required
         value={data.siteType}
         onChange={(e) => onChange({ siteType: e.target.value as SiteType })}
@@ -69,22 +71,22 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
         className={labelClasses}
         style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
         options={[
-          { value: '', label: 'Select site type' },
+          { value: '', label: t('locations.form.selectSiteType') },
           { value: 'HQ', label: 'HQ' },
-          { value: 'BRANCH', label: 'Branch' },
-          { value: 'WAREHOUSE', label: 'Warehouse' },
-          { value: 'STORE', label: 'Store' },
-          { value: 'CLIENT_SITE', label: 'Client Site' },
-          { value: 'FIELD_ZONE', label: 'Field Zone' },
+          { value: 'BRANCH', label: t('locations.types.BRANCH') },
+          { value: 'WAREHOUSE', label: t('locations.types.WAREHOUSE') },
+          { value: 'STORE', label: t('locations.types.STORE') },
+          { value: 'CLIENT_SITE', label: t('locations.types.CLIENT_SITE') },
+          { value: 'FIELD_ZONE', label: t('locations.types.FIELD_ZONE') },
         ]}
       />
 
       <div className="grid grid-cols-2 gap-4">
         <Input
           id="siteName"
-          label="Site Name"
+          label={t('locations.form.siteName')}
           required
-          placeholder="Tirana Headquarters"
+          placeholder={t('locations.form.siteNamePlaceholder')}
           value={data.siteName}
           onChange={(e) => onChange({ siteName: e.target.value })}
           onBlur={() => onBlurField('basicInfo.siteName')}
@@ -93,7 +95,7 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
         />
         <Input
           id="siteCode"
-          label="Site Code"
+          label={t('locations.form.siteCode')}
           required
           placeholder="HQ-TIR"
           value={data.siteCode}
@@ -107,7 +109,7 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <Select
           id="country"
-          label="Country"
+          label={t('locations.form.country')}
           required
           value={data.country}
           onChange={(e) => onChange({ country: e.target.value })}
@@ -115,11 +117,11 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
           error={errors.country}
           className={labelClasses}
           style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-          options={[{ value: '', label: 'Select country' }, ...COUNTRIES]}
+          options={[{ value: '', label: t('locations.form.selectCountry') }, ...COUNTRIES]}
         />
         <Select
           id="timezone"
-          label="Timezone"
+          label={t('locations.form.timezone')}
           required
           value={data.timezone}
           onChange={(e) => onChange({ timezone: e.target.value })}
@@ -127,26 +129,26 @@ export const AddLocationStepDetails: React.FC<AddLocationStepDetailsProps> = ({
           error={errors.timezone}
           className={labelClasses}
           style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
-          options={[{ value: '', label: 'Select timezone' }, ...TIMEZONES]}
+          options={[{ value: '', label: t('locations.form.selectTimezone') }, ...TIMEZONES]}
         />
       </div>
 
       <Textarea
         id="notes"
-        label="Notes"
-        placeholder="Additional information..."
+        label={t('locations.form.notes')}
+        placeholder={t('locations.form.notesPlaceholder')}
         value={data.notes}
         onChange={(e) => onChange({ notes: e.target.value })}
         className="h-[40px] !min-h-[70px] resize-none rounded-[10px] border-[#E5E7EB] bg-[#F9FAFB] py-2 text-[16px] text-[#0A0A0A] placeholder:text-[rgba(10,10,10,0.5)] placeholder:text-[16px] placeholder:leading-[24px] font-inter"
       />
 
       <div className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-        <p className="mb-3 text-[14px] font-semibold text-[#101828]">Attendance Policy</p>
+        <p className="mb-3 text-[14px] font-semibold text-[#101828]">{t('locations.form.attendancePolicy')}</p>
         <div className="grid grid-cols-2 gap-3">
-          {ATTENDANCE_BOOLEAN_FIELDS.map(({ key, label }) => (
+          {ATTENDANCE_BOOLEAN_FIELDS.map(({ key, labelKey }) => (
             <Checkbox
               key={key}
-              label={label}
+              label={t(labelKey)}
               checked={attendanceSettings[key]}
               error={errors[key]}
               onChange={(event) => onAttendanceChange({ [key]: event.target.checked })}

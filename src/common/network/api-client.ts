@@ -3,6 +3,7 @@ import { refreshAuthTokens } from '@/features/auth/api/refresh';
 import { setCookie } from '@/common/utils/cookies';
 import { toast } from 'sonner';
 import { handleApiError } from '@/common/utils/api-error-parser';
+import { translate } from '@/common/i18n/translate';
 
 /**
  * WorkNest Robust API Client
@@ -38,6 +39,14 @@ const apiClient: AxiosInstance = axios.create({
 
 /** True while a refresh request is in-flight. */
 let isRefreshing = false;
+
+type ToastRequestConfig = InternalAxiosRequestConfig & {
+  toastId?: string | number;
+};
+
+type MutationHeaders = InternalAxiosRequestConfig['headers'] & {
+  'X-Silent-Mutation'?: unknown;
+};
 
 /**
  * Queue of { resolve, reject } callbacks for requests that arrived while a
@@ -107,8 +116,9 @@ apiClient.interceptors.request.use(
     // Show global loading toast for mutations
     if (typeof window !== 'undefined' && config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
       // Allow opting out of toasts
-      if (!(config.headers as any)?.['X-Silent-Mutation']) {
-        (config as any).toastId = toast.loading('Processing request...');
+      const headers = config.headers as MutationHeaders;
+      if (!headers?.['X-Silent-Mutation']) {
+        (config as ToastRequestConfig).toastId = toast.loading(translate('common.feedback.processingRequest'));
       }
     }
 
@@ -131,7 +141,7 @@ apiClient.interceptors.request.use(
             // Another request is already refreshing; wait for it to complete.
             await new Promise<void>((resolve, reject) => {
               failedQueue.push({
-                resolve: (_token: string) => resolve(),
+                resolve: () => resolve(),
                 reject: (err: unknown) => reject(err),
               });
             });
@@ -207,10 +217,10 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
-    const config = response.config as any;
+    const config = response.config as ToastRequestConfig;
     if (typeof window !== 'undefined' && config.toastId) {
       // Use the exact message provided by backend, or fallback
-      const msg = response.data?.message || 'Operation successful';
+      const msg = response.data?.message || translate('common.feedback.operationSuccessful');
       toast.success(msg, { id: config.toastId });
     }
     return response;

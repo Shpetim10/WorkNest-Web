@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 import { useForgotPassword } from '../api/password-reset';
 
 export function ForgotPasswordView() {
+  const { t } = useI18n();
   const router = useRouter();
   const forgotPasswordMutation = useForgotPassword();
   const [email, setEmail] = useState('');
@@ -14,11 +16,11 @@ export function ForgotPasswordView() {
 
   const validate = () => {
     if (!email) {
-      setError('Email is required');
+      setError(t('validation.emailRequired'));
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setError(t('validation.validEmail'));
       return false;
     }
     setError('');
@@ -31,8 +33,12 @@ export function ForgotPasswordView() {
       try {
         await forgotPasswordMutation.mutateAsync({ email });
         router.push('/check-email');
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      } catch (err: unknown) {
+        const message =
+          typeof err === 'object' && err !== null && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined;
+        setError(message || t('common.feedback.failed'));
       }
     }
   };
@@ -46,6 +52,9 @@ export function ForgotPasswordView() {
     <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-[#f0f4f8] to-[#e2e8f0] font-sans p-4 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#B9F8CF]/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute right-6 top-6 z-20">
+        <LanguageSwitcher />
+      </div>
 
       <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10">
         {/* Back Link */}
@@ -54,7 +63,7 @@ export function ForgotPasswordView() {
           className="absolute top-8 left-8 flex items-center gap-2 text-[14px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft size={16} />
-          Back to login
+          {t('auth.shared.backToLoginShort')}
         </Link>
 
         <div className="mt-6 mb-8">
@@ -65,18 +74,18 @@ export function ForgotPasswordView() {
             </h1>
           </div>
 
-          <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">Forgot Password?</h2>
+          <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">{t('auth.forgotPassword.title')}</h2>
           <p className="text-gray-500 text-[15px]">
-            No worries, we'll send you reset instructions
+            {t('auth.forgotPassword.subtitle')}
           </p>
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <Input
             id="email"
-            label="Email Address"
+            label={t('common.fields.emailAddress')}
             type="text"
-            placeholder="you@company.com"
+            placeholder={t('auth.login.emailPlaceholder')}
             icon={<Mail className="h-[18px] w-[18px]" />}
             value={email}
             onChange={handleChange}
@@ -89,12 +98,12 @@ export function ForgotPasswordView() {
             icon={forgotPasswordMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
             disabled={forgotPasswordMutation.isPending}
           >
-            {forgotPasswordMutation.isPending ? 'Sending...' : 'Send Reset Link'}
+            {forgotPasswordMutation.isPending ? t('auth.forgotPassword.submitting') : t('auth.forgotPassword.submit')}
           </Button>
         </form>
 
         <div className="mt-8 text-center text-[13px] text-gray-400 font-medium">
-          The reset link will be valid for 15 minutes
+          {t('auth.forgotPassword.validity')}
         </div>
       </Card>
     </div>

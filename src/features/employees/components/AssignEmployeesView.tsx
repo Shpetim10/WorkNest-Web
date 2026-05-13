@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
-import { Search, UserPlus2, Building2, Users2, Plus, ChevronDown } from 'lucide-react';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
+import { Search, UserPlus2, Building2, Users2, ChevronDown } from 'lucide-react';
 import { AssignModal } from './AssignModal';
 import { useStaff } from '../api/get-staff';
+import { useI18n } from '@/common/i18n';
 
 interface Supervisor {
   id: string;
@@ -18,9 +19,16 @@ interface Supervisor {
   assignedEmployees: Array<{ id: string; name: string; jobTitle: string; email: string }>;
 }
 
-const TABLE_HEADERS = ['Name', 'Job Title', 'Department', 'Assigned Employees', 'Action'];
+const TABLE_HEADER_KEYS = [
+  'tables.headers.name',
+  'tables.headers.jobTitle',
+  'tables.headers.department',
+  'assignEmployees.assignedEmployees',
+  'tables.headers.actions',
+];
 
 export function AssignEmployeesView() {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSupervisor, setActiveSupervisor] = useState<Supervisor | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,9 +72,10 @@ export function AssignEmployeesView() {
   const totalItems = staffResponse?.data.totalItems ?? filteredSupervisors.length;
   // Use pageSize from state
 
-  const handleUpdateAssignment = (_newCount: number) => {
+  const handleUpdateAssignment = () => {
     setActiveSupervisor(null);
   };
+  const tableHeaders = TABLE_HEADER_KEYS.map((key) => t(key));
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
@@ -85,9 +94,9 @@ export function AssignEmployeesView() {
             <UserPlus2 size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Assign Employees</h1>
+            <h1 className="text-3xl font-bold text-white">{t('assignEmployees.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Manage employee assignments to supervisors
+              {t('assignEmployees.subtitle')}
             </p>
           </div>
         </div>
@@ -102,9 +111,9 @@ export function AssignEmployeesView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search employee locally..."
+            placeholder={t('employees.searchPlaceholder')}
             value={searchQuery}
-            onChange={e => {
+            onChange={(e) => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
@@ -126,7 +135,7 @@ export function AssignEmployeesView() {
               onChange={(e) => setStatus(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option>All statuses</option>
+              <option value="all">{t('locations.allStatuses')}</option>
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -137,7 +146,7 @@ export function AssignEmployeesView() {
               onChange={(e) => setDepartment(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option>All departments</option>
+              <option value="all">{t('employees.allDepartments')}</option>
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -146,7 +155,7 @@ export function AssignEmployeesView() {
             onClick={() => {}}
             className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            Apply
+            {t('common.actions.apply')}
           </button>
         </div>
       </div>
@@ -162,7 +171,7 @@ export function AssignEmployeesView() {
                 className="text-xs font-semibold text-white uppercase tracking-wide"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map(header => (
+                {tableHeaders.map(header => (
                   <th
                     key={header}
                     className="px-4 py-3.5 text-left font-semibold"
@@ -175,8 +184,8 @@ export function AssignEmployeesView() {
             <tbody className="bg-white">
               {filteredSupervisors.length === 0 ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center">
-                    <p className="text-[14px] font-medium text-gray-400">No supervisors found</p>
+                  <td colSpan={tableHeaders.length} className="px-6 py-16 text-center">
+                    <p className="text-[14px] font-medium text-gray-400">{t('assignEmployees.empty')}</p>
                   </td>
                 </tr>
               ) : (
@@ -223,7 +232,7 @@ export function AssignEmployeesView() {
                         className="h-8 px-4 text-white text-[13px] font-semibold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95"
                         style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
                       >
-                        Assign Employees
+                        {t('assignEmployees.action')}
                       </button>
                     </td>
                   </tr>

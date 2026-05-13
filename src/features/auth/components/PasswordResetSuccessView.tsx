@@ -2,15 +2,20 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 
 /**
  * View displayed after a successful Password Reset update (Step 2).
  */
 export function PasswordResetSuccessView() {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col min-h-screen w-full items-center justify-center bg-gradient-to-br from-[#f0f4f8] to-[#e2e8f0] font-sans p-4 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#B9F8CF]/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute right-6 top-6 z-20">
+        <LanguageSwitcher />
+      </div>
 
       {/* Card */}
       <Card className="w-full max-w-[460px] p-12 flex flex-col items-center text-center relative z-10">
@@ -31,14 +36,14 @@ export function PasswordResetSuccessView() {
 
         {/* Heading */}
         <h1 className="text-[26px] leading-[34px] font-bold text-[#1a1c23] mb-4">
-          Password Reset<br />
-          Successfully!
+          {t('auth.passwordResetSuccess.titleLine1')}<br />
+          {t('auth.passwordResetSuccess.titleLine2')}
         </h1>
 
         {/* Subtext */}
         <p className="text-gray-500 text-[15px] leading-[24px]">
-          Your password has been successfully updated.<br className="hidden sm:block" />
-          You can now use your new password to sign in.
+          {t('auth.passwordResetSuccess.bodyLine1')}<br className="hidden sm:block" />
+          {t('auth.passwordResetSuccess.bodyLine2')}
         </p>
 
       </Card>
@@ -49,7 +54,7 @@ export function PasswordResetSuccessView() {
           href="/login"
           className="text-[#0066FF] font-medium text-[15px] hover:text-blue-700 transition-colors"
         >
-          Proceed to Login
+          {t('auth.passwordResetSuccess.proceed')}
         </Link>
       </div>
 

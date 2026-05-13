@@ -1,17 +1,25 @@
 import { toast } from 'sonner';
 import { ApiErrorResponse } from '../types/api';
+import { translate } from '../i18n/translate';
 
 export interface ParseErrorOptions {
   toastId?: string | number;
   fallbackMessage?: string;
 }
 
+type ApiClientError = {
+  message?: string;
+  response?: {
+    data?: ApiErrorResponse;
+  };
+};
+
 /**
  * Shared frontend error parser
  * Maps backend error codes -> UI actions
  */
 export function handleApiError(error: unknown, options?: ParseErrorOptions) {
-  const fallback = options?.fallbackMessage || 'An unexpected error occurred';
+  const fallback = options?.fallbackMessage || translate('common.feedback.unexpectedError');
   const toastId = options?.toastId;
 
   // Don't run on server
@@ -22,7 +30,7 @@ export function handleApiError(error: unknown, options?: ParseErrorOptions) {
     return;
   }
 
-  const apiError = error as any;
+  const apiError = error as ApiClientError;
   const data = apiError.response?.data as ApiErrorResponse | undefined;
   
   if (!data) {

@@ -1,13 +1,15 @@
 "use client";
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Mail, ArrowLeft, ArrowRight, Camera } from 'lucide-react';
+import { Building2, Mail, ArrowLeft, Camera } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { AuthLayout } from './AuthLayout';
 import { AuthHeader } from './AuthHeader';
 import { useRegistrationStore } from '../store/useRegistrationStore';
 
 export function CompanyView() {
+  const { t } = useI18n();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -22,18 +24,18 @@ export function CompanyView() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!companyName) newErrors.companyName = 'Company Name is required';
-    if (!nipt) newErrors.nipt = 'NIPT is required';
-    if (!primaryPhone) newErrors.primaryPhone = 'Contact Number is required';
+    if (!companyName) newErrors.companyName = t('validation.companyNameRequired');
+    if (!nipt) newErrors.nipt = t('validation.niptRequired');
+    if (!primaryPhone) newErrors.primaryPhone = t('validation.contactNumberRequired');
     
     if (!primaryEmail) {
-      newErrors.primaryEmail = 'Contact Email is required';
+      newErrors.primaryEmail = t('validation.contactEmailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(primaryEmail)) {
-      newErrors.primaryEmail = 'Please enter a valid email address';
+      newErrors.primaryEmail = t('validation.validEmail');
     }
 
-    if (!currency) newErrors.currency = 'Currency is required';
-    if (!dateFormat) newErrors.dateFormat = 'Date format is required';
+    if (!currency) newErrors.currency = t('validation.currencyRequired');
+    if (!dateFormat) newErrors.dateFormat = t('validation.dateFormatRequired');
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -62,12 +64,12 @@ export function CompanyView() {
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({ ...prev, logo: 'Please upload an image file' }));
+        setErrors(prev => ({ ...prev, logo: t('validation.imageFile') }));
         return;
       }
       // Validate file size (e.g., 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, logo: 'Image size should be less than 5MB' }));
+        setErrors(prev => ({ ...prev, logo: t('validation.imageSize') }));
         return;
       }
       setLogoFile(file);
@@ -84,8 +86,8 @@ export function CompanyView() {
         {/* Header row: title + logo upload pill */}
         <div className="flex items-start justify-between mb-5 border-b border-gray-100 pb-4">
           <div>
-            <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-1">Company Setup</h1>
-            <p className="text-[13.5px] md:text-[14px] text-gray-500 font-medium">Tell us about your organization</p>
+            <h1 className="text-[24px] md:text-[28px] font-bold text-[#1a1c23] mb-1">{t('auth.register.company.title')}</h1>
+            <p className="text-[13.5px] md:text-[14px] text-gray-500 font-medium">{t('auth.register.company.subtitle')}</p>
           </div>
 
           {/* Logo upload pill */}
@@ -103,7 +105,10 @@ export function CompanyView() {
               className="w-[100px] h-[44px] rounded-full bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] flex items-center justify-center shadow-[0_6px_20px_-4px_rgba(43,127,255,0.4)] cursor-pointer overflow-hidden group"
             >
               {logoPreviewUrl ? (
-                <img src={logoPreviewUrl} alt="Logo preview" className="w-full h-full object-cover" />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoPreviewUrl} alt={t('auth.register.company.logoPreview')} className="w-full h-full object-cover" />
+                </>
               ) : (
                 <Building2 size={22} strokeWidth={1.8} className="text-white" />
               )}
@@ -116,7 +121,7 @@ export function CompanyView() {
             <button
               type="button"
               onClick={handleLogoClick}
-              aria-label="Upload company logo"
+              aria-label={t('auth.register.company.uploadLogo')}
               className="absolute -bottom-2.5 -right-1.5 w-7 h-7 rounded-full bg-white border border-gray-100 shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -137,7 +142,7 @@ export function CompanyView() {
           {/* Company Name */}
           <Input
             id="company_name"
-            label="Company Name"
+            label={t('common.fields.companyName')}
             placeholder="Acme Corporation"
             required
             icon={<Building2 className="w-[16px] h-[16px]" />}
@@ -149,7 +154,7 @@ export function CompanyView() {
           {/* NIPT (Tax ID) */}
           <Input
             id="nipt"
-            label="NIPT (Tax ID)"
+            label={t('common.fields.nipt')}
             placeholder="K12345678A"
             required
             value={nipt}
@@ -160,7 +165,7 @@ export function CompanyView() {
           {/* Primary Contact Number */}
           <Input
             id="primary_contact_number"
-            label="Primary Contact Number"
+            label={t('common.fields.contactNumber')}
             placeholder="+355 69 123 4567"
             required
             icon={
@@ -176,7 +181,7 @@ export function CompanyView() {
           {/* Primary Contact Email */}
           <Input
             id="primary_contact_email"
-            label="Primary Contact Email"
+            label={t('common.fields.contactEmail')}
             type="text"
             placeholder="contact@company.com"
             required
@@ -189,7 +194,7 @@ export function CompanyView() {
           {/* Industry — full-width select */}
           <div className="space-y-1 w-full text-left">
             <label className="text-[13px] font-semibold text-gray-700 font-sans" htmlFor="industry">
-              Industry
+              {t('common.fields.industry')}
             </label>
             <div className="relative">
               <select
@@ -198,16 +203,16 @@ export function CompanyView() {
                 value={industry}
                 onChange={handleInputChange('industry')}
               >
-                <option value="" disabled>Select an industry</option>
-                <option value="technology">Technology</option>
-                <option value="finance">Finance</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="retail">Retail</option>
-                <option value="manufacturing">Manufacturing</option>
-                <option value="education">Education</option>
-                <option value="construction">Construction</option>
-                <option value="hospitality">Hospitality</option>
-                <option value="other">Other</option>
+                <option value="" disabled>{t('auth.register.company.industryPlaceholder')}</option>
+                <option value="technology">{t('auth.register.company.industries.technology')}</option>
+                <option value="finance">{t('auth.register.company.industries.finance')}</option>
+                <option value="healthcare">{t('auth.register.company.industries.healthcare')}</option>
+                <option value="retail">{t('auth.register.company.industries.retail')}</option>
+                <option value="manufacturing">{t('auth.register.company.industries.manufacturing')}</option>
+                <option value="education">{t('auth.register.company.industries.education')}</option>
+                <option value="construction">{t('auth.register.company.industries.construction')}</option>
+                <option value="hospitality">{t('auth.register.company.industries.hospitality')}</option>
+                <option value="other">{t('auth.register.company.industries.other')}</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -223,7 +228,7 @@ export function CompanyView() {
             {/* Currency select */}
             <div className="space-y-1 w-full text-left">
               <label className="text-[13px] font-semibold text-gray-700 font-sans" htmlFor="currency">
-                Currency <span className="text-gray-500">*</span>
+                {t('common.fields.currency')} <span className="text-gray-500">*</span>
               </label>
               <div className="relative">
                 <select
@@ -232,11 +237,11 @@ export function CompanyView() {
                   value={currency}
                   onChange={handleInputChange('currency')}
                 >
-                  <option value="" disabled>Select currency</option>
-                  <option value="ALL">LEK - Albanian Lek</option>
-                  <option value="EUR">EUR – Euro</option>
-                  <option value="USD">USD – US Dollar</option>
-                  <option value="GBP">GBP – British Pound</option>
+                  <option value="" disabled>{t('auth.register.company.currencyPlaceholder')}</option>
+                  <option value="ALL">{t('auth.register.company.currencies.ALL')}</option>
+                  <option value="EUR">{t('auth.register.company.currencies.EUR')}</option>
+                  <option value="USD">{t('auth.register.company.currencies.USD')}</option>
+                  <option value="GBP">{t('auth.register.company.currencies.GBP')}</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -250,7 +255,7 @@ export function CompanyView() {
             {/* Date Format select */}
             <div className="space-y-1 w-full text-left">
               <label className="text-[13px] font-semibold text-gray-700 font-sans" htmlFor="date_format">
-                Date Format <span className="text-gray-500">*</span>
+                {t('common.fields.dateFormat')} <span className="text-gray-500">*</span>
               </label>
               <div className="relative">
                 <select
@@ -259,7 +264,7 @@ export function CompanyView() {
                   value={dateFormat}
                   onChange={handleInputChange('dateFormat')}
                 >
-                  <option value="" disabled>Select format</option>
+                  <option value="" disabled>{t('auth.register.company.dateFormatPlaceholder')}</option>
                   <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                   <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                   <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -282,13 +287,13 @@ export function CompanyView() {
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-50 text-gray-600 text-[13px] font-bold hover:bg-gray-100 hover:text-gray-800 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
+              {t('common.actions.back')}
             </button>
             <Button
               type="submit"
               className="flex-1"
             >
-              Continue
+              {t('common.actions.continue')}
             </Button>
           </div>
         </form>

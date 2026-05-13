@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { CompanyManagementRow } from '../types';
+import { useI18n } from '@/common/i18n';
 
 interface SuspendCompanyModalProps {
   company: CompanyManagementRow | null;
@@ -13,10 +14,11 @@ interface SuspendCompanyModalProps {
 }
 
 export function SuspendCompanyModal({ company, isOpen, onClose, onConfirm }: SuspendCompanyModalProps) {
+  const { t } = useI18n();
   const [reason, setReason] = useState('');
   const isSuspended = company?.status === 'suspended';
-  const title = isSuspended ? 'Unsuspend Company' : 'Suspend Company';
-  const actionLabel = isSuspended ? 'Unsuspend Company' : 'Suspend Company';
+  const title = isSuspended ? t('superAdmin.companies.unsuspend') : t('superAdmin.companies.suspend');
+  const actionLabel = title;
   const closeModal = useCallback(() => {
     setReason('');
     onClose();
@@ -65,32 +67,32 @@ export function SuspendCompanyModal({ company, isOpen, onClose, onConfirm }: Sus
           <div className="space-y-5">
             <div className="text-[14px] leading-6 text-[#4B5563]">
               <p>
-                You are about to {isSuspended ? 'unsuspend' : 'suspend'}{' '}
+                {isSuspended ? t('superAdmin.companies.modal.aboutToUnsuspend') : t('superAdmin.companies.modal.aboutToSuspend')}{' '}
                 <span className="font-bold text-[#374151]">{company.companyName}</span>.
               </p>
               {!isSuspended && (
                 <>
-                  <p>This will:</p>
+                  <p>{t('superAdmin.companies.modal.thisWill')}</p>
                   <ul className="mt-2 space-y-1.5 pl-4 text-[13px]">
-                    <li className="marker:text-[#EF4444]">Block all user logins</li>
-                    <li className="marker:text-[#EF4444]">Disable API access</li>
-                    <li className="marker:text-[#EF4444]">Prevent all operations</li>
+                    <li className="marker:text-[#EF4444]">{t('superAdmin.companies.modal.blockLogins')}</li>
+                    <li className="marker:text-[#EF4444]">{t('superAdmin.companies.modal.disableApi')}</li>
+                    <li className="marker:text-[#EF4444]">{t('superAdmin.companies.modal.preventOperations')}</li>
                   </ul>
                 </>
               )}
               {isSuspended && (
-                <p className="mt-2 text-[13px]">This will restore user logins, API access, and company operations.</p>
+                <p className="mt-2 text-[13px]">{t('superAdmin.companies.modal.restoreAccess')}</p>
               )}
             </div>
 
             <label className="block">
               <span className="text-[13px] font-medium text-[#374151]">
-                Reason for {isSuspended ? 'unsuspension' : 'suspension'} *
+                {isSuspended ? t('superAdmin.companies.modal.unsuspendReason') : t('superAdmin.companies.modal.suspendReason')} *
               </span>
               <textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Enter the reason..."
+                placeholder={t('superAdmin.companies.modal.reasonPlaceholder')}
                 className="mt-2 h-[104px] w-full resize-none rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-[14px] text-[#374151] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#9DBBEA] focus:ring-2 focus:ring-[#2B7FFF]/10"
               />
             </label>
@@ -101,7 +103,7 @@ export function SuspendCompanyModal({ company, isOpen, onClose, onConfirm }: Sus
                 onClick={closeModal}
                 className="h-11 rounded-xl bg-[#F3F4F6] text-[14px] font-medium text-[#374151] transition-colors hover:bg-[#E5E7EB]"
               >
-                Cancel
+                {t('common.actions.cancel')}
               </button>
               <button
                 type="button"

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Check, Power } from 'lucide-react';
 import { Modal, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 
 interface StatusActionModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function StatusActionModal({
   entityLabel,
   itemName,
 }: StatusActionModalProps) {
+  const { t } = useI18n();
   const isActivate = action === 'activate';
 
   return (
@@ -43,14 +45,16 @@ export function StatusActionModal({
         </div>
 
         <h2 className="text-[24px] font-bold text-[#101828] leading-[32px] mb-2 font-sans">
-          {isActivate ? `Activate ${entityLabel}?` : `Terminate ${entityLabel}?`}
+          {isActivate
+            ? t('employees.statusModal.activateTitle', { entity: entityLabel })
+            : t('employees.statusModal.terminateTitle', { entity: entityLabel })}
         </h2>
 
         <p className="text-[16px] font-normal text-[#4A5565] leading-[24px] mb-8 font-sans">
           {isActivate ? (
-            <>Are you sure you want to activate <span className="font-semibold">{itemName}</span>? Access will be restored immediately.</>
+            <>{t('employees.statusModal.activatePrefix')} <span className="font-semibold">{itemName}</span>? {t('employees.statusModal.activateSuffix')}</>
           ) : (
-            <>Are you sure you want to terminate <span className="font-semibold">{itemName}</span>? They will remain unavailable until reactivated.</>
+            <>{t('employees.statusModal.terminatePrefix')} <span className="font-semibold">{itemName}</span>? {t('employees.statusModal.terminateSuffix')}</>
           )}
         </p>
 
@@ -61,7 +65,7 @@ export function StatusActionModal({
             disabled={isLoading}
             className="flex-1 h-12 border-none bg-transparent hover:bg-gray-100 text-[#364153] text-[16px] font-medium rounded-[14px] transition-all"
           >
-            Cancel
+            {t('common.actions.cancel')}
           </Button>
           <Button
             onClick={() => void onConfirm()}
@@ -72,7 +76,7 @@ export function StatusActionModal({
                 : 'bg-gradient-to-r from-[#E7000B] to-[#C10007] hover:from-[#C10007] hover:to-[#A10006] shadow-lg shadow-red-200'
             }`}
           >
-            {isActivate ? 'Activate' : 'Terminate'}
+            {isActivate ? t('employees.statusModal.activate') : t('employees.statusModal.terminate')}
           </Button>
         </div>
       </div>

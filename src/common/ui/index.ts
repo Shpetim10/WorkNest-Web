@@ -11,3 +11,5 @@ export * from './PageHeaderDecorativeCircles';
 export * from './GradientModalHeader';
 export * from './Toaster';
 export * from './SonnerTypes';
+export * from './ProfileAvatar';
+export * from './ProfilePhotoUploader';

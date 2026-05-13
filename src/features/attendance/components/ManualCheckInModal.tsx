@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Input, Textarea } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useManualCheckIn } from '../api/manual-check-in';
 import { formatAttendanceFriendlyError } from '@/features/locations/utils/errors';
 
@@ -67,6 +68,7 @@ function localDatetimeToUTC(localDatetime: string, timezone: string): string {
 }
 
 export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, timezone, isAdmin = false }: Props) {
+  const { t } = useI18n();
   const [eventAt, setEventAt] = useState(() => toLocalDatetimeValue(new Date(), timezone));
   const [reason, setReason] = useState('');
   const [formError, setFormError] = useState('');
@@ -93,7 +95,7 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
       setFormError(
         formatAttendanceFriendlyError(
           error,
-          'We could not save this manual check-in. Please try again.',
+          t('attendance.modal.manualCheckInFailed'),
         ),
       );
     }
@@ -108,7 +110,7 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
           style={{ background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 60%, #10B981 100%)' }}
         >
           <div>
-            <h2 className="text-base font-bold text-white">Manual Check-In</h2>
+            <h2 className="text-base font-bold text-white">{t('attendance.actions.manualCheckIn')}</h2>
             <p className="text-xs text-white/70 mt-0.5">{timezone}</p>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
@@ -123,7 +125,7 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
             </div>
           )}
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">Employee</p>
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">{t('employees.entity')}</p>
             <div className="h-11 px-4 flex items-center bg-gray-50 rounded-xl border border-gray-100 text-sm text-gray-700">
               {employeeName}
             </div>
@@ -131,7 +133,7 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
 
           <Input
             id="event-at-in"
-            label={`Event time (${timezone})`}
+            label={t('attendance.modal.eventTime', { timezone })}
             type="datetime-local"
             value={eventAt}
             {...(!isAdmin && { min: `${todayDate}T00:00`, max: `${todayDate}T23:59` })}
@@ -140,10 +142,10 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
 
           <Textarea
             id="reason-in"
-            label="Reason"
+            label={t('leave.giveReason')}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Employee forgot to check in on arrival."
+            placeholder={t('attendance.modal.checkInReasonPlaceholder')}
             rows={3}
           />
         </div>
@@ -153,14 +155,14 @@ export function ManualCheckInModal({ isOpen, onClose, employeeId, employeeName, 
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
           >
-            Cancel
+            {t('common.actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending || !isValidDate}
             className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            {mutation.isPending ? 'Saving…' : 'Save Check-In'}
+            {mutation.isPending ? t('common.actions.saving') : t('attendance.modal.saveCheckIn')}
           </button>
         </div>
       </div>

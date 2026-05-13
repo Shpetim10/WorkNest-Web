@@ -12,6 +12,7 @@ import {
   Info
 } from 'lucide-react';
 import { Card, PageHeaderDecorativeCircles } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useSuperAdminDashboard } from '../api/use-super-admin-dashboard';
 import {
   CompanyRegistrationPointDto,
@@ -25,7 +26,7 @@ import {
 
 interface KpiData {
   id: string;
-  label: string;
+  labelKey: string;
   valueKey: keyof SuperAdminDashboardKpisDto;
   icon: LucideIcon;
   iconColor: string;
@@ -34,28 +35,28 @@ interface KpiData {
 const KPI_DATA: KpiData[] = [
   {
     id: 'total-companies',
-    label: 'Total Companies',
+    labelKey: 'superAdmin.dashboard.kpis.totalCompanies',
     valueKey: 'totalCompanies',
     icon: Home,
     iconColor: 'text-[#2B7FFF]',
   },
   {
     id: 'active-companies',
-    label: 'Active Companies',
+    labelKey: 'superAdmin.dashboard.kpis.activeCompanies',
     valueKey: 'activeCompanies',
     icon: CheckSquare,
     iconColor: 'text-[#2B7FFF]',
   },
   {
     id: 'suspended-companies',
-    label: 'Suspended',
+    labelKey: 'superAdmin.dashboard.kpis.suspended',
     valueKey: 'suspendedCompanies',
     icon: XCircle,
     iconColor: 'text-[#2B7FFF]',
   },
   {
     id: 'expiring-soon',
-    label: 'Expiring Soon',
+    labelKey: 'superAdmin.dashboard.kpis.expiringSoon',
     valueKey: 'expiringSoon',
     icon: Info,
     iconColor: 'text-[#2B7FFF]',
@@ -64,12 +65,12 @@ const KPI_DATA: KpiData[] = [
 
 const SUBSCRIPTION_COLORS = ['#2B7FFF', '#155DFC', '#7C3AED', '#00BBA7'];
 const PERIOD_FILTER_OPTIONS = [
-  { value: 'this-month', label: 'This Month' },
-  { value: 'last-month', label: 'Last Month' },
-  { value: 'last-3-months', label: 'Last 3 Months' },
-  { value: 'last-6-months', label: 'Last 6 Months' },
-  { value: 'this-year', label: 'This Year' },
-  { value: 'custom-range', label: 'Custom Range' },
+  { value: 'this-month', labelKey: 'superAdmin.dashboard.periods.thisMonth' },
+  { value: 'last-month', labelKey: 'superAdmin.dashboard.periods.lastMonth' },
+  { value: 'last-3-months', labelKey: 'superAdmin.dashboard.periods.last3Months' },
+  { value: 'last-6-months', labelKey: 'superAdmin.dashboard.periods.last6Months' },
+  { value: 'this-year', labelKey: 'superAdmin.dashboard.periods.thisYear' },
+  { value: 'custom-range', labelKey: 'superAdmin.dashboard.periods.customRange' },
 ];
 const EMPTY_REGISTRATION_MONTHS: CompanyRegistrationPointDto[] = [
   { label: 'Jan', count: null, percentage: null },
@@ -198,7 +199,10 @@ function WelcomeBanner({
   header?: SuperAdminDashboardHeaderDto | null;
   dateTimeLabels: DateTimeLabels;
 }) {
-  const title = header?.displayName ? `Welcome back, ${header.displayName}` : 'Welcome back';
+  const { t } = useI18n();
+  const title = header?.displayName
+    ? t('superAdmin.dashboard.welcomeBackName', { name: header.displayName })
+    : t('superAdmin.dashboard.welcomeBack');
 
   return (
     <section
@@ -218,7 +222,7 @@ function WelcomeBanner({
           <div>
             <h2 className="text-3xl font-bold leading-tight text-white">{title}</h2>
             <p className="mt-0.5 text-sm font-medium text-white/80">
-              Good to see you again. Let&apos;s make today productive.
+              {t('superAdmin.dashboard.welcomeSubtitle')}
             </p>
           </div>
         </div>
@@ -236,6 +240,8 @@ function WelcomeBanner({
 }
 
 function KpiCard({ kpi, value }: { kpi: KpiData; value?: number | null }) {
+  const { t } = useI18n();
+
   return (
     <Card className="flex min-h-[160px] min-w-0 flex-col justify-between border-0 p-6">
       <div
@@ -246,13 +252,14 @@ function KpiCard({ kpi, value }: { kpi: KpiData; value?: number | null }) {
       </div>
       <div className="space-y-0.5">
         <h2 className="text-[22px] font-bold leading-tight text-[#1a1c23]">{formatMetric(value ?? 0)}</h2>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A9BB2]">{kpi.label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A9BB2]">{t(kpi.labelKey)}</p>
       </div>
     </Card>
   );
 }
 
 function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_FILTER_OPTIONS[0].value);
@@ -277,7 +284,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
     <div className="relative z-30 shrink-0">
       <button
         type="button"
-        aria-label={`${ariaLabelPrefix} period filter`}
+        aria-label={t('superAdmin.dashboard.periodFilterAria', { label: ariaLabelPrefix })}
         aria-expanded={isOpen || isDatePickerOpen}
         onClick={() => {
           setIsDatePickerOpen(false);
@@ -285,7 +292,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
         }}
         className="flex items-center gap-1 rounded-md px-1 py-0.5 text-[11px] font-bold text-[#155DFC] transition-colors hover:text-[#2B7FFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2B7FFF]/20"
       >
-        <span>{selectedOption.label}</span>
+        <span>{t(selectedOption.labelKey)}</span>
         <ChevronDown
           size={13}
           strokeWidth={2.2}
@@ -314,7 +321,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate">{option.label}</span>
+                    <span className="truncate">{t(option.labelKey)}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {isCustomRange && (
@@ -332,12 +339,12 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
       {isDatePickerOpen && (
         <div className="absolute right-0 top-full z-40 mt-2 w-[230px] rounded-xl border border-[#E5ECF6] bg-white p-3 shadow-[0_14px_34px_rgba(15,23,42,0.13)]">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-[12px] font-bold text-[#1f2937]">Custom Range</span>
+            <span className="text-[12px] font-bold text-[#1f2937]">{t('superAdmin.dashboard.periods.customRange')}</span>
             <CalendarDays size={15} strokeWidth={2} className="text-[#2B7FFF]" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-[#8A9BB2]">
-              Start
+              {t('superAdmin.dashboard.start')}
               <input
                 ref={startDateInputRef}
                 type="date"
@@ -348,7 +355,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
               />
             </label>
             <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-[#8A9BB2]">
-              End
+              {t('superAdmin.dashboard.end')}
               <input
                 type="date"
                 value={customEndDate}
@@ -369,7 +376,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
               }}
               className="rounded-md px-2 py-1 text-[11px] font-bold text-[#8A9BB2] transition-colors hover:text-[#4B5563]"
             >
-              Cancel
+              {t('common.actions.cancel')}
             </button>
             <button
               type="button"
@@ -377,7 +384,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
               onClick={() => setIsDatePickerOpen(false)}
               className="rounded-md bg-[#2B7FFF] px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-[#155DFC] disabled:cursor-not-allowed disabled:bg-[#C8D8EE]"
             >
-              Apply
+              {t('common.actions.apply')}
             </button>
           </div>
         </div>
@@ -387,6 +394,7 @@ function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) 
 }
 
 function SubscriptionPieChart({ plans }: { plans: SubscriptionPlanBreakdownDto[] }) {
+  const { t } = useI18n();
   const totalCompanies = plans.reduce(
     (sum, plan) => sum + (typeof plan.companyCount === 'number' ? plan.companyCount : 0),
     0,
@@ -411,7 +419,7 @@ function SubscriptionPieChart({ plans }: { plans: SubscriptionPlanBreakdownDto[]
 
   return (
     <svg
-      aria-label="Subscription plan breakdown"
+      aria-label={t('superAdmin.dashboard.subscriptionBreakdown')}
       className="h-[44px] w-[44px] shrink-0"
       viewBox="0 0 64 64"
       role="img"
@@ -475,6 +483,7 @@ function RegistrationBars({
 }
 
 function RegistrationsChart({ registrations }: { registrations?: CompanyRegistrationPointDto[] | null }) {
+  const { t } = useI18n();
   const [showAllMonths, setShowAllMonths] = useState(false);
   const registrationRows = getRegistrationRows(registrations);
   const visibleRegistrations = registrationRows.slice(0, INITIAL_REGISTRATION_MONTH_COUNT);
@@ -507,13 +516,14 @@ function RegistrationsChart({ registrations }: { registrations?: CompanyRegistra
         onClick={() => setShowAllMonths((value) => !value)}
         className="mx-auto mt-3 block rounded-md px-2 py-1 text-[11px] font-bold text-[#2B7FFF]/80 transition-colors hover:text-[#155DFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2B7FFF]/20"
       >
-        {showAllMonths ? 'Show Less' : 'Show More'}
+        {showAllMonths ? t('superAdmin.dashboard.showLess') : t('superAdmin.dashboard.showMore')}
       </button>
     </div>
   );
 }
 
 function SubscriptionBreakdownCard({ plans }: { plans?: SubscriptionPlanBreakdownDto[] | null }) {
+  const { t } = useI18n();
   const visiblePlans = plans?.length ? plans : EMPTY_SUBSCRIPTION_PLANS;
   const totalCompanies = visiblePlans.reduce(
     (sum, plan) => sum + (typeof plan.companyCount === 'number' ? plan.companyCount : 0),
@@ -525,10 +535,10 @@ function SubscriptionBreakdownCard({ plans }: { plans?: SubscriptionPlanBreakdow
     <Card className="relative z-30 min-h-[160px] min-w-0 overflow-visible border-0 p-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-[13px] font-bold leading-tight text-[#1f2937]">Subscription Breakdown</h3>
-          <p className="mt-0.5 text-[11px] font-medium text-[#8A9BB2]">Companies by plan</p>
+          <h3 className="text-[13px] font-bold leading-tight text-[#1f2937]">{t('superAdmin.dashboard.subscriptionBreakdown')}</h3>
+          <p className="mt-0.5 text-[11px] font-medium text-[#8A9BB2]">{t('superAdmin.dashboard.companiesByPlan')}</p>
         </div>
-        <PeriodFilterDropdown ariaLabelPrefix="Subscription breakdown" />
+        <PeriodFilterDropdown ariaLabelPrefix={t('superAdmin.dashboard.subscriptionBreakdown')} />
       </div>
 
       <div className="flex items-center gap-5">
@@ -563,10 +573,12 @@ function SubscriptionBreakdownCard({ plans }: { plans?: SubscriptionPlanBreakdow
 }
 
 function RecentActivity({ items }: { items?: SuperAdminActivityItemDto[] | null }) {
+  const { t } = useI18n();
+
   if (!items?.length) {
     return (
       <div className="mt-1 flex min-h-[150px] items-center justify-center rounded-xl bg-[#F8FBFF]">
-        <p className="text-[12px] font-medium text-[#8A9BB2]">No recent activity yet</p>
+        <p className="text-[12px] font-medium text-[#8A9BB2]">{t('superAdmin.dashboard.noRecentActivity')}</p>
       </div>
     );
   }
@@ -594,7 +606,15 @@ function RecentActivity({ items }: { items?: SuperAdminActivityItemDto[] | null 
 }
 
 function QuickStats({ stats }: { stats?: SuperAdminQuickStatDto[] | null }) {
+  const { t } = useI18n();
   const visibleStats = getQuickStatRows(stats);
+  const quickStatLabel = (stat: SuperAdminQuickStatDto) => {
+    if (stat.id === 'active' || stat.id === 'trial' || stat.id === 'suspended') {
+      return t(`superAdmin.dashboard.quickStats.${stat.id}`);
+    }
+
+    return stat.label;
+  };
 
   return (
     <div className="mt-2 space-y-4">
@@ -604,7 +624,7 @@ function QuickStats({ stats }: { stats?: SuperAdminQuickStatDto[] | null }) {
         return (
           <div key={stat.id ?? stat.label} className="rounded-xl bg-[#F8FBFF] px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12px] font-semibold text-[#4B5563]">{stat.label}</span>
+              <span className="text-[12px] font-semibold text-[#4B5563]">{quickStatLabel(stat)}</span>
               <span className="text-[12px] font-bold text-[#1f2937]">
                 {stat.valueLabel ?? `${Math.round(percentage)}%`}
               </span>
@@ -646,6 +666,7 @@ export function SuperAdminDashboardView({
   data: initialData,
   enableDashboardQuery = false,
 }: SuperAdminDashboardViewProps = {}) {
+  const { t } = useI18n();
   const [dateTimeLabels, setDateTimeLabels] = useState<DateTimeLabels>(() => getCurrentDateTimeLabels());
   const dashboardQuery = useSuperAdminDashboard({ enabled: enableDashboardQuery && !initialData });
   const dashboardData = initialData ?? dashboardQuery.data;
@@ -679,17 +700,20 @@ export function SuperAdminDashboardView({
         style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
       >
         <Card className="!rounded-[20px] min-h-[270px] min-w-0 overflow-hidden border-0 p-6">
-          <SectionHeader title="Company Registrations" />
+          <SectionHeader title={t('superAdmin.dashboard.companyRegistrations')} />
           <RegistrationsChart registrations={dashboardData?.companyRegistrations} />
         </Card>
 
         <Card className="!rounded-[20px] h-[270px] min-w-0 overflow-hidden border-0 p-6">
-          <SectionHeader title="Recent Activity" />
+          <SectionHeader title={t('superAdmin.dashboard.recentActivity')} />
           <RecentActivity items={dashboardData?.recentActivity} />
         </Card>
 
         <Card className="!rounded-[20px] relative z-20 h-[270px] min-w-0 overflow-visible border-0 p-6">
-          <SectionHeader title="Quick Stats" action={<PeriodFilterDropdown ariaLabelPrefix="Quick stats" />} />
+          <SectionHeader
+            title={t('superAdmin.dashboard.quickStatsTitle')}
+            action={<PeriodFilterDropdown ariaLabelPrefix={t('superAdmin.dashboard.quickStatsTitle')} />}
+          />
           <QuickStats stats={dashboardData?.quickStats} />
         </Card>
       </div>

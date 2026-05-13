@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Plus, Search, Edit2, Trash2, Eye, Loader2, Building2 } from 'lucide-react';
 import { useDepartments } from '../api';
 import { AddDepartmentModal } from './AddDepartmentModal';
 import { EditDepartmentModal } from './EditDepartmentModal';
 import { DeleteDepartmentModal } from './DeleteDepartmentModal';
 import { DepartmentDetailsModal } from './DepartmentDetailsModal';
+import { useI18n } from '@/common/i18n';
 
 
 export function DepartmentsView() {
+  const { locale, t } = useI18n();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -42,7 +44,14 @@ export function DepartmentsView() {
     return departments?.items.find(d => d.id === selectedDeptId) || null;
   }, [departments, selectedDeptId]);
 
-  const TABLE_HEADERS = ['NAME', 'STATUS', 'DESCRIPTION', 'EMPLOYEES', 'CREATED AT', 'ACTIONS'];
+  const tableHeaders = [
+    t('tables.headers.name'),
+    t('tables.headers.status'),
+    t('tables.headers.description'),
+    t('tables.headers.employees'),
+    t('tables.headers.createdAt'),
+    t('tables.headers.actions'),
+  ];
 
   const handleAction = (id: string, action: 'view' | 'edit' | 'delete') => {
     setSelectedDeptId(id);
@@ -54,12 +63,12 @@ export function DepartmentsView() {
   const formatDate = (dateString: string) => {
     if (!dateString) return '—';
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      return new Date(dateString).toLocaleDateString(locale === 'sq' ? 'sq-AL' : 'en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -83,9 +92,9 @@ export function DepartmentsView() {
             <Building2 size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Departments</h1>
+            <h1 className="text-3xl font-bold text-white">{t('departments.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Manage all departments of your company
+              {t('departments.subtitle')}
             </p>
           </div>
         </div>
@@ -105,7 +114,7 @@ export function DepartmentsView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search departments..."
+            placeholder={t('departments.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -128,7 +137,7 @@ export function DepartmentsView() {
                 className="text-xs font-semibold text-white uppercase tracking-wide"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th
                     key={header}
                     className="px-4 py-3.5 text-left font-semibold"
@@ -141,29 +150,29 @@ export function DepartmentsView() {
             <tbody className="bg-white text-left">
               {isLoading ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Loader2 className="w-8 h-8 text-[#155DFC] animate-spin" />
-                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">Loading departments...</p>
+                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">{t('tables.loading.departments')}</p>
                     </div>
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3 text-red-500 font-[Inter,sans-serif]">
-                      <p className="text-[14px] font-medium">Failed to load departments</p>
+                      <p className="text-[14px] font-medium">{t('tables.failed.departments')}</p>
                     </div>
                   </td>
                 </tr>
               ) : filteredDepartments.length === 0 ? (
                 <tr className="hover:bg-gray-50/50 transition-colors">
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3 opacity-40 font-[Inter,sans-serif]">
                       <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
                         <Search size={22} strokeWidth={1.5} />
                       </div>
-                      <p className="text-[14px] font-medium text-gray-500">No departments found</p>
+                      <p className="text-[14px] font-medium text-gray-500">{t('tables.empty.departments')}</p>
                     </div>
                   </td>
                 </tr>
@@ -185,7 +194,7 @@ export function DepartmentsView() {
                           ? 'bg-[#00C95033] text-[#00C950]' 
                           : 'bg-[#EF444433] text-[#EF4444]'
                       }`}>
-                        {dept.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                        {dept.status === 'ACTIVE' ? t('common.statuses.active') : t('common.statuses.inactive')}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
@@ -193,7 +202,7 @@ export function DepartmentsView() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className="text-[14px] font-normal text-gray-600 font-[Inter,sans-serif]">
-                        {dept.employeeCount} employees
+                        {t('departments.employeeCount', { count: dept.employeeCount })}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-[14px] text-gray-500 font-normal font-[Inter,sans-serif] whitespace-nowrap">
@@ -204,21 +213,21 @@ export function DepartmentsView() {
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleAction(dept.id, 'view'); }}
                           className="p-2 hover:bg-blue-50 text-gray-400 hover:text-[#155DFC] rounded-lg transition-all"
-                          title="View Details"
+                          title={t('common.actions.viewDetails')}
                         >
                           <Eye size={18} />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleAction(dept.id, 'edit'); }}
                           className="p-2 hover:bg-blue-50 text-gray-400 hover:text-[#155DFC] rounded-lg transition-all"
-                          title="Edit"
+                          title={t('common.actions.edit')}
                         >
                           <Edit2 size={18} />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleAction(dept.id, 'delete'); }}
                           className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-all"
-                          title="Delete"
+                          title={t('common.actions.delete')}
                         >
                           <Trash2 size={18} />
                         </button>

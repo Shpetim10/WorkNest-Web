@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/common/network/api-client';
+import { useI18n } from '@/common/i18n';
 import { PaymentMethod } from '../types';
 import { useStaffDetails } from '../api/get-staff-details';
 import { formatCurrencyAmount, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
@@ -19,6 +20,7 @@ interface StaffViewModalProps {
 }
 
 type ActiveTab = 'profile' | 'employment';
+type Translate = ReturnType<typeof useI18n>['t'];
 
 const DETAIL_ROW = "flex flex-col gap-1.5 p-4 rounded-xl border border-gray-50 bg-gray-50/30 transition-colors hover:bg-gray-50/50";
 const LABEL_CLS = "flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-gray-400";
@@ -30,23 +32,36 @@ const GROUP_PREFIX_MAP: Record<string, string> = {
   'ANNOUNCEMENTS': 'announcements', 'LEAVE': 'leave', 'REPORTS': 'reports', 'PAYROLL': 'payroll',
 };
 
-function formatDate(dateString: string | undefined | null) {
-  if (!dateString) return '—';
+const PERMISSION_GROUP_LABEL_KEYS: Record<string, string> = {
+  'USER MANAGEMENT': 'staff.permissions.groups.userManagement',
+  ATTENDANCE: 'staff.permissions.groups.attendance',
+  EMPLOYEE: 'staff.permissions.groups.employee',
+  ANNOUNCEMENTS: 'staff.permissions.groups.announcements',
+  LEAVE: 'staff.permissions.groups.leave',
+  REPORTS: 'staff.permissions.groups.reports',
+  PAYROLL: 'staff.permissions.groups.payroll',
+};
+
+function localeToDateLocale(locale: string): string {
+  if (locale === 'sq') return 'sq-AL';
+  if (locale === 'de') return 'de-DE';
+  if (locale === 'it') return 'it-IT';
+  return 'en-US';
+}
+
+function formatDate(dateString: string | undefined | null, locale: string) {
+  if (!dateString) return '-';
   try {
-    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
   } catch { return dateString; }
 }
 
-function formatEmploymentType(type: string | null | undefined) {
-  const map: Record<string, string> = {
-    FULL_TIME: 'Full-Time', PART_TIME: 'Part-Time', CONTRACT: 'Fixed-Term Contract', INTERN: 'Internship',
-  };
-  return type ? (map[type] || type) : '—';
+function formatEmploymentType(type: string | null | undefined, t: Translate) {
+  return type ? t(`employees.employmentTypes.${type}`) : '-';
 }
 
-function formatPaymentMethod(method: string | null | undefined) {
-  const map: Record<string, string> = { FIXED_MONTHLY: 'Fixed Monthly Salary', HOURLY: 'Hourly Rate' };
-  return method ? (map[method] || method) : '—';
+function formatPaymentMethod(method: string | null | undefined, t: Translate) {
+  return method ? t(`employees.paymentMethods.${method}`) : '-';
 }
 
 function resolveContractUrl(path?: string | null) {
@@ -62,6 +77,8 @@ function resolveContractUrl(path?: string | null) {
 }
 
 export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps) {
+  const { locale, t } = useI18n();
+  const displayLocale = localeToDateLocale(locale);
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
   const currencyCode = getStoredCompanyCurrency();
   const currencyLocale = getStoredCompanyLocale();
@@ -83,7 +100,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
     ? (staff.name || `${staff.firstName || ''} ${staff.lastName || ''}`.trim() || '??')
         .split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase()
     : '??';
-  const fullName = staff ? (staff.name || `${staff.firstName} ${staff.lastName}`) : 'Loading...';
+  const fullName = staff ? (staff.name || `${staff.firstName} ${staff.lastName}`) : t('common.feedback.loading');
   const contractUrl = resolveContractUrl(staff?.contractDocumentPath);
   const hasPdfContract = Boolean(contractUrl && contractUrl.toLowerCase().endsWith('.pdf'));
 
@@ -110,7 +127,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
         setContractPreviewUrl(objectUrlToRevoke);
       } catch {
         if (!isMounted) return;
-        setContractPreviewError('Unable to load contract preview.');
+        setContractPreviewError(t('employees.view.unableContractPreview'));
       } finally {
         if (isMounted) setIsContractPreviewLoading(false);
       }
@@ -122,7 +139,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
       isMounted = false;
       if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke);
     };
-  }, [isOpen, contractUrl, hasPdfContract]);
+  }, [isOpen, contractUrl, hasPdfContract, t]);
 
   if (!isOpen) return null;
 
@@ -156,7 +173,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                       : staff.status === 'PENDING' ? 'bg-[#FFFBEB] text-[#B45309]'
                       : 'bg-[#FFF7ED] text-[#CA3500]'
                     }`}>
-                      {staff.status === 'ACTIVE' ? 'Active' : staff.status === 'PENDING' ? 'Pending' : staff.status || 'Active'}
+                      {staff.status === 'ACTIVE' ? t('common.statuses.active') : staff.status === 'PENDING' ? t('common.statuses.pending') : staff.status || t('common.statuses.active')}
                     </span>
                     <span className="text-[13px] font-medium text-gray-400">• {staff.email}</span>
                   </div>
@@ -172,10 +189,10 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
           {!isLoading && !isError && staff && (
             <div className="flex items-center gap-2 px-8 pt-5 pb-0 shrink-0">
               <button onClick={() => setActiveTab('profile')} className={tabClass('profile')}>
-                Profile & Permissions
+                {t('staff.view.profilePermissions')}
               </button>
               <button onClick={() => setActiveTab('employment')} className={tabClass('employment')}>
-                Employment & Contract
+                {t('employees.view.employmentContract')}
               </button>
             </div>
           )}
@@ -185,46 +202,46 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-[#155DFC]" />
-                <p className="text-gray-400 font-medium font-[Inter,sans-serif]">Fetching staff details...</p>
+                <p className="text-gray-400 font-medium font-[Inter,sans-serif]">{t('staff.view.fetchingDetails')}</p>
               </div>
             ) : isError || !staff ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center text-red-500">
                   <X size={24} />
                 </div>
-                <p className="text-gray-500 font-medium font-[Inter,sans-serif]">Failed to load staff details</p>
+                <p className="text-gray-500 font-medium font-[Inter,sans-serif]">{t('staff.view.loadFailed')}</p>
               </div>
             ) : activeTab === 'profile' ? (
               <>
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><User size={14} /> Full Name</span>
+                    <span className={LABEL_CLS}><User size={14} /> {t('employees.view.fullName')}</span>
                     <span className={VALUE_CLS}>{fullName}</span>
                   </div>
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><Mail size={14} /> Email Address</span>
+                    <span className={LABEL_CLS}><Mail size={14} /> {t('common.fields.emailAddress')}</span>
                     <span className={VALUE_CLS}>{staff.email}</span>
                   </div>
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><Briefcase size={14} /> Job Title</span>
+                    <span className={LABEL_CLS}><Briefcase size={14} /> {t('tables.headers.jobTitle')}</span>
                     <span className={VALUE_CLS}>{staff.jobTitle}</span>
                   </div>
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><Building2 size={14} /> Department</span>
-                    <span className={VALUE_CLS}>{staff.departmentName ?? '—'}</span>
+                    <span className={LABEL_CLS}><Building2 size={14} /> {t('tables.headers.department')}</span>
+                    <span className={VALUE_CLS}>{staff.departmentName ?? '-'}</span>
                   </div>
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><MapPin size={14} /> Location</span>
-                    <span className={VALUE_CLS}>{staff.companySiteName ?? '—'}</span>
+                    <span className={LABEL_CLS}><MapPin size={14} /> {t('tables.headers.location')}</span>
+                    <span className={VALUE_CLS}>{staff.companySiteName ?? '-'}</span>
                   </div>
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><Calendar size={14} /> Hire Date</span>
-                    <span className={VALUE_CLS}>{formatDate(staff.startDate)}</span>
+                    <span className={LABEL_CLS}><Calendar size={14} /> {t('employees.view.hireDate')}</span>
+                    <span className={VALUE_CLS}>{formatDate(staff.startDate, displayLocale)}</span>
                   </div>
                   <div className={DETAIL_ROW}>
-                    <span className={LABEL_CLS}><Users2 size={14} /> Assigned Employees</span>
-                    <span className={VALUE_CLS}>{staff.assignedEmployeesCount || 0} Employees</span>
+                    <span className={LABEL_CLS}><Users2 size={14} /> {t('assignEmployees.assignedEmployees')}</span>
+                    <span className={VALUE_CLS}>{t('departments.employeeCount', { count: staff.assignedEmployeesCount || 0 })}</span>
                   </div>
                 </div>
 
@@ -232,7 +249,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                 {staff.assignedEmployees && staff.assignedEmployees.length > 0 && (
                   <div className="space-y-4">
                     <p className="text-[13px] font-bold text-[#4A5565] uppercase tracking-wider flex items-center gap-2 font-[Inter,sans-serif]">
-                      <Users2 size={16} className="text-[#155DFC]" /> Assigned Employees
+                      <Users2 size={16} className="text-[#155DFC]" /> {t('assignEmployees.assignedEmployees')}
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {staff.assignedEmployees.map(emp => (
@@ -242,7 +259,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[14px] font-semibold text-[#1E2939]">{emp.firstName} {emp.lastName}</span>
-                            <span className="text-[12px] text-gray-400">{emp.jobTitle || 'Employee'}</span>
+                            <span className="text-[12px] text-gray-400">{emp.jobTitle || t('employees.entity')}</span>
                           </div>
                         </div>
                       ))}
@@ -253,7 +270,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                 {/* Permissions Summary */}
                 <div className="space-y-4">
                   <p className="text-[13px] font-bold text-[#4A5565] uppercase tracking-wider flex items-center gap-2 font-[Inter,sans-serif]">
-                    <CheckCircle2 size={16} className="text-[#00C950]" /> Permissions Summary
+                    <CheckCircle2 size={16} className="text-[#00C950]" /> {t('staff.view.permissionsSummary')}
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     {PERMISSION_GROUPS.map(group => {
@@ -268,7 +285,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
                           }`}
                         >
                           <div className={`h-2 w-2 rounded-full ${isEnabled ? 'bg-[#155DFC]' : 'bg-gray-200'}`} />
-                          <span className="text-[11px] font-bold uppercase tracking-tight font-[Inter,sans-serif]">{group}</span>
+                          <span className="text-[11px] font-bold uppercase tracking-tight font-[Inter,sans-serif]">{t(PERMISSION_GROUP_LABEL_KEYS[group])}</span>
                         </div>
                       );
                     })}
@@ -279,66 +296,66 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
               /* Employment & Contract Tab */
               <div className="grid grid-cols-2 gap-4">
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Briefcase size={14} /> Employment Type</span>
-                  <span className={VALUE_CLS}>{formatEmploymentType(staff.employmentType)}</span>
+                  <span className={LABEL_CLS}><Briefcase size={14} /> {t('employees.view.employmentType')}</span>
+                  <span className={VALUE_CLS}>{formatEmploymentType(staff.employmentType, t)}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Sun size={14} /> Paid Leave Days / Year</span>
+                  <span className={LABEL_CLS}><Sun size={14} /> {t('employees.view.paidLeaveDays')}</span>
                   <span className={VALUE_CLS}>
-                    {staff.leaveDaysPerYear != null ? `${staff.leaveDaysPerYear} days` : '—'}
+                    {staff.leaveDaysPerYear != null ? t('dashboard.days', { count: staff.leaveDaysPerYear }) : '-'}
                   </span>
                 </div>
                 <div className={`${DETAIL_ROW} col-span-2`}>
-                  <span className={LABEL_CLS}><Calendar size={14} /> Contract Expiry</span>
-                  <span className={VALUE_CLS}>{formatDate(staff.contractExpiryDate)}</span>
+                  <span className={LABEL_CLS}><Calendar size={14} /> {t('employees.view.contractExpiry')}</span>
+                  <span className={VALUE_CLS}>{formatDate(staff.contractExpiryDate, displayLocale)}</span>
                 </div>
                 {staff.contractDocumentKey && (
                   <div className={`${DETAIL_ROW} col-span-2`}>
-                    <span className={LABEL_CLS}><FileText size={14} /> PDF Contract Preview</span>
+                    <span className={LABEL_CLS}><FileText size={14} /> {t('employees.view.pdfContractPreview')}</span>
                     {hasPdfContract && isContractPreviewLoading ? (
                       <div className="flex items-center gap-2 text-[13px] font-medium text-gray-500">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading contract preview...
+                        {t('employees.view.loadingContractPreview')}
                       </div>
                     ) : hasPdfContract && contractPreviewUrl ? (
                       <button
                         type="button"
                         onClick={() => window.open(contractPreviewUrl, '_blank', 'noopener,noreferrer')}
                         className="w-full overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left transition-all hover:border-[#155DFC]/40"
-                        title="Open full PDF in a new page"
+                        title={t('employees.view.openFullPdf')}
                       >
                         <iframe
                           src={contractPreviewUrl}
-                          title="Staff Contract PDF"
+                          title={t('staff.view.staffContractPdf')}
                           className="h-[360px] w-full pointer-events-none"
                         />
                         <div className="px-3 py-2 text-[12px] font-semibold text-[#155DFC] bg-[#F8FAFF] border-t border-[#E5E7EB]">
-                          Open full PDF in new page
+                          {t('employees.view.openFullPdf')}
                         </div>
                       </button>
                     ) : contractPreviewError ? (
                       <p className="text-[13px] font-medium text-red-500">{contractPreviewError}</p>
                     ) : (
                       <p className="text-[13px] font-medium text-gray-500">
-                        Contract is on file, but no direct PDF URL is available to preview in-app yet.
+                        {t('employees.view.contractNoPreview')}
                       </p>
                     )}
                   </div>
                 )}
                 <div className={`${DETAIL_ROW} col-span-2`}>
-                  <span className={LABEL_CLS}><CreditCard size={14} /> Payment Method</span>
+                  <span className={LABEL_CLS}><CreditCard size={14} /> {t('employees.view.paymentMethod')}</span>
                   <div className="flex items-center justify-between">
-                    <span className={VALUE_CLS}>{formatPaymentMethod(staff.paymentMethod)}</span>
+                    <span className={VALUE_CLS}>{formatPaymentMethod(staff.paymentMethod, t)}</span>
                     {staff.paymentMethod === PaymentMethod.FIXED_MONTHLY && staff.monthlySalary != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
                         {formatCurrencyAmount(staff.monthlySalary, currencyCode, currencyLocale)}
-                        <span className="text-[12px] font-semibold text-gray-400 ml-1">/month</span>
+                        <span className="text-[12px] font-semibold text-gray-400 ml-1">{t('auth.register.pricing.perMonth')}</span>
                       </span>
                     )}
                     {staff.paymentMethod === PaymentMethod.HOURLY && staff.hourlyRate != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
                         {formatCurrencyAmount(staff.hourlyRate, currencyCode, currencyLocale)}
-                        <span className="text-[12px] font-semibold text-gray-400 ml-1">/hour</span>
+                        <span className="text-[12px] font-semibold text-gray-400 ml-1">{t('employees.view.perHour')}</span>
                       </span>
                     )}
                   </div>
@@ -353,7 +370,7 @@ export function StaffViewModal({ isOpen, onClose, staffId }: StaffViewModalProps
               onClick={onClose}
               className="h-11 rounded-xl bg-gray-900 px-8 text-[14px] font-bold text-white shadow-md transition-all hover:bg-black hover:scale-[1.02]"
             >
-              Close
+              {t('common.actions.close')}
             </button>
           </div>
         </div>

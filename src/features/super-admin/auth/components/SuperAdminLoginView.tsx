@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { Button, Input } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 import { PlatformAccess } from '@/features/auth/types';
 import { useSuperAdminLogin } from '../api/use-super-admin-login';
 
 export function SuperAdminLoginView() {
+  const { t } = useI18n();
   const router = useRouter();
   const loginMutation = useSuperAdminLogin();
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -19,13 +21,13 @@ export function SuperAdminLoginView() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('validation.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('validation.validEmail');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('validation.passwordRequired');
     }
 
     setErrors(newErrors);
@@ -50,7 +52,7 @@ export function SuperAdminLoginView() {
         router.push('/superadmin_dashboard');
       }
     } catch (error: unknown) {
-      console.error('Super admin login failed:', error);
+      console.error(t('auth.login.failedLog'), error);
     }
   };
 
@@ -65,6 +67,9 @@ export function SuperAdminLoginView() {
   return (
     <div className="flex min-h-screen w-full bg-white font-sans">
       <div className="relative flex w-full flex-col justify-center px-8 sm:px-12 md:w-1/2 lg:px-24 xl:px-32">
+        <div className="absolute right-8 top-6 z-20">
+          <LanguageSwitcher />
+        </div>
         <div className="mx-auto w-full max-w-[400px]">
           <div className="mb-10">
             <h1 className="inline-block bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text font-sans text-[30px] font-bold leading-[36px] text-transparent">
@@ -73,16 +78,16 @@ export function SuperAdminLoginView() {
           </div>
 
           <div className="mb-8">
-            <h2 className="mb-2 text-3xl font-bold text-[#1a1c23]">Welcome Back !</h2>
-            <p className="text-sm text-gray-500">Sign in to continue to your account</p>
+            <h2 className="mb-2 text-3xl font-bold text-[#1a1c23]">{t('auth.login.title')}</h2>
+            <p className="text-sm text-gray-500">{t('auth.login.subtitle')}</p>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <Input
               id="superadmin-email"
-              label="Email Address"
+              label={t('common.fields.emailAddress')}
               type="text"
-              placeholder="you@company.com"
+              placeholder={t('auth.login.emailPlaceholder')}
               icon={<Mail className="h-[18px] w-[18px]" />}
               value={formData.email}
               onChange={handleChange('email')}
@@ -91,9 +96,9 @@ export function SuperAdminLoginView() {
 
             <Input
               id="superadmin-password"
-              label="Password"
+              label={t('common.fields.password')}
               type="password"
-              placeholder="Enter your password"
+              placeholder={t('auth.login.passwordPlaceholder')}
               icon={<Lock className="h-[18px] w-[18px]" />}
               value={formData.password}
               onChange={handleChange('password')}
@@ -105,7 +110,7 @@ export function SuperAdminLoginView() {
                 href="/forgot-password"
                 className="text-[13px] font-bold text-[#0066FF] transition-colors hover:text-blue-700"
               >
-                Forgot password?
+                {t('auth.login.forgotPassword')}
               </Link>
             </div>
 
@@ -122,7 +127,7 @@ export function SuperAdminLoginView() {
                 }
                 disabled={loginMutation.isPending}
               >
-                {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
+                {loginMutation.isPending ? t('auth.login.submitting') : t('auth.login.submit')}
               </Button>
             </div>
           </form>
@@ -136,7 +141,7 @@ export function SuperAdminLoginView() {
           <div className="mb-6 flex justify-center">
             <Image
               src="/logo.png"
-              alt="WorkNest Brand"
+              alt={t('auth.shared.brandAlt')}
               width={430}
               height={307}
               className="h-auto w-[430px] object-contain drop-shadow-lg"
@@ -145,7 +150,7 @@ export function SuperAdminLoginView() {
           </div>
 
           <p className="max-w-[438px] text-center font-sans text-[20px] font-normal leading-[28px] tracking-normal text-white/90">
-            Step into a better HR experience - where managing your team is easier, collaboration feels natural, and growth happens every day.
+            {t('auth.shared.tagline')}
           </p>
         </div>
       </div>

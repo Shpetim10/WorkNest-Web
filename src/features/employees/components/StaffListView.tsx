@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import {
   ChevronDown, Eye, Plus, Search, Trash2, Loader2, Send, Users2, UserCog, FileText, Check, Power,
 } from 'lucide-react';
@@ -16,18 +16,9 @@ import { StaffViewModal } from './StaffViewModal';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { JobDetailsModal } from './JobDetailsModal';
 import { StatusActionModal } from './StatusActionModal';
+import { useI18n } from '@/common/i18n';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-function getDepartmentBadge(dept: string) {
-  const map: Record<string, string> = {
-    Engineering: 'bg-[#E8F1FF] text-[#155DFC]',
-    Marketing:   'bg-[#FFF3E0] text-[#E65100]',
-    Sales:       'bg-[#E8F5E9] text-[#2E7D32]',
-    HR:          'bg-[#F3E5F5] text-[#7B1FA2]',
-  };
-  return map[dept] ?? 'bg-gray-100 text-gray-600';
-}
-
 function getInitials(name: string | undefined | null) {
   if (!name) return '??';
   const parts = name.trim().split(/\s+/);
@@ -44,10 +35,20 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-const TABLE_HEADERS = ['Name', 'Email', 'Department', 'Location', 'Job Title', 'Employees', 'Status', 'Actions'];
+const TABLE_HEADER_KEYS = [
+  'tables.headers.name',
+  'tables.headers.email',
+  'tables.headers.department',
+  'tables.headers.location',
+  'tables.headers.jobTitle',
+  'tables.headers.employees',
+  'tables.headers.status',
+  'tables.headers.actions',
+];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export function StaffListView() {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -106,10 +107,10 @@ export function StaffListView() {
 
     try {
       await resendMutation.mutateAsync({ companyId, employeeId });
-      alert('Invitation resent successfully!');
+      alert(t('employees.invitationResent'));
     } catch (err: unknown) {
-      console.error('Failed to resend invitation:', err);
-      alert(getErrorMessage(err, 'Failed to resend invitation'));
+      console.error(t('employees.resendFailed'), err);
+      alert(getErrorMessage(err, t('employees.resendFailed')));
     }
   };
 
@@ -148,8 +149,8 @@ export function StaffListView() {
       await deleteMutation.mutateAsync({ companyId, staffId: deleteStaff.id });
       setDeleteStaff(null);
     } catch (err: unknown) {
-      console.error('Failed to delete staff member:', err);
-      alert(getErrorMessage(err, 'Failed to delete staff member'));
+      console.error(t('staff.deleteFailed'), err);
+      alert(getErrorMessage(err, t('staff.deleteFailed')));
     }
   };
 
@@ -166,16 +167,17 @@ export function StaffListView() {
         action,
       });
     } catch (err: unknown) {
-      console.error(`Failed to ${action} staff member:`, err);
-      alert(getErrorMessage(err, `Failed to ${action} staff member`));
+      console.error(t('staff.statusFailed', { action }), err);
+      alert(getErrorMessage(err, t('staff.statusFailed', { action })));
     }
   };
 
   const [date, setDate] = useState('2026-05-01');
-  const [status, setStatus] = useState('All statuses');
-  const [department, setDepartment] = useState('All departments');
+  const [status, setStatus] = useState('all');
+  const [department, setDepartment] = useState('all');
 
   const staffStatusAction = statusActionStaff?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
+  const tableHeaders = TABLE_HEADER_KEYS.map((key) => t(key));
 
   const handleDropdownToggle = (event: React.MouseEvent<HTMLButtonElement>, staffId: string) => {
     if (openDropdownId === staffId) {
@@ -211,9 +213,9 @@ export function StaffListView() {
             <Users2 size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Staff Management</h1>
+            <h1 className="text-3xl font-bold text-white">{t('staff.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Manage staff members and their permissions
+              {t('staff.subtitle')}
             </p>
           </div>
         </div>
@@ -233,7 +235,7 @@ export function StaffListView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search employee locally..."
+            placeholder={t('employees.searchPlaceholder')}
             value={searchQuery}
             onChange={handleSearchChange}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
@@ -254,7 +256,7 @@ export function StaffListView() {
               onChange={(e) => setStatus(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option>All statuses</option>
+              <option value="all">{t('locations.allStatuses')}</option>
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -265,7 +267,7 @@ export function StaffListView() {
               onChange={(e) => setDepartment(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option>All departments</option>
+              <option value="all">{t('employees.allDepartments')}</option>
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -274,7 +276,7 @@ export function StaffListView() {
             onClick={() => {}}
             className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            Apply
+            {t('common.actions.apply')}
           </button>
         </div>
       </div>
@@ -290,7 +292,7 @@ export function StaffListView() {
                 className="text-xs font-semibold text-white uppercase tracking-wide"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th key={header} className="px-4 py-3.5 text-left font-semibold">
                     {header}
                   </th>
@@ -300,22 +302,22 @@ export function StaffListView() {
             <tbody className="bg-white text-left">
               {isLoading ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Loader2 className="h-8 w-8 animate-spin text-[#155DFC]" />
-                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">Loading staff members...</p>
+                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">{t('staff.loading')}</p>
                     </div>
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
-                    <p className="text-[14px] font-medium">Failed to load staff members</p>
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
+                    <p className="text-[14px] font-medium">{t('staff.failed')}</p>
                   </td>
                 </tr>
               ) : filteredStaff.length === 0 ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium">No staff members found</td>
+                  <td colSpan={tableHeaders.length} className="px-6 py-16 text-center text-gray-400 font-medium">{t('staff.empty')}</td>
                 </tr>
               ) : (
                 filteredStaff.map((member, index) => (
@@ -372,8 +374,8 @@ export function StaffListView() {
                             : 'bg-[#EF444433] text-[#EF4444]'
                         }`}
                       >
-                        {member.status === EmployeeStatus.ACTIVE ? 'Active' : 
-                         member.status === EmployeeStatus.PENDING ? 'Pending' : 
+                        {member.status === EmployeeStatus.ACTIVE ? t('common.statuses.active') :
+                         member.status === EmployeeStatus.PENDING ? t('common.statuses.pending') :
                          member.status.replace('_', ' ').toLowerCase()}
                       </span>
                     </td>
@@ -383,7 +385,7 @@ export function StaffListView() {
                           <button 
                             onClick={() => handleResend(member.id)}
                             disabled={resendMutation.isPending}
-                            title="Resend Invitation"
+                            title={t('employees.resendInvitation')}
                             className="rounded-lg p-2 text-gray-400 transition-all hover:bg-orange-50 hover:text-[#B45309] disabled:opacity-50"
                           >
                             {resendMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -391,7 +393,7 @@ export function StaffListView() {
                         )}
                         <button 
                           onClick={() => setViewStaffId(member.id)}
-                          title="View Details"
+                          title={t('common.actions.viewDetails')}
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                         >
                           <Eye size={18} />
@@ -401,7 +403,7 @@ export function StaffListView() {
                           <button
                             data-staff-dropdown-trigger={member.id}
                             onClick={(event) => handleDropdownToggle(event, member.id)}
-                            title="Update"
+                            title={t('common.actions.update')}
                             className={`rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC] flex items-center gap-0.5 ${openDropdownId === member.id ? 'bg-blue-50 text-[#155DFC]' : ''}`}
                           >
                             <ChevronDown size={18} />
@@ -411,7 +413,7 @@ export function StaffListView() {
                         {(member.status === EmployeeStatus.ACTIVE || member.status === EmployeeStatus.INACTIVE || member.status === EmployeeStatus.TERMINATED) && (
                           <button
                             onClick={() => setStatusActionStaff(member)}
-                            title={member.status === EmployeeStatus.ACTIVE ? 'Terminate Staff Member' : 'Activate Staff Member'}
+                            title={member.status === EmployeeStatus.ACTIVE ? t('staff.terminate') : t('staff.activate')}
                             className={`rounded-lg p-2 text-gray-400 transition-all ${
                               member.status === EmployeeStatus.ACTIVE
                                 ? 'hover:bg-amber-50 hover:text-amber-500'
@@ -424,7 +426,7 @@ export function StaffListView() {
 
                         <button 
                           onClick={() => setDeleteStaff(member)}
-                          title="Delete Staff Member"
+                          title={t('staff.delete')}
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 size={18} />
@@ -488,8 +490,8 @@ export function StaffListView() {
           isOpen={!!deleteStaff}
           onClose={() => setDeleteStaff(null)}
           onConfirm={handleDeleteConfirm}
-          title="Delete Staff Member"
-          message="Are you sure you want to delete staff member"
+          title={t('staff.deleteTitle')}
+          message={t('staff.deleteMessage')}
           itemName={deleteStaff?.name}
         />
       )}
@@ -504,7 +506,7 @@ export function StaffListView() {
           }}
           isLoading={toggleStatusMutation.isPending}
           action={staffStatusAction}
-          entityLabel="Staff Member"
+          entityLabel={t('staff.entity')}
           itemName={statusActionStaff.name || `${statusActionStaff.firstName} ${statusActionStaff.lastName}`}
         />
       )}
@@ -531,8 +533,8 @@ export function StaffListView() {
                 <UserCog size={16} />
               </div>
               <div className="text-left">
-                <div className="font-bold">Personal Info</div>
-                <div className="text-[11px] text-gray-400 font-normal">Name, email, dept, assignments</div>
+                <div className="font-bold">{t('employees.personalInfo')}</div>
+                <div className="text-[11px] text-gray-400 font-normal">{t('staff.assignmentDescription')}</div>
               </div>
             </button>
             <div className="h-px bg-gray-50 mx-3" />
@@ -548,8 +550,8 @@ export function StaffListView() {
                 <FileText size={16} />
               </div>
               <div className="text-left">
-                <div className="font-bold">Job & Contract</div>
-                <div className="text-[11px] text-gray-400 font-normal">Employment, payment, leave</div>
+                <div className="font-bold">{t('employees.jobContract')}</div>
+                <div className="text-[11px] text-gray-400 font-normal">{t('employees.jobContractDescription')}</div>
               </div>
             </button>
           </div>,

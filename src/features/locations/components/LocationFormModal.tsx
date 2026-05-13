@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Modal } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { Check, ChevronRight, X } from 'lucide-react';
 import { useCreateSite, useDetectLocation, useDetectNetwork, useUpdateSite, useUpdateMainDetails, useUpdateLocation, useUpdateTrustedNetwork } from '../api';
 import {
@@ -186,20 +187,20 @@ function buildTouchedStep3Errors(flatErrors: Record<string, string>, touched: Pa
   });
 }
 
-function getGeolocationErrorMessage(error: unknown) {
+function getGeolocationErrorMessage(error: unknown, t: (key: string) => string) {
   if (typeof error === 'object' && error && 'code' in error) {
     const geolocationError = error as GeolocationPositionError;
 
     if (geolocationError.code === geolocationError.PERMISSION_DENIED) {
-      return 'Location permission was denied. You can keep filling the address manually.';
+      return t('locations.form.locationPermissionDenied');
     }
 
     if (geolocationError.code === geolocationError.TIMEOUT) {
-      return 'Location detection timed out. Retry or enter the site details manually.';
+      return t('locations.form.locationTimedOut');
     }
 
     if (geolocationError.code === geolocationError.POSITION_UNAVAILABLE) {
-      return 'Current location is unavailable right now. You can continue with manual entry.';
+      return t('locations.form.locationUnavailable');
     }
   }
 
@@ -216,7 +217,8 @@ export function LocationFormModal(props: LocationFormModalProps) {
     initialStep = 1,
     onCompleted,
     isStandalone = false,
-  } = props;
+} = props;
+  const { t } = useI18n();
   const isEdit = mode === 'edit';
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [step1Data, setStep1Data] = useState<LocationFormData>(EMPTY_STEP1);
@@ -304,7 +306,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
         setStep3Data(createEmptyStep3());
       }
     }
-  }, [initialLocation, isOpen]);
+  }, [initialLocation, initialStep, isOpen]);
 
   useEffect(
     () => () => {
@@ -466,7 +468,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
         ...prev.filter((warning) => warning.code !== 'REVERSE_GEOCODE_FAILED'),
         {
           code: 'REVERSE_GEOCODE_FAILED',
-          message: 'Address lookup failed, but the detected coordinates were kept so you can continue manually.',
+          message: t('locations.form.addressLookupFailed'),
           field: 'location',
         },
       ]);
@@ -516,7 +518,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
 
       setStep2Errors((prev) => ({
         ...prev,
-        detection: buildConflictMessage(error) ?? getGeolocationErrorMessage(error),
+        detection: buildConflictMessage(error) ?? getGeolocationErrorMessage(error, t),
       }));
     } finally {
       setIsDetectingLocation(false);
@@ -608,7 +610,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
     if (currentStep === 3) {
       const errors = validateStep3(formValues);
       if (step3Data.torExitNode && hasTrustedNetworkInput(step3Data)) {
-        errors.detection = 'Tor exit nodes cannot be saved as trusted networks.';
+        errors.detection = t('locations.form.torBlocked');
       }
       setStep3Errors(errors);
       if (Object.keys(errors).length === 0) {
@@ -633,7 +635,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
       const resolvedCompanyId = initialLocation?.companyId || companyId;
 
       if (!resolvedSiteId || !resolvedCompanyId) {
-        setFormError('Site or company context is missing. Please close the modal and try again.');
+        setFormError(t('locations.form.missingSiteCompany'));
         return;
       }
 
@@ -669,14 +671,14 @@ export function LocationFormModal(props: LocationFormModalProps) {
         } else if (currentStep === 3) {
           const step3Validation = validateStep3(formValues);
           if (step3Data.torExitNode && hasTrustedNetworkInput(step3Data)) {
-            step3Validation.detection = 'Tor exit nodes cannot be saved as trusted networks.';
+            step3Validation.detection = t('locations.form.torBlocked');
           }
           if (Object.keys(step3Validation).length > 0) {
             setStep3Errors(step3Validation);
             return;
           }
           if (!step3Data.id) {
-             setFormError('Cannot update network without an ID. Please retry.');
+             setFormError(t('locations.form.missingNetworkId'));
              return;
           }
           const payload = mapForNetworkUpdate(step3Data);
@@ -705,7 +707,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
       const step2Validation = validateStep2(formValues);
       const step3Validation = validateStep3(formValues);
       if (step3Data.torExitNode && hasTrustedNetworkInput(step3Data)) {
-        step3Validation.detection = 'Tor exit nodes cannot be saved as trusted networks.';
+        step3Validation.detection = t('locations.form.torBlocked');
       }
 
       if (Object.keys(step1Validation).length > 0) {
@@ -736,7 +738,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
       if (isEdit) {
         const resolvedSiteId = siteIdRef.current;
         if (!resolvedSiteId) {
-          setFormError('Site is missing. Please close the modal and try again.');
+          setFormError(t('locations.form.missingSite'));
           return;
         }
 
@@ -748,7 +750,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
         versionRef.current = updatedSite.version;
       } else {
         if (!companyId) {
-          setFormError('Company context is missing. Please sign in again and retry.');
+          setFormError(t('locations.form.missingCompany'));
           return;
         }
 
@@ -789,10 +791,10 @@ export function LocationFormModal(props: LocationFormModalProps) {
   const getBubbleStyle = (stepId: number) =>
     currentStep > stepId ? 'completed' : currentStep === stepId ? 'active' : 'inactive';
   const steps = [
-    { id: 1, label: 'Basic Info' },
-    { id: 2, label: 'Location' },
-    { id: 3, label: 'Network' },
-    { id: 4, label: 'Review' },
+    { id: 1, label: t('locations.form.basicInfo') },
+    { id: 2, label: t('locations.form.location') },
+    { id: 3, label: t('locations.form.network') },
+    { id: 4, label: t('locations.form.review') },
   ];
 
   return (
@@ -809,15 +811,15 @@ export function LocationFormModal(props: LocationFormModalProps) {
             <h2 className="text-[24px] font-bold leading-[32px] text-[#101828] font-inter">
               {isStandalone
                 ? currentStep === 1
-                  ? 'Edit Details'
+                  ? t('locations.form.editDetails')
                   : currentStep === 2
-                    ? 'Edit Location'
+                    ? t('locations.form.editLocation')
                     : currentStep === 3
-                      ? 'Edit Network'
-                      : 'Review'
+                      ? t('locations.form.editNetwork')
+                      : t('locations.form.review')
                 : isEdit
-                  ? 'Edit Location'
-                  : 'Add New Location'}
+                  ? t('locations.form.editLocation')
+                  : t('locations.form.addNewLocation')}
             </h2>
             <button
               onClick={handleClose}
@@ -947,14 +949,14 @@ export function LocationFormModal(props: LocationFormModalProps) {
                 className="flex items-center gap-1.5 text-[16px] font-medium leading-[24px] text-[#364153] transition-colors hover:text-[#101828] font-inter"
               >
                 <ChevronRight className="rotate-180" size={16} />
-                Back
+                {t('common.actions.back')}
               </button>
               <Button
                 onClick={() => void handleFinalSubmit()}
                 isLoading={isSubmitting}
                 className="flex h-[44px] items-center rounded-[14px] bg-[#155DFC] bg-none px-8 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
               >
-                Edit
+                {t('common.actions.edit')}
               </Button>
             </>
           ) : (
@@ -969,7 +971,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
                 }`}
               >
                 <ChevronRight className="rotate-180" size={16} />
-                Back
+                {t('common.actions.back')}
               </button>
               {currentStep < 4 ? (
                 <Button
@@ -977,7 +979,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
                   isLoading={false}
                   className="flex h-[40px] items-center rounded-[14px] bg-[#155DFC] bg-none px-6 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
                 >
-                  Next
+                  {t('common.actions.next')}
                 </Button>
               ) : isEdit ? (
                 <Button
@@ -985,7 +987,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
                   isLoading={isSubmitting}
                   className="flex h-[40px] items-center rounded-[14px] bg-[#155DFC] bg-none px-6 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
                 >
-                  Save Location
+                  {t('locations.form.saveLocation')}
                 </Button>
               ) : (
                 <Button
@@ -993,7 +995,7 @@ export function LocationFormModal(props: LocationFormModalProps) {
                   isLoading={isSubmitting}
                   className="flex h-[40px] items-center rounded-[14px] bg-[#155DFC] bg-none px-6 text-[14px] font-medium leading-[24px] text-white transition-all hover:bg-[#124dc8] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 font-inter"
                 >
-                  Create Site
+                  {t('locations.form.createSite')}
                 </Button>
               )}
             </>

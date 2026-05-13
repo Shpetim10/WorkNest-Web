@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, Navigation } from 'lucide-react';
 import { Input, Select, Textarea } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { Issue, LocationStep2Data, LocationStep2Errors } from '../types';
 import { LocationMap } from './LocationMap';
 
@@ -33,6 +34,7 @@ export function AddLocationStepLocation({
   onDetect,
   onPinMoved,
 }: AddLocationStepLocationProps) {
+  const { t } = useI18n();
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const inputBase =
@@ -45,7 +47,7 @@ export function AddLocationStepLocation({
         <div className="flex flex-col items-center gap-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#D7E3FF] bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#155DFC]">
             <span className="h-2 w-2 rounded-full bg-[#12B76A]" />
-            Precision Location Assist
+            {t('locations.form.precisionAssist')}
           </div>
 
           <button
@@ -59,17 +61,17 @@ export function AddLocationStepLocation({
             ) : (
               <Navigation size={16} className="text-white" strokeWidth={2.5} />
             )}
-            {isDetecting ? 'Detecting your location...' : data.locationDetected ? 'Refresh Detected Location' : 'Detect My Location'}
+            {isDetecting ? t('locations.form.detectingLocation') : data.locationDetected ? t('locations.form.refreshDetectedLocation') : t('locations.form.detectMyLocation')}
           </button>
 
           <p className="text-center text-[12px] leading-5 text-white/90">
-            We&apos;ll suggest a geofence, drop the pin precisely, and prefill the location details for you.
+            {t('locations.form.locationAssistHelp')}
           </p>
 
           {data.locationDetected && !isDetecting && (
             <div className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-3 py-1 text-[12px] font-medium text-[#027A48]">
               <CheckCircle2 size={14} />
-              Location synced to the form
+              {t('locations.form.locationSynced')}
             </div>
           )}
 
@@ -94,7 +96,7 @@ export function AddLocationStepLocation({
 
       {!requireLocation && (
         <div className="rounded-[10px] border border-sky-200 bg-sky-50 px-4 py-3 text-[13px] text-sky-800">
-          Location is optional for this site. You can still detect or enter coordinates now, or leave this section blank.
+          {t('locations.form.locationOptional')}
         </div>
       )}
 
@@ -109,21 +111,21 @@ export function AddLocationStepLocation({
 
       <div className="flex items-center justify-between rounded-[14px] border border-[#E4E7EC] bg-white px-4 py-3 shadow-[0_16px_30px_-28px_rgba(16,24,40,0.35)]">
         <div>
-          <p className="text-[13px] font-semibold text-[#101828]">Live pin sync</p>
+          <p className="text-[13px] font-semibold text-[#101828]">{t('locations.form.livePinSync')}</p>
           <p className="text-[12px] text-[#667085]">
-            Drag the pin to refine the site. The address fields update from the new map position.
+            {t('locations.form.livePinSyncHelp')}
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-full bg-[#F2F4F7] px-3 py-1 text-[12px] font-medium text-[#475467]">
           {isHydratingAddress ? (
             <>
               <Loader2 size={14} className="animate-spin text-[#155DFC]" />
-              Updating details...
+              {t('locations.form.updatingDetails')}
             </>
           ) : (
             <>
               <CheckCircle2 size={14} className="text-[#12B76A]" />
-              Synced
+              {t('locations.form.synced')}
             </>
           )}
         </div>
@@ -132,7 +134,7 @@ export function AddLocationStepLocation({
       <div className="grid grid-cols-2 gap-4">
         <Input
           id="latitude"
-          label="Latitude"
+          label={t('locations.form.latitude')}
           required
           type="number"
           min={-90}
@@ -146,7 +148,7 @@ export function AddLocationStepLocation({
         />
         <Input
           id="longitude"
-          label="Longitude"
+          label={t('locations.form.longitude')}
           required
           type="number"
           min={-180}
@@ -162,7 +164,7 @@ export function AddLocationStepLocation({
 
       <Select
         id="geofenceShapeType"
-        label="Geofence Shape"
+        label={t('locations.form.geofenceShape')}
         required
         value={data.geofenceShapeType}
         onChange={(e) =>
@@ -175,15 +177,15 @@ export function AddLocationStepLocation({
         className={labelBase}
         style={{ height: '40px', borderRadius: '10px', backgroundColor: '#F9FAFB' }}
         options={[
-          { value: 'CIRCLE', label: 'Circle' },
-          { value: 'POLYGON', label: 'Polygon' },
+          { value: 'CIRCLE', label: t('locations.form.circle') },
+          { value: 'POLYGON', label: t('locations.form.polygon') },
         ]}
       />
 
       {data.geofenceShapeType === 'CIRCLE' ? (
         <Input
           id="geofenceRadius"
-          label="Geofence Radius (m)"
+          label={t('locations.form.geofenceRadius')}
           required
           type="number"
           min={10}
@@ -196,7 +198,7 @@ export function AddLocationStepLocation({
       ) : (
         <Textarea
           id="geofencePolygonGeoJson"
-          label="Polygon GeoJSON"
+          label={t('locations.form.polygonGeoJson')}
           required
           value={data.geofencePolygonGeoJson}
           onChange={(e) => onChange({ geofencePolygonGeoJson: e.target.value })}
@@ -208,8 +210,8 @@ export function AddLocationStepLocation({
 
       <Input
         id="addressLine1"
-        label="Address Line 1"
-        placeholder="Street address"
+        label={t('locations.form.addressLine1')}
+        placeholder={t('locations.form.streetAddress')}
         value={data.addressLine1}
         onChange={(e) => onChange({ addressLine1: e.target.value })}
         onBlur={() => onBlurField('location.addressLine1')}
@@ -218,8 +220,8 @@ export function AddLocationStepLocation({
       />
       <Input
         id="addressLine2"
-        label="Address Line 2"
-        placeholder="Apartment, suite, etc."
+        label={t('locations.form.addressLine2')}
+        placeholder={t('locations.form.apartmentSuite')}
         value={data.addressLine2}
         onChange={(e) => onChange({ addressLine2: e.target.value })}
         onBlur={() => onBlurField('location.addressLine2')}
@@ -230,8 +232,8 @@ export function AddLocationStepLocation({
       <div className="grid grid-cols-2 gap-4">
         <Input
           id="city"
-          label="City"
-          placeholder="City name"
+          label={t('locations.form.city')}
+          placeholder={t('locations.form.cityName')}
           value={data.city}
           onChange={(e) => onChange({ city: e.target.value })}
           onBlur={() => onBlurField('location.city')}
@@ -240,8 +242,8 @@ export function AddLocationStepLocation({
         />
         <Input
           id="stateRegion"
-          label="State / Region"
-          placeholder="Region"
+          label={t('locations.form.stateRegion')}
+          placeholder={t('locations.form.region')}
           value={data.stateRegion}
           onChange={(e) => onChange({ stateRegion: e.target.value })}
           onBlur={() => onBlurField('location.stateRegion')}
@@ -252,7 +254,7 @@ export function AddLocationStepLocation({
 
       <Input
         id="postalCode"
-        label="Postal Code"
+        label={t('locations.form.postalCode')}
         placeholder="1001"
         value={data.postalCode}
         onChange={(e) => onChange({ postalCode: e.target.value })}
@@ -271,14 +273,14 @@ export function AddLocationStepLocation({
             size={14}
             className={`transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`}
           />
-          Advanced Settings
+          {t('locations.form.advancedSettings')}
         </button>
 
         {advancedOpen && (
           <div className="grid grid-cols-3 gap-3">
             <Input
               id="entryBuffer"
-              label="Entry Buffer (m)"
+              label={t('locations.form.entryBuffer')}
               type="number"
               min={0}
               value={data.advancedSettings.entryBuffer}
@@ -296,7 +298,7 @@ export function AddLocationStepLocation({
             />
             <Input
               id="exitBuffer"
-              label="Exit Buffer (m)"
+              label={t('locations.form.exitBuffer')}
               type="number"
               min={0}
               value={data.advancedSettings.exitBuffer}
@@ -314,7 +316,7 @@ export function AddLocationStepLocation({
             />
             <Input
               id="maxAccuracy"
-              label="Max Accuracy (m)"
+              label={t('locations.form.maxAccuracy')}
               type="number"
               min={1}
               value={data.advancedSettings.maxAccuracy}

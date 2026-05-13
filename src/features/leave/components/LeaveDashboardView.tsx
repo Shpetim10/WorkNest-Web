@@ -7,6 +7,7 @@ import { LeaveRequestDto, LeaveStatus } from '@/features/leave/types';
 import { ViewLeaveModal } from '@/features/leave/components/ViewLeaveModal';
 import { RejectLeaveModal } from './RejectLeaveModal';
 import { useLeaveRequests, useApproveLeave, useRejectLeave } from '../api';
+import { useI18n } from '@/common/i18n';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -29,8 +30,17 @@ function statusBadgeStyles(status: LeaveStatus) {
   }
 }
 
-function statusLabel(status: LeaveStatus): string {
-  return status.charAt(0) + status.slice(1).toLowerCase();
+function statusLabel(status: LeaveStatus, t: (key: string) => string): string {
+  switch (status) {
+    case 'PENDING':
+      return t('common.statuses.pending');
+    case 'APPROVED':
+      return t('common.statuses.approved');
+    case 'REJECTED':
+      return t('common.statuses.rejected');
+    default:
+      return String(status);
+  }
 }
 
 function capitalize(str: string): string {
@@ -53,6 +63,7 @@ const STATUS_OPTIONS = (['REJECTED', 'APPROVED', 'PENDING'] as LeaveStatus[]);
 // ─── Main View ───────────────────────────────────────────────────────────────
 
 export function LeaveDashboardView() {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<LeaveStatus | 'All'>('All');
@@ -95,11 +106,11 @@ export function LeaveDashboardView() {
       onError: (error: unknown) => {
         const code = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
         if (code === 'INSUFFICIENT_LEAVE_BALANCE') {
-          setApproveError('Cannot approve: employee has insufficient leave balance.');
+          setApproveError(t('leave.insufficientBalance'));
         } else if (code === 'LEAVE_NOT_PENDING') {
-          setApproveError('This request is no longer pending.');
+          setApproveError(t('leave.noLongerPending'));
         } else {
-          setApproveError('Failed to approve request. Please try again.');
+          setApproveError(t('leave.approveFailed'));
         }
       },
     });
@@ -140,8 +151,8 @@ export function LeaveDashboardView() {
             <Clock size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Leave Request</h1>
-            <p className="text-white/80 text-sm mt-0.5">Review and manage leave requests</p>
+            <h1 className="text-3xl font-bold text-white">{t('leave.title')}</h1>
+            <p className="text-white/80 text-sm mt-0.5">{t('leave.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -167,7 +178,7 @@ export function LeaveDashboardView() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by employee name..."
+            placeholder={t('leave.searchPlaceholder')}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
           />
         </div>
@@ -187,7 +198,7 @@ export function LeaveDashboardView() {
                   : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
               }`}
             >
-              {statusLabel(status)}
+              {statusLabel(status, t)}
             </button>
           ))}
         </div>
@@ -196,7 +207,7 @@ export function LeaveDashboardView() {
           onClick={() => setPage(1)}
           className="h-8 px-6 bg-blue-600 text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
-          Apply
+          {t('common.actions.apply')}
         </button>
       </div>
 
@@ -211,7 +222,16 @@ export function LeaveDashboardView() {
               className="text-xs font-semibold text-white uppercase tracking-wide"
               style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
             >
-              {['Name', 'Site', 'Department', 'Type', 'Date Range', 'Days', 'Status', 'Actions'].map(
+              {[
+                t('tables.headers.name'),
+                t('leave.headers.site'),
+                t('tables.headers.department'),
+                t('leave.headers.type'),
+                t('leave.headers.dateRange'),
+                t('leave.headers.days'),
+                t('tables.headers.status'),
+                t('tables.headers.actions'),
+              ].map(
                 (h) => (
                   <th key={h} className="px-4 py-3.5 text-left font-semibold">
                     {h}
@@ -224,13 +244,13 @@ export function LeaveDashboardView() {
             {isLoading ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center text-gray-400 text-sm">
-                  Loading...
+                  {t('leave.loading')}
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center text-gray-400 text-sm">
-                  No leave requests found.
+                  {t('leave.empty')}
                 </td>
               </tr>
             ) : (
@@ -287,7 +307,7 @@ export function LeaveDashboardView() {
                       className="text-xs font-medium px-2.5 py-1 rounded-full"
                       style={statusBadgeStyles(row.status)}
                     >
-                      {statusLabel(row.status)}
+                      {statusLabel(row.status, t)}
                     </span>
                   </td>
 
@@ -300,7 +320,7 @@ export function LeaveDashboardView() {
                           handleOpenView(row);
                         }}
                         className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="View"
+                        title={t('common.actions.view')}
                       >
                         <Eye size={16} />
                       </button>
@@ -313,7 +333,7 @@ export function LeaveDashboardView() {
                             }}
                             disabled={approve.isPending}
                             className="p-1.5 rounded-lg hover:bg-green-50 text-green-500 hover:text-green-600 transition-colors disabled:opacity-50"
-                            title="Approve"
+                            title={t('leave.approve')}
                           >
                             <Check size={16} />
                           </button>
@@ -323,7 +343,7 @@ export function LeaveDashboardView() {
                               handleOpenReject(row);
                             }}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
-                            title="Reject"
+                            title={t('leave.reject')}
                           >
                             <X size={16} />
                           </button>

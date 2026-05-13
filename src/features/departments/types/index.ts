@@ -1,5 +1,3 @@
-import { ApiResponse } from "@/common/types/api";
-
 export type DepartmentStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface DepartmentListItem {

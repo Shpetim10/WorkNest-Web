@@ -9,11 +9,12 @@ import {
 import { apiClient } from '@/common/network/api-client';
 import { ApiResponse } from '@/common/types/api';
 import { EmployeeDTO } from '../types';
-import { useProvisionEmployee } from '../api/provision-employee';
+import { ProvisionEmployeeRequest, useProvisionEmployee } from '../api/provision-employee';
 import { useUpdateEmployee } from '../api/update-employee';
 import { useEmployee } from '../api/get-employee-details';
 import { uploadContractDocument } from '../api/upload-media';
 import { getCurrencySymbol, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
+import { useI18n } from '@/common/i18n';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const LABEL_CLASS = 'block font-[Inter,sans-serif] text-[13px] font-bold uppercase tracking-wider text-[#4A5565] mb-2';
@@ -27,16 +28,19 @@ const CHEVRON_SVG = (
   </div>
 );
 
-const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
-  FULL_TIME: 'Full-Time',
-  PART_TIME: 'Part-Time',
-  CONTRACT: 'Fixed-Term Contract',
-  INTERN: 'Internship',
+const EMPLOYMENT_TYPE_VALUES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'] as const;
+const PAYMENT_METHOD_VALUES = ['FIXED_MONTHLY', 'HOURLY'] as const;
+
+const EMPLOYMENT_TYPE_LABEL_KEYS: Record<string, string> = {
+  FULL_TIME: 'employees.employmentTypes.FULL_TIME',
+  PART_TIME: 'employees.employmentTypes.PART_TIME',
+  CONTRACT: 'employees.employmentTypes.CONTRACT',
+  INTERN: 'employees.employmentTypes.INTERN',
 };
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  FIXED_MONTHLY: 'Fixed Monthly Salary',
-  HOURLY: 'Hourly Rate',
+const PAYMENT_METHOD_LABEL_KEYS: Record<string, string> = {
+  FIXED_MONTHLY: 'employees.paymentMethods.FIXED_MONTHLY',
+  HOURLY: 'employees.paymentMethods.HOURLY',
 };
 
 interface DepartmentLookup { id: string; name: string; }
@@ -66,8 +70,23 @@ function findMatchingSupervisor(supervisors: StaffLookup[], supervisorId: string
   return supervisors.find(s => matchesSupervisorId(s, supervisorId));
 }
 
+type ApiMessageError = {
+  response?: {
+    data?: {
+      message?: unknown;
+    };
+  };
+};
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const message = (error as ApiMessageError).response?.data?.message;
+  return typeof message === 'string' ? message : fallback;
+}
+
 // ─── Step Indicator ─────────────────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: number; total: number }) {
+  const { t } = useI18n();
+
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: total }, (_, i) => (
@@ -79,7 +98,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
         </React.Fragment>
       ))}
       <span className="ml-2 text-[12px] font-semibold text-gray-400 font-[Inter,sans-serif]">
-        Step {current} of {total}
+        {t('common.stepOf', { current, total })}
       </span>
     </div>
   );
@@ -131,7 +150,7 @@ interface Step2Errors {
 interface EmployeeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (employee: any) => void;
+  onSave: (employee: Partial<EmployeeDTO>) => void;
   mode: 'add' | 'edit';
   initialData?: EmployeeDTO | null;
 }
@@ -149,6 +168,7 @@ const EMPTY_STEP2: Step2Values = {
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }: EmployeeFormModalProps) {
+  const { t } = useI18n();
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
   const currencyCode = getStoredCompanyCurrency();
   const currencySymbol = getCurrencySymbol(currencyCode, getStoredCompanyLocale());
@@ -195,7 +215,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
       }
     };
     fetchLookups();
-  }, [isOpen]);
+  }, [isOpen, companyId]);
 
   // Fetch supervisors when department changes
   useEffect(() => {
@@ -224,7 +244,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
       }
     };
     fetchStaff();
-  }, [step1.departmentName, isOpen]);
+  }, [companyId, step1.departmentName, isOpen]);
 
   // Prefill data when modal opens / edit data loads
   useEffect(() => {
@@ -319,25 +339,25 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
   function validateStep1(): FormErrors {
     const e: FormErrors = {};
-    if (!step1.firstName.trim()) e.firstName = 'First name is required';
-    if (!step1.lastName.trim()) e.lastName = 'Last name is required';
-    if (!step1.email.trim()) e.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(step1.email)) e.email = 'Enter a valid email address';
-    if (!step1.departmentName) e.departmentName = 'Department is required';
-    if (!step1.jobTitle.trim()) e.jobTitle = 'Job title is required';
-    if (mode === 'add' && !step1.hireDate) e.hireDate = 'Hire date is required';
+    if (!step1.firstName.trim()) e.firstName = t('validation.firstNameRequired');
+    if (!step1.lastName.trim()) e.lastName = t('validation.lastNameRequired');
+    if (!step1.email.trim()) e.email = t('validation.emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(step1.email)) e.email = t('validation.validEmail');
+    if (!step1.departmentName) e.departmentName = t('employees.form.departmentRequired');
+    if (!step1.jobTitle.trim()) e.jobTitle = t('employees.form.jobTitleRequired');
+    if (mode === 'add' && !step1.hireDate) e.hireDate = t('employees.form.hireDateRequired');
     return e;
   }
 
   function validateStep2(): Step2Errors {
     const e: Step2Errors = {};
-    if (!step2.employmentType) e.employmentType = 'Employment type is required';
-    if (!step2.paymentMethod) e.paymentMethod = 'Payment method is required';
+    if (!step2.employmentType) e.employmentType = t('employees.form.employmentTypeRequired');
+    if (!step2.paymentMethod) e.paymentMethod = t('employees.form.paymentMethodRequired');
     if (step2.paymentMethod === 'FIXED_MONTHLY' && !step2.monthlySalary) {
-      e.monthlySalary = 'Monthly salary is required';
+      e.monthlySalary = t('employees.form.monthlySalaryRequired');
     }
     if (step2.paymentMethod === 'HOURLY' && !step2.hourlyRate) {
-      e.hourlyRate = 'Hourly rate is required';
+      e.hourlyRate = t('employees.form.hourlyRateRequired');
     }
     return e;
   }
@@ -381,9 +401,9 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
         const uploaded = await uploadContractDocument(step2.contractFile);
         contractDocumentKey = uploaded.storageKey;
         contractDocumentPath = uploaded.storagePath;
-      } catch (err: any) {
+      } catch (err) {
         setIsUploadingFile(false);
-        setSubmitError(err?.response?.data?.message || 'Failed to upload contract document');
+        setSubmitError(getApiErrorMessage(err, t('employees.jobModal.uploadFailed')));
         return;
       }
       setIsUploadingFile(false);
@@ -394,7 +414,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
         const cId = localStorage.getItem('current_company_id');
         if (!cId) throw new Error('Company ID missing');
 
-        const payload: any = {
+        const payload: ProvisionEmployeeRequest = {
           companyId: cId,
           firstName: step1.firstName.trim(),
           lastName: step1.lastName.trim(),
@@ -426,9 +446,9 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
         await provisionMutation.mutateAsync(payload);
         onSave({});
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to provision employee:', err);
-        setSubmitError(err.response?.data?.message || 'Failed to create employee');
+        setSubmitError(getApiErrorMessage(err, t('employees.form.createFailed')));
       }
     } else {
       try {
@@ -451,9 +471,9 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
           },
         });
         onSave({});
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to update employee:', err);
-        setSubmitError(err.response?.data?.message || 'Failed to update employee');
+        setSubmitError(getApiErrorMessage(err, t('employees.form.updateFailed')));
       }
     }
   }
@@ -488,14 +508,14 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
   }
 
   const headerTitle = mode === 'add'
-    ? (step === 1 ? 'Add Employee' : 'Employment & Contract')
-    : 'Edit Employee';
+    ? (step === 1 ? t('employees.form.addEmployee') : t('employees.view.employmentContract'))
+    : t('employees.form.editEmployee');
 
   const headerSub = mode === 'add'
     ? (step === 1
-      ? 'Enter basic details to register a new team member'
-      : 'Set employment type, contract, and compensation details')
-    : 'Update the professional profile of this employee';
+      ? t('employees.form.employeeDetailsSubtitle')
+      : t('employees.jobModal.subtitle'))
+    : t('employees.form.updateSubtitle');
 
   return createPortal(
     <>
@@ -529,34 +549,34 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                 <>
                   <div className="grid grid-cols-2 gap-5">
                     <div className="space-y-2">
-                      <label htmlFor="firstName" className={LABEL_CLASS}>First Name <span className="text-[#155DFC]">*</span></label>
+                      <label htmlFor="firstName" className={LABEL_CLASS}>{t('common.fields.firstName')} <span className="text-[#155DFC]">*</span></label>
                       <div className="relative">
                         <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input id="firstName" ref={firstInputRef} type="text" placeholder="e.g. John" value={step1.firstName} onChange={setS1('firstName')} className={`${INPUT_CLASS} pl-11 ${errors.firstName ? 'border-red-300 bg-red-50/10' : ''}`} />
+                        <input id="firstName" ref={firstInputRef} type="text" placeholder={t('employees.form.firstNamePlaceholder')} value={step1.firstName} onChange={setS1('firstName')} className={`${INPUT_CLASS} pl-11 ${errors.firstName ? 'border-red-300 bg-red-50/10' : ''}`} />
                       </div>
                       {errors.firstName && <p className="text-[12px] font-semibold text-red-500 ml-1">{errors.firstName}</p>}
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="lastName" className={LABEL_CLASS}>Last Name <span className="text-[#155DFC]">*</span></label>
-                      <input id="lastName" type="text" placeholder="e.g. Doe" value={step1.lastName} onChange={setS1('lastName')} className={`${INPUT_CLASS} ${errors.lastName ? 'border-red-300 bg-red-50/10' : ''}`} />
+                      <label htmlFor="lastName" className={LABEL_CLASS}>{t('common.fields.lastName')} <span className="text-[#155DFC]">*</span></label>
+                      <input id="lastName" type="text" placeholder={t('employees.form.lastNamePlaceholder')} value={step1.lastName} onChange={setS1('lastName')} className={`${INPUT_CLASS} ${errors.lastName ? 'border-red-300 bg-red-50/10' : ''}`} />
                       {errors.lastName && <p className="text-[12px] font-semibold text-red-500 ml-1">{errors.lastName}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-5">
                     <div className="space-y-2">
-                      <label htmlFor="email" className={LABEL_CLASS}>Work Email <span className="text-[#155DFC]">*</span></label>
+                      <label htmlFor="email" className={LABEL_CLASS}>{t('employees.form.workEmail')} <span className="text-[#155DFC]">*</span></label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input id="email" type="email" placeholder="john.doe@worknest.com" value={step1.email} onChange={setS1('email')} className={`${INPUT_CLASS} pl-11 ${errors.email ? 'border-red-300 bg-red-50/10' : ''}`} />
+                        <input id="email" type="email" placeholder={t('employees.form.emailPlaceholder')} value={step1.email} onChange={setS1('email')} className={`${INPUT_CLASS} pl-11 ${errors.email ? 'border-red-300 bg-red-50/10' : ''}`} />
                       </div>
                       {errors.email && <p className="text-[12px] font-semibold text-red-500 ml-1">{errors.email}</p>}
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="jobTitle" className={LABEL_CLASS}>Job Title <span className="text-[#155DFC]">*</span></label>
+                      <label htmlFor="jobTitle" className={LABEL_CLASS}>{t('tables.headers.jobTitle')} <span className="text-[#155DFC]">*</span></label>
                       <div className="relative">
                         <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input id="jobTitle" type="text" placeholder="e.g. Senior Developer" value={step1.jobTitle} onChange={setS1('jobTitle')} className={`${INPUT_CLASS} pl-11 ${errors.jobTitle ? 'border-red-300 bg-red-50/10' : ''}`} />
+                        <input id="jobTitle" type="text" placeholder={t('employees.form.jobTitlePlaceholder')} value={step1.jobTitle} onChange={setS1('jobTitle')} className={`${INPUT_CLASS} pl-11 ${errors.jobTitle ? 'border-red-300 bg-red-50/10' : ''}`} />
                       </div>
                       {errors.jobTitle && <p className="text-[12px] font-semibold text-red-500 ml-1">{errors.jobTitle}</p>}
                     </div>
@@ -564,11 +584,11 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
                   <div className="grid grid-cols-2 gap-5">
                     <div className="space-y-2">
-                      <label htmlFor="department" className={LABEL_CLASS}>Department <span className="text-[#155DFC]">*</span></label>
+                      <label htmlFor="department" className={LABEL_CLASS}>{t('tables.headers.department')} <span className="text-[#155DFC]">*</span></label>
                       <div className="relative">
                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <select id="department" value={step1.departmentName} onChange={setS1('departmentName')} className={`${SELECT_CLASS} pl-11 ${errors.departmentName ? 'border-red-300' : ''}`}>
-                          <option value="" disabled>Select Department</option>
+                          <option value="" disabled>{t('employees.form.selectDepartment')}</option>
                           {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                         {CHEVRON_SVG}
@@ -576,11 +596,11 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                       {errors.departmentName && <p className="text-[12px] font-semibold text-red-500 ml-1">{errors.departmentName}</p>}
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="location" className={LABEL_CLASS}>Location</label>
+                      <label htmlFor="location" className={LABEL_CLASS}>{t('tables.headers.location')}</label>
                       <div className="relative">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <select id="location" value={step1.location} onChange={setS1('location')} className={`${SELECT_CLASS} pl-11`}>
-                          <option value="">Select Location</option>
+                          <option value="">{t('employees.form.selectLocation')}</option>
                           {locations.map(l => <option key={l.id} value={l.id}>{l.code} – {l.name}</option>)}
                         </select>
                         {CHEVRON_SVG}
@@ -589,10 +609,10 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="supervisor" className={LABEL_CLASS}>Direct Supervisor</label>
+                    <label htmlFor="supervisor" className={LABEL_CLASS}>{t('employees.form.directSupervisor')}</label>
                     {mode === 'edit' && isLoadingEmployeeDetails ? (
                       <div className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-[14px] font-medium text-gray-400 flex items-center">
-                        Loading employee details...
+                        {t('employees.view.fetchingDetails')}
                       </div>
                     ) : (
                       <div className="relative">
@@ -605,13 +625,13 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                           className={`${SELECT_CLASS} pl-11 ${!step1.departmentName ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
                         >
                           {!step1.departmentName ? (
-                            <option value="">Please select a department first...</option>
+                            <option value="">{t('employees.form.selectDepartmentFirst')}</option>
                           ) : (
                             <>
-                              <option value="">No Supervisor Assigned</option>
+                              <option value="">{t('employees.view.noSupervisor')}</option>
                               {mode === 'edit' && editData?.supervisorRoleAssignmentId && !findMatchingSupervisor(supervisors, editData.supervisorRoleAssignmentId || '') && (
                                 <option value={editData.supervisorRoleAssignmentId}>
-                                  {editData.supervisorName || 'Current Supervisor'} (Current)
+                                  {editData.supervisorName || t('employees.form.currentSupervisor')} ({t('employees.form.current')})
                                 </option>
                               )}
                               {supervisors.map(s => (
@@ -620,7 +640,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                                 </option>
                               ))}
                               {isLoadingStaff && supervisors.length === 0 && (
-                                <option value="" disabled>Loading team...</option>
+                                <option value="" disabled>{t('employees.form.loadingTeam')}</option>
                               )}
                             </>
                           )}
@@ -632,7 +652,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
                   <div className="space-y-2">
                     <label htmlFor="hireDate" className={LABEL_CLASS}>
-                      {mode === 'add' ? 'Hire Date' : 'Employment Start'} <span className="text-[#155DFC]">*</span>
+                      {mode === 'add' ? t('employees.view.hireDate') : t('employees.form.employmentStart')} <span className="text-[#155DFC]">*</span>
                     </label>
                     <div className="relative">
                       <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -648,13 +668,13 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                 <>
                   {/* Employment Type */}
                   <div className="space-y-2">
-                    <label className={LABEL_CLASS}>Employment Type</label>
+                    <label className={LABEL_CLASS}>{t('employees.view.employmentType')}</label>
                     <div className="relative">
                       <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       <select value={step2.employmentType} onChange={setS2('employmentType')} className={`${SELECT_CLASS} pl-11`}>
-                        <option value="">Select Employment Type</option>
-                        {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([val, label]) => (
-                          <option key={val} value={val}>{label}</option>
+                        <option value="">{t('employees.jobModal.selectEmploymentType')}</option>
+                        {EMPLOYMENT_TYPE_VALUES.map((val) => (
+                          <option key={val} value={val}>{t(EMPLOYMENT_TYPE_LABEL_KEYS[val])}</option>
                         ))}
                       </select>
                       {CHEVRON_SVG}
@@ -666,11 +686,11 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                   <div className="space-y-2">
                     <label className={LABEL_CLASS}>
                       <FileText size={14} className="inline mr-1.5 -mt-0.5" />
-                      Contract Document
+                      {t('employees.jobModal.contractDocument')}
                     </label>
                     <div className="flex items-center gap-3">
                       <div className={`flex-1 h-12 rounded-xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] px-4 flex items-center text-[14px] font-medium ${step2.contractFileName ? 'text-[#155DFC]' : 'text-gray-400'}`}>
-                        {step2.contractFileName || 'No contract uploaded (optional)'}
+                        {step2.contractFileName || t('employees.jobModal.noContractUploadedOptional')}
                       </div>
                       <button
                         type="button"
@@ -678,7 +698,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                         className="h-12 px-5 rounded-xl border border-[#155DFC]/30 bg-[#E8F1FF] text-[#155DFC] text-[13px] font-bold flex items-center gap-2 hover:bg-[#155DFC] hover:text-white transition-all active:scale-95"
                       >
                         <Upload size={16} />
-                        Upload
+                        {t('employees.jobModal.upload')}
                       </button>
                       <input
                         ref={fileInputRef}
@@ -688,12 +708,12 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                         className="hidden"
                       />
                     </div>
-                    <p className="text-[12px] text-gray-400 font-medium">PDF or DOCX format only</p>
+                    <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.pdfDocxOnly')}</p>
                   </div>
 
                   {/* Contract Expiry Date */}
                   <div className="space-y-2">
-                    <label className={LABEL_CLASS}>Contract Expiry Date</label>
+                    <label className={LABEL_CLASS}>{t('employees.view.contractExpiry')}</label>
                     <div className="relative">
                       <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       <input
@@ -710,7 +730,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                   <div className="space-y-2">
                     <label className={LABEL_CLASS}>
                       <Sun size={14} className="inline mr-1.5 -mt-0.5" />
-                      Paid Leave Days / Year
+                      {t('employees.view.paidLeaveDays')}
                     </label>
                     <div className="relative">
                       <Sun className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -718,7 +738,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                         type="number"
                         min="0"
                         max="365"
-                        placeholder="e.g. 30"
+                        placeholder={t('employees.form.leaveDaysPlaceholder')}
                         value={step2.leaveDaysPerYear}
                         onChange={setS2('leaveDaysPerYear')}
                         className={`${INPUT_CLASS} pl-11`}
@@ -728,13 +748,13 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
                   {/* Payment Method */}
                   <div className="space-y-2">
-                    <label className={LABEL_CLASS}>Payment Method</label>
+                    <label className={LABEL_CLASS}>{t('employees.view.paymentMethod')}</label>
                     <div className="relative">
                       <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                       <select value={step2.paymentMethod} onChange={setS2('paymentMethod')} className={`${SELECT_CLASS} pl-11`}>
-                        <option value="">Select Payment Method</option>
-                        {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                          <option key={val} value={val}>{label}</option>
+                        <option value="">{t('employees.jobModal.selectPaymentMethod')}</option>
+                        {PAYMENT_METHOD_VALUES.map((val) => (
+                          <option key={val} value={val}>{t(PAYMENT_METHOD_LABEL_KEYS[val])}</option>
                         ))}
                       </select>
                       {CHEVRON_SVG}
@@ -744,14 +764,14 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
 
                   {step2.paymentMethod === 'FIXED_MONTHLY' && (
                     <div className="space-y-2">
-                      <label className={LABEL_CLASS}>Monthly Salary</label>
+                      <label className={LABEL_CLASS}>{t('employees.jobModal.monthlySalary')}</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
-                          placeholder="e.g. 3500.00"
+                          placeholder={t('employees.form.monthlySalaryPlaceholder')}
                           value={step2.monthlySalary}
                           onChange={setS2('monthlySalary')}
                           className={`${INPUT_CLASS} pl-8`}
@@ -765,7 +785,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                     <div className="space-y-2">
                       <label className={LABEL_CLASS}>
                         <Clock size={14} className="inline mr-1.5 -mt-0.5" />
-                        Hourly Rate
+                        {t('employees.jobModal.hourlyRate')}
                       </label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
@@ -773,14 +793,14 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                           type="number"
                           min="0"
                           step="0.01"
-                          placeholder="e.g. 22.50"
+                          placeholder={t('employees.form.hourlyRatePlaceholder')}
                           value={step2.hourlyRate}
                           onChange={setS2('hourlyRate')}
                           className={`${INPUT_CLASS} pl-8`}
                         />
                       </div>
                       {step2Errors.hourlyRate && <p className="text-[12px] font-semibold text-red-500 ml-1">{step2Errors.hourlyRate}</p>}
-                      <p className="text-[12px] text-gray-400 font-medium">Rate per hour worked</p>
+                      <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.ratePerHour')}</p>
                     </div>
                   )}
                 </>
@@ -797,17 +817,17 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
             <div className="flex items-center justify-between px-8 py-6 border-t border-gray-50 bg-white rounded-b-[24px]">
               {step === 1 ? (
                 <button type="button" onClick={onClose} className="h-12 rounded-xl bg-gray-50 px-8 text-[14px] font-bold text-gray-500 transition-all hover:bg-gray-100 active:scale-95 font-[Inter,sans-serif]">
-                  Discard
+                  {t('common.actions.discard')}
                 </button>
               ) : (
                 <button type="button" onClick={() => setStep(1)} className="h-12 rounded-xl bg-gray-50 px-8 text-[14px] font-bold text-gray-500 transition-all hover:bg-gray-100 active:scale-95 font-[Inter,sans-serif]">
-                  Back
+                  {t('common.actions.back')}
                 </button>
               )}
 
               {mode === 'add' && step < totalSteps ? (
                 <button type="button" onClick={handleNext} disabled={!isStep1Complete} className="h-12 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-10 text-[14px] font-bold text-white shadow-lg shadow-[#2B7FFF]/20 transition-all hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif]">
-                  Next
+                  {t('common.actions.next')}
                 </button>
               ) : (
                 <button
@@ -816,7 +836,7 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                   data-submit-intent={mode === 'add' ? 'final-add-submit' : undefined}
                   disabled={isBusy || (mode === 'add' && (!isStep1Complete || !isStep2Complete))}
                 >
-                  {isUploadingFile ? 'Uploading...' : isBusy ? 'Processing...' : (mode === 'add' ? 'Create Account' : 'Confirm Updates')}
+                  {isUploadingFile ? t('employees.jobModal.uploading') : isBusy ? t('common.feedback.processing') : (mode === 'add' ? t('employees.form.createAccount') : t('employees.form.confirmUpdates'))}
                 </button>
               )}
             </div>

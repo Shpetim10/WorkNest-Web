@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAssignmentBoard } from '../api/get-assignment-board';
 import { useUpdateAssignments } from '../api/update-assignments';
+import { useI18n } from '@/common/i18n';
 
 interface Employee {
   id: string;
@@ -64,6 +65,7 @@ export function AssignModal({
   supervisorRoleAssignmentId,
   onSave,
 }: AssignModalProps) {
+  const { t } = useI18n();
   const [available, setAvailable] = useState<Employee[]>([]);
   const [assigned, setAssigned] = useState<Employee[]>([]);
   const [selectedAvailable, setSelectedAvailable] = useState<Set<string>>(new Set());
@@ -98,12 +100,23 @@ export function AssignModal({
         jobTitle: employee.jobTitle || '',
       });
 
-    setAvailable((boardData?.unassignedEmployees.items ?? []).map(mapBoardEmployee));
-    setAssigned((boardData?.assignedEmployees.items ?? []).map(mapBoardEmployee));
-    setSelectedAvailable(new Set());
-    setSelectedAssigned(new Set());
-    setAvailSearch('');
-    setAssignSearch('');
+    const nextAvailable = (boardData?.unassignedEmployees.items ?? []).map(mapBoardEmployee);
+    const nextAssigned = (boardData?.assignedEmployees.items ?? []).map(mapBoardEmployee);
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setAvailable(nextAvailable);
+      setAssigned(nextAssigned);
+      setSelectedAvailable(new Set());
+      setSelectedAssigned(new Set());
+      setAvailSearch('');
+      setAssignSearch('');
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, assignmentBoardResponse]);
 
   const filteredAvailable = useMemo(
@@ -144,7 +157,11 @@ export function AssignModal({
     setter: React.Dispatch<React.SetStateAction<Set<string>>>
   ) => {
     const next = new Set(set);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
     setter(next);
   };
 
@@ -159,7 +176,7 @@ export function AssignModal({
       const data = JSON.parse(e.dataTransfer.getData('text/plain'));
       if (data.source !== target) moveEmployees(new Set([data.id]), data.source);
     } catch (err) {
-      console.error('Drop error:', err);
+      console.error(t('assignEmployees.modal.dropError'), err);
     }
   };
 
@@ -189,7 +206,7 @@ export function AssignModal({
             }}
           >
             <div>
-              <h2 className="text-[28px] font-bold tracking-tight">Assign Employees</h2>
+              <h2 className="text-[28px] font-bold tracking-tight">{t('assignEmployees.title')}</h2>
               <div className="flex items-center gap-4 mt-1 opacity-90">
                 <div className="flex items-center gap-1.5 text-[14px]">
                   <Users2 size={16} /> {supervisorName}
@@ -211,12 +228,12 @@ export function AssignModal({
             {isLoading && (
               <div className="flex items-center gap-2 mb-4 text-[14px] font-medium text-gray-500">
                 <Loader2 size={16} className="animate-spin" />
-                Loading employees...
+                {t('tables.loading.employees')}
               </div>
             )}
             {isError && (
               <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-[13px] font-medium text-red-600">
-                Failed to load employee assignments. Please close and try again.
+                {t('assignEmployees.modal.loadFailed')}
               </div>
             )}
 
@@ -228,7 +245,7 @@ export function AssignModal({
               >
                 <div className="flex items-center justify-between mb-3 px-1">
                   <h3 className="text-[15px] font-bold text-[#1E2939]">
-                    Available Employees ({filteredAvailable.length})
+                    {t('assignEmployees.modal.availableEmployees')} ({filteredAvailable.length})
                   </h3>
                 </div>
 
@@ -238,7 +255,7 @@ export function AssignModal({
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input
                         type="search"
-                        placeholder="Search employees..."
+                        placeholder={t('employees.searchPlaceholder')}
                         value={availSearch}
                         onChange={e => setAvailSearch(e.target.value)}
                         className="w-full h-9 pl-9 pr-4 bg-white border border-gray-100 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#155DFC]/10 transition-all font-medium"
@@ -276,7 +293,7 @@ export function AssignModal({
                     {filteredAvailable.length === 0 && !isLoading && (
                       <div className="h-full flex flex-col items-center justify-center text-gray-400 py-10">
                         <Users2 size={40} className="mb-2 opacity-20" />
-                        <p className="text-[14px] font-medium">No available employees</p>
+                        <p className="text-[14px] font-medium">{t('assignEmployees.modal.noAvailableEmployees')}</p>
                       </div>
                     )}
                   </div>
@@ -287,7 +304,7 @@ export function AssignModal({
                 <button
                   onClick={moveAllRight}
                   className={`${BTN_CONTROL} bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] text-white`}
-                  title="Move all to assigned"
+                  title={t('assignEmployees.modal.moveAllToAssigned')}
                 >
                   <ChevronsRight size={20} />
                 </button>
@@ -295,7 +312,7 @@ export function AssignModal({
                   onClick={moveSelectedRight}
                   className={`${BTN_CONTROL} bg-[#155DFC] text-white ${selectedAvailable.size === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                   disabled={selectedAvailable.size === 0}
-                  title="Move selected to assigned"
+                  title={t('assignEmployees.modal.moveSelectedToAssigned')}
                 >
                   <ChevronRight size={20} />
                 </button>
@@ -303,14 +320,14 @@ export function AssignModal({
                   onClick={moveSelectedLeft}
                   className={`${BTN_CONTROL} bg-[#E8E8E8] text-[#4A5565] ${selectedAssigned.size === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                   disabled={selectedAssigned.size === 0}
-                  title="Remove selected from assigned"
+                  title={t('assignEmployees.modal.removeSelectedFromAssigned')}
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button
                   onClick={moveAllLeft}
                   className={`${BTN_CONTROL} bg-[#E8E8E8] text-[#4A5565]`}
-                  title="Remove all from assigned"
+                  title={t('assignEmployees.modal.removeAllFromAssigned')}
                 >
                   <ChevronsLeft size={20} />
                 </button>
@@ -323,7 +340,7 @@ export function AssignModal({
               >
                 <div className="flex items-center justify-between mb-3 px-1">
                   <h3 className="text-[15px] font-bold text-[#1E2939]">
-                    Assigned Employees ({assigned.length})
+                    {t('assignEmployees.assignedEmployees')} ({assigned.length})
                   </h3>
                 </div>
 
@@ -333,7 +350,7 @@ export function AssignModal({
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input
                         type="search"
-                        placeholder="Search employees..."
+                        placeholder={t('employees.searchPlaceholder')}
                         value={assignSearch}
                         onChange={e => setAssignSearch(e.target.value)}
                         className="w-full h-9 pl-9 pr-4 bg-white border border-gray-100 rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#155DFC]/10 transition-all font-medium"
@@ -365,7 +382,7 @@ export function AssignModal({
                     ))}
                     {assigned.length === 0 && !isLoading && (
                       <div className="h-full flex flex-col items-center justify-center text-gray-400 py-20">
-                        <p className="text-[14px] font-medium opacity-60">No assigned employees</p>
+                        <p className="text-[14px] font-medium opacity-60">{t('assignEmployees.modal.noAssignedEmployees')}</p>
                       </div>
                     )}
                   </div>
@@ -380,7 +397,7 @@ export function AssignModal({
               className="h-11 px-8 rounded-xl text-[15px] font-bold text-[#4A5565] transition-all hover:bg-gray-50"
               style={BTN_CANCEL_STYLE}
             >
-              Cancel
+              {t('common.actions.cancel')}
             </button>
             <button
               onClick={() => {
@@ -404,7 +421,7 @@ export function AssignModal({
             >
               <span className="inline-flex items-center gap-2">
                 {isPending && <Loader2 size={16} className="animate-spin" />}
-                Save Assignments
+                {t('assignEmployees.modal.saveAssignments')}
               </span>
             </button>
           </div>

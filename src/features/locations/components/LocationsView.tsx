@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Card, Button, PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
+import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { Check, ChevronDown, Edit3, Eye, Loader2, MapPin, Network, Plus, Power, Search, Settings, Trash2 } from 'lucide-react';
 import { SITES_LIST_UNAVAILABLE_MESSAGE, useLocations } from '../api';
 import { LocationListItem, SiteStatus, SiteType } from '../types';
@@ -12,14 +12,15 @@ import { EditLocationModal } from './EditLocationModal';
 import { DeactivateLocationModal } from './DeactivateLocationModal';
 import { ActivateLocationModal } from './ActivateLocationModal';
 import { DeleteLocationModal } from './DeleteLocationModal';
+import { useI18n } from '@/common/i18n';
 
 const SITE_TYPE_OPTIONS: Array<SiteType | 'All'> = ['All', 'FIELD_ZONE', 'BRANCH', 'WAREHOUSE', 'HQ', 'CLIENT_SITE', 'STORE'];
 const SITE_STATUS_OPTIONS: Array<SiteStatus | 'All'> = ['All', 'PENDING_REVIEW', 'ACTIVE', 'DISABLED', 'ARCHIVED', 'DRAFT'];
 
-function formatDate(dateString: string) {
+function formatDate(dateString: string, locale: string) {
   if (!dateString) return '-';
   try {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale === 'sq' ? 'sq-AL' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -29,16 +30,20 @@ function formatDate(dateString: string) {
   }
 }
 
-function statusLabel(status: SiteStatus) {
+function statusLabel(status: SiteStatus, t: (key: string) => string) {
   switch (status) {
-    case 'PENDING_REVIEW': return 'Pending Review';
-    case 'DRAFT': return 'Draft';
-    case 'ACTIVE': return 'Active';
-    case 'DISABLED': return 'Disabled';
-    case 'ARCHIVED': return 'Archived';
-    case 'INACTIVE': return 'Inactive';
+    case 'PENDING_REVIEW': return t('common.statuses.pendingReview');
+    case 'DRAFT': return t('common.statuses.draft');
+    case 'ACTIVE': return t('common.statuses.active');
+    case 'DISABLED': return t('common.statuses.disabled');
+    case 'ARCHIVED': return t('common.statuses.archived');
+    case 'INACTIVE': return t('common.statuses.inactive');
     default: return status;
   }
+}
+
+function typeLabel(type: SiteType, t: (key: string) => string) {
+  return t(`locations.types.${type}`);
 }
 
 function getTypeBadgeStyles(type: SiteType) {
@@ -59,6 +64,7 @@ function getStatusBadgeStyles(status: SiteStatus) {
 }
 
 export function LocationsView() {
+  const { locale, t } = useI18n();
   const [companyId] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : localStorage.getItem('current_company_id'),
   );
@@ -116,7 +122,15 @@ export function LocationsView() {
   const totalItems = data?.totalItems ?? filteredLocations.length;
   // Use pageSize from state
 
-  const TABLE_HEADERS = ['Site Name', 'Site Code', 'Site Type', 'Country', 'Status', 'Created At', 'Actions'];
+  const tableHeaders = [
+    t('tables.headers.siteName'),
+    t('tables.headers.siteCode'),
+    t('tables.headers.siteType'),
+    t('tables.headers.country'),
+    t('tables.headers.status'),
+    t('tables.headers.createdAt'),
+    t('tables.headers.actions'),
+  ];
 
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4">
@@ -137,9 +151,9 @@ export function LocationsView() {
             <MapPin size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Locations</h1>
+            <h1 className="text-3xl font-bold text-white">{t('locations.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Manage your company locations and geofencing settings
+              {t('locations.subtitle')}
             </p>
           </div>
         </div>
@@ -159,7 +173,7 @@ export function LocationsView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by site name or code..."
+            placeholder={t('locations.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -181,7 +195,7 @@ export function LocationsView() {
             >
               {SITE_TYPE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option === 'All' ? 'All Types' : option.replace('_', ' ')}
+                  {option === 'All' ? t('locations.allTypes') : typeLabel(option, t)}
                 </option>
               ))}
             </select>
@@ -199,7 +213,7 @@ export function LocationsView() {
             >
               {SITE_STATUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option === 'All' ? 'All Statuses' : statusLabel(option)}
+                  {option === 'All' ? t('locations.allStatuses') : statusLabel(option, t)}
                 </option>
               ))}
             </select>
@@ -227,7 +241,7 @@ export function LocationsView() {
                 className="text-xs font-semibold text-white uppercase tracking-wide"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th
                     key={header}
                     className="px-4 py-3.5 text-left font-semibold whitespace-nowrap"
@@ -240,23 +254,23 @@ export function LocationsView() {
             <tbody className="bg-white">
               {isLoading ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Loader2 className="h-8 w-8 animate-spin text-[#155DFC]" />
-                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">Loading locations...</p>
+                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">{t('tables.loading.locations')}</p>
                     </div>
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
-                    <p className="text-[14px] font-medium">Failed to load locations</p>
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
+                    <p className="text-[14px] font-medium">{t('tables.failed.locations')}</p>
                   </td>
                 </tr>
               ) : filteredLocations.length === 0 ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center text-gray-400 font-[Inter,sans-serif]">
-                    <p className="text-[14px] font-medium">No locations found</p>
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center text-gray-400 font-[Inter,sans-serif]">
+                    <p className="text-[14px] font-medium">{t('tables.empty.locations')}</p>
                   </td>
                 </tr>
               ) : (
@@ -281,7 +295,7 @@ export function LocationsView() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${getTypeBadgeStyles(location.siteType)}`}>
-                        {location.siteType.replace('_', ' ')}
+                        {typeLabel(location.siteType, t)}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-gray-600">
@@ -289,17 +303,17 @@ export function LocationsView() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${getStatusBadgeStyles(location.status)}`}>
-                        {statusLabel(location.status)}
+                        {statusLabel(location.status, t)}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-gray-500 text-[14px]">
-                      {formatDate(location.createdAt)}
+                      {formatDate(location.createdAt, locale)}
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); setSelectedSiteId(location.id); setIsDetailsModalOpen(true); }}
-                          title="View Details"
+                          title={t('common.actions.viewDetails')}
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                         >
                           <Eye size={18} />
@@ -311,7 +325,7 @@ export function LocationsView() {
                               if (openEditMenuRowId === location.id) { setOpenEditMenuRowId(null); setMenuAnchorRect(null); }
                               else { setOpenEditMenuRowId(location.id); setMenuAnchorRect(e.currentTarget.getBoundingClientRect()); }
                             }}
-                            title="Edit Options"
+                            title={t('locations.editOptions')}
                             className={`rounded-lg p-2 transition-all ${openEditMenuRowId === location.id ? 'bg-blue-50 text-[#155DFC]' : 'text-gray-400 hover:bg-blue-50 hover:text-[#155DFC]'}`}
                           >
                             <Edit3 size={18} />
@@ -327,7 +341,7 @@ export function LocationsView() {
                                   boxShadow: `0px 9px 28px 8px rgba(0,0,0,0.10), 0px 3px 6px -4px rgba(0,0,0,0.24), 0px 6px 16px rgba(0,0,0,0.35)`
                                 }}
                               >
-                                {[{ id: 1, label: 'Details', icon: Settings }, { id: 2, label: 'Location', icon: MapPin }, { id: 3, label: 'Network', icon: Network }].map((opt) => (
+                                {[{ id: 1, label: t('locations.details'), icon: Settings }, { id: 2, label: t('locations.location'), icon: MapPin }, { id: 3, label: t('locations.network'), icon: Network }].map((opt) => (
                                   <button
                                     key={opt.id}
                                     onClick={(e) => {
@@ -345,15 +359,15 @@ export function LocationsView() {
                           )}
                         </div>
                         {location.status === 'ACTIVE' ? (
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedDeactivateLocation(location); setIsDeactivateModalOpen(true); }} title="Disable Site" className="rounded-lg p-2 text-gray-400 transition-all hover:bg-amber-50 hover:text-amber-500">
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedDeactivateLocation(location); setIsDeactivateModalOpen(true); }} title={t('locations.disableSite')} className="rounded-lg p-2 text-gray-400 transition-all hover:bg-amber-50 hover:text-amber-500">
                             <Power size={18} />
                           </button>
                         ) : (
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedActivateLocation(location); setIsActivateModalOpen(true); }} title="Activate Site" className="rounded-lg p-2 text-gray-400 transition-all hover:bg-emerald-50 hover:text-emerald-500">
+                          <button onClick={(e) => { e.stopPropagation(); setSelectedActivateLocation(location); setIsActivateModalOpen(true); }} title={t('locations.activateSite')} className="rounded-lg p-2 text-gray-400 transition-all hover:bg-emerald-50 hover:text-emerald-500">
                             <Check size={18} />
                           </button>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); setSelectedDeleteLocation(location); setIsDeleteModalOpen(true); }} title="Delete Site" className="rounded-lg p-2 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500">
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedDeleteLocation(location); setIsDeleteModalOpen(true); }} title={t('locations.deleteSite')} className="rounded-lg p-2 text-gray-400 transition-all hover:bg-red-50 hover:text-red-500">
                           <Trash2 size={18} />
                         </button>
                       </div>

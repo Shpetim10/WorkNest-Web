@@ -7,5 +7,4 @@ export interface SuperAdminProfile {
 
 export interface UpdateSuperAdminProfileRequest {
   displayName: string;
-  email: string;
 }

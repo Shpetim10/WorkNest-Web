@@ -16,22 +16,25 @@ export const useLogin = () => {
 
   return useMutation<LoginResponse, ApiErrorResponse, LoginRequest>({
     mutationFn: async (data: LoginRequest) => {
-      // 🚨 [DEBUG] FINAL PAYLOAD VERIFICATION
-      console.log('📦 [Mutation] Initiating Login with payload:', JSON.stringify(data, null, 2));
-
+      let loginData: LoginResponse;
       try {
         const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', data);
-        return response.data.data;
+        loginData = response.data.data;
       } catch (error: unknown) {
         const axiosError = error as AxiosError;
-        // Detailed error logging specifically for this mutation
         console.error('❌ [Mutation Error] Login mutation failed:', {
           payload: data,
           response: axiosError.response?.data,
-          status: axiosError.response?.status
+          status: axiosError.response?.status,
         });
         throw error;
       }
+
+      if (loginData.role === 'SUPERADMIN') {
+        throw Object.assign(new Error('SUPERADMIN_NOT_ALLOWED'), { code: 'SUPERADMIN_NOT_ALLOWED' });
+      }
+
+      return loginData;
     },
     onSuccess: async (data, variables) => {
       // Store initial tokens (may be partial)

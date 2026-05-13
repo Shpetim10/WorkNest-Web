@@ -6,6 +6,17 @@ export const metadata: Metadata = {
   description: "Reset your WorkNest account password",
 };
 
-export default function ForgotPasswordPage() {
-  return <ForgotPasswordView />;
+type Props = { searchParams?: Promise<{ from?: string }> };
+
+export default async function ForgotPasswordPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const isSuperAdmin = params?.from === 'superadmin';
+
+  return (
+    <ForgotPasswordView
+      backHref={isSuperAdmin ? '/login-superadmin' : '/login'}
+      backLabel={isSuperAdmin ? 'Back to admin login' : 'Back to login'}
+      apiPath={isSuperAdmin ? '/auth/forgot-password/superadmin' : '/auth/forgot-password'}
+    />
+  );
 }

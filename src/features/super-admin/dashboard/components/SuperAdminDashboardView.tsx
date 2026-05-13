@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  CalendarDays,
   Check,
   ChevronDown,
   Home,
@@ -12,7 +11,7 @@ import {
   Info
 } from 'lucide-react';
 import { Card, PageHeaderDecorativeCircles } from '@/common/ui';
-import { useSuperAdminDashboard } from '../api/use-super-admin-dashboard';
+import { useSuperAdminDashboard } from '@/features/super-admin/dashboard/api/use-super-admin-dashboard';
 import {
   CompanyRegistrationPointDto,
   SubscriptionPlanBreakdownDto,
@@ -64,13 +63,16 @@ const KPI_DATA: KpiData[] = [
 
 const SUBSCRIPTION_COLORS = ['#2B7FFF', '#155DFC', '#7C3AED', '#00BBA7'];
 const PERIOD_FILTER_OPTIONS = [
+  { value: '', label: 'All Time' },
   { value: 'this-month', label: 'This Month' },
   { value: 'last-month', label: 'Last Month' },
   { value: 'last-3-months', label: 'Last 3 Months' },
   { value: 'last-6-months', label: 'Last 6 Months' },
   { value: 'this-year', label: 'This Year' },
-  { value: 'custom-range', label: 'Custom Range' },
 ];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 const EMPTY_REGISTRATION_MONTHS: CompanyRegistrationPointDto[] = [
   { label: 'Jan', count: null, percentage: null },
   { label: 'Feb', count: null, percentage: null },
@@ -252,145 +254,109 @@ function KpiCard({ kpi, value }: { kpi: KpiData; value?: number | null }) {
   );
 }
 
-function PeriodFilterDropdown({ ariaLabelPrefix }: { ariaLabelPrefix: string }) {
+function PeriodFilterDropdown({
+  ariaLabelPrefix,
+  value,
+  onChange,
+}: {
+  ariaLabelPrefix: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_FILTER_OPTIONS[0].value);
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const startDateInputRef = useRef<HTMLInputElement>(null);
-  const selectedOption =
-    PERIOD_FILTER_OPTIONS.find((option) => option.value === selectedPeriod) ?? PERIOD_FILTER_OPTIONS[0];
+  const ref = useRef<HTMLDivElement>(null);
+  const selectedOption = PERIOD_FILTER_OPTIONS.find((o) => o.value === value) ?? PERIOD_FILTER_OPTIONS[0];
 
   useEffect(() => {
-    if (!isDatePickerOpen) return;
-
-    const pickerTimer = window.setTimeout(() => {
-      startDateInputRef.current?.showPicker?.();
-      startDateInputRef.current?.focus();
-    }, 120);
-
-    return () => window.clearTimeout(pickerTimer);
-  }, [isDatePickerOpen]);
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
 
   return (
-    <div className="relative z-30 shrink-0">
+    <div ref={ref} className="relative z-30 shrink-0">
       <button
         type="button"
         aria-label={`${ariaLabelPrefix} period filter`}
-        aria-expanded={isOpen || isDatePickerOpen}
-        onClick={() => {
-          setIsDatePickerOpen(false);
-          setIsOpen((value) => !value);
-        }}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((v) => !v)}
         className="flex items-center gap-1 rounded-md px-1 py-0.5 text-[11px] font-bold text-[#155DFC] transition-colors hover:text-[#2B7FFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2B7FFF]/20"
       >
         <span>{selectedOption.label}</span>
-        <ChevronDown
-          size={13}
-          strokeWidth={2.2}
-          className={`transition-transform duration-200 ${isOpen || isDatePickerOpen ? 'rotate-180' : ''}`}
-        />
+        <ChevronDown size={13} strokeWidth={2.2} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-[156px] overflow-hidden rounded-xl border border-[#E5ECF6] bg-white py-1 shadow-[0_14px_34px_rgba(15,23,42,0.13)]">
-          {PERIOD_FILTER_OPTIONS.map((option) => {
-            const isSelected = option.value === selectedPeriod;
-            const isCustomRange = option.value === 'custom-range';
-
-            return (
-              <React.Fragment key={option.value}>
-                {isCustomRange && <div className="mx-3 my-1 h-px bg-[#EEF2F7]" />}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPeriod(option.value);
-                    setIsOpen(false);
-                    setIsDatePickerOpen(isCustomRange);
-                  }}
-                  className={`flex h-8 w-full items-center justify-between gap-2 px-3 text-left text-[11.5px] font-bold transition-colors ${
-                    isSelected ? 'bg-[#F6F9FF] text-[#2B7FFF]' : 'text-[#374151] hover:bg-[#F8FBFF]'
-                  }`}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate">{option.label}</span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    {isCustomRange && (
-                      <CalendarDays size={14} strokeWidth={2} className="shrink-0 text-[#374151]" />
-                    )}
-                    {isSelected && <Check size={14} strokeWidth={2.4} className="shrink-0 text-[#2B7FFF]" />}
-                  </span>
-                </button>
-              </React.Fragment>
-            );
-          })}
-        </div>
-      )}
-
-      {isDatePickerOpen && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-[230px] rounded-xl border border-[#E5ECF6] bg-white p-3 shadow-[0_14px_34px_rgba(15,23,42,0.13)]">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[12px] font-bold text-[#1f2937]">Custom Range</span>
-            <CalendarDays size={15} strokeWidth={2} className="text-[#2B7FFF]" />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-[#8A9BB2]">
-              Start
-              <input
-                ref={startDateInputRef}
-                type="date"
-                value={customStartDate}
-                max={customEndDate || undefined}
-                onChange={(event) => setCustomStartDate(event.target.value)}
-                className="mt-1 h-8 w-full rounded-lg border border-[#DDE8F8] bg-[#F8FBFF] px-2 text-[11px] font-semibold text-[#374151] outline-none focus:border-[#9DBBEA] focus:ring-2 focus:ring-[#2B7FFF]/10"
-              />
-            </label>
-            <label className="min-w-0 text-[10px] font-bold uppercase tracking-wide text-[#8A9BB2]">
-              End
-              <input
-                type="date"
-                value={customEndDate}
-                min={customStartDate || undefined}
-                onChange={(event) => setCustomEndDate(event.target.value)}
-                className="mt-1 h-8 w-full rounded-lg border border-[#DDE8F8] bg-[#F8FBFF] px-2 text-[11px] font-semibold text-[#374151] outline-none focus:border-[#9DBBEA] focus:ring-2 focus:ring-[#2B7FFF]/10"
-              />
-            </label>
-          </div>
-          <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="absolute right-0 top-full z-40 mt-2 w-[148px] overflow-hidden rounded-xl border border-[#E5ECF6] bg-white py-1 shadow-[0_14px_34px_rgba(15,23,42,0.13)]">
+          {PERIOD_FILTER_OPTIONS.map((option) => (
             <button
+              key={option.value}
               type="button"
-              onClick={() => {
-                setCustomStartDate('');
-                setCustomEndDate('');
-                setSelectedPeriod(PERIOD_FILTER_OPTIONS[0].value);
-                setIsDatePickerOpen(false);
-              }}
-              className="rounded-md px-2 py-1 text-[11px] font-bold text-[#8A9BB2] transition-colors hover:text-[#4B5563]"
+              onClick={() => { onChange(option.value); setIsOpen(false); }}
+              className={`flex h-8 w-full items-center justify-between gap-2 px-3 text-left text-[11.5px] font-bold transition-colors ${
+                option.value === value ? 'bg-[#F6F9FF] text-[#2B7FFF]' : 'text-[#374151] hover:bg-[#F8FBFF]'
+              }`}
             >
-              Cancel
+              <span className="truncate">{option.label}</span>
+              {option.value === value && <Check size={13} strokeWidth={2.4} className="shrink-0 text-[#2B7FFF]" />}
             </button>
-            <button
-              type="button"
-              disabled={!customStartDate || !customEndDate}
-              onClick={() => setIsDatePickerOpen(false)}
-              className="rounded-md bg-[#2B7FFF] px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-[#155DFC] disabled:cursor-not-allowed disabled:bg-[#C8D8EE]"
-            >
-              Apply
-            </button>
-          </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function SubscriptionPieChart({ plans }: { plans: SubscriptionPlanBreakdownDto[] }) {
-  const totalCompanies = plans.reduce(
-    (sum, plan) => sum + (typeof plan.companyCount === 'number' ? plan.companyCount : 0),
-    0,
+function YearFilterDropdown({ value, onChange }: { value: number; onChange: (year: number) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
+
+  return (
+    <div ref={ref} className="relative z-30 shrink-0">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((v) => !v)}
+        className="flex items-center gap-1 rounded-md px-1 py-0.5 text-[11px] font-bold text-[#155DFC] transition-colors hover:text-[#2B7FFF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2B7FFF]/20"
+      >
+        <span>{value}</span>
+        <ChevronDown size={13} strokeWidth={2.2} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full z-40 mt-2 w-[100px] overflow-hidden rounded-xl border border-[#E5ECF6] bg-white py-1 shadow-[0_14px_34px_rgba(15,23,42,0.13)]">
+          {YEAR_OPTIONS.map((year) => (
+            <button
+              key={year}
+              type="button"
+              onClick={() => { onChange(year); setIsOpen(false); }}
+              className={`flex h-8 w-full items-center justify-between px-3 text-[11.5px] font-bold transition-colors ${
+                year === value ? 'bg-[#F6F9FF] text-[#2B7FFF]' : 'text-[#374151] hover:bg-[#F8FBFF]'
+              }`}
+            >
+              <span>{year}</span>
+              {year === value && <Check size={13} strokeWidth={2.4} className="shrink-0 text-[#2B7FFF]" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
+}
+
+function SubscriptionPieChart({ plans, totalCompanies }: { plans: SubscriptionPlanBreakdownDto[]; totalCompanies: number }) {
   const segments = plans.reduce<
     Array<{ key: string; color: string; percentage: number; dashOffset: number }>
   >((acc, plan, index) => {
@@ -410,32 +376,38 @@ function SubscriptionPieChart({ plans }: { plans: SubscriptionPlanBreakdownDto[]
   const hasData = segments.some((segment) => segment.percentage > 0);
 
   return (
-    <svg
-      aria-label="Subscription plan breakdown"
-      className="h-[44px] w-[44px] shrink-0"
-      viewBox="0 0 64 64"
-      role="img"
-    >
-      <circle cx="32" cy="32" r="18" fill="none" stroke="#E8F1FF" strokeWidth="12" />
-      {hasData && (
-        <g transform="rotate(-90 32 32)">
-          {segments.map((segment) => (
-            <circle
-              key={segment.key}
-              cx="32"
-              cy="32"
-              r="18"
-              fill="none"
-              stroke={segment.color}
-              strokeWidth="12"
-              pathLength="100"
-              strokeDasharray={`${segment.percentage} ${100 - segment.percentage}`}
-              strokeDashoffset={segment.dashOffset}
-            />
-          ))}
-        </g>
-      )}
-    </svg>
+    <div className="relative shrink-0">
+      <svg
+        aria-label="Subscription plan breakdown"
+        className="h-[86px] w-[86px]"
+        viewBox="0 0 86 86"
+        role="img"
+      >
+        <circle cx="43" cy="43" r="30" fill="none" stroke="#E8F1FF" strokeWidth="13" />
+        {hasData && (
+          <g transform="rotate(-90 43 43)">
+            {segments.map((segment) => (
+              <circle
+                key={segment.key}
+                cx="43"
+                cy="43"
+                r="30"
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="13"
+                pathLength="100"
+                strokeDasharray={`${segment.percentage} ${100 - segment.percentage}`}
+                strokeDashoffset={segment.dashOffset}
+              />
+            ))}
+          </g>
+        )}
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[16px] font-bold leading-none text-[#1f2937]">{totalCompanies}</span>
+        <span className="mt-0.5 text-[8px] font-semibold uppercase tracking-widest text-[#8A9BB2]">total</span>
+      </div>
+    </div>
   );
 }
 
@@ -513,7 +485,15 @@ function RegistrationsChart({ registrations }: { registrations?: CompanyRegistra
   );
 }
 
-function SubscriptionBreakdownCard({ plans }: { plans?: SubscriptionPlanBreakdownDto[] | null }) {
+function SubscriptionBreakdownCard({
+  plans,
+  period,
+  onPeriodChange,
+}: {
+  plans?: SubscriptionPlanBreakdownDto[] | null;
+  period: string;
+  onPeriodChange: (value: string) => void;
+}) {
   const visiblePlans = plans?.length ? plans : EMPTY_SUBSCRIPTION_PLANS;
   const totalCompanies = visiblePlans.reduce(
     (sum, plan) => sum + (typeof plan.companyCount === 'number' ? plan.companyCount : 0),
@@ -528,12 +508,12 @@ function SubscriptionBreakdownCard({ plans }: { plans?: SubscriptionPlanBreakdow
           <h3 className="text-[13px] font-bold leading-tight text-[#1f2937]">Subscription Breakdown</h3>
           <p className="mt-0.5 text-[11px] font-medium text-[#8A9BB2]">Companies by plan</p>
         </div>
-        <PeriodFilterDropdown ariaLabelPrefix="Subscription breakdown" />
+        <PeriodFilterDropdown ariaLabelPrefix="Subscription breakdown" value={period} onChange={onPeriodChange} />
       </div>
 
-      <div className="flex items-center gap-5">
-        <SubscriptionPieChart plans={visiblePlans} />
-        <div className="min-w-0 flex-1 space-y-1.5">
+      <div className="flex items-center gap-4">
+        <SubscriptionPieChart plans={visiblePlans} totalCompanies={totalCompanies} />
+        <div className="min-w-0 flex-1 space-y-2">
           {visiblePlans.map((plan, index) => {
             const percentage = getPlanPercentage(plan, totalCompanies);
 
@@ -541,16 +521,16 @@ function SubscriptionBreakdownCard({ plans }: { plans?: SubscriptionPlanBreakdow
               <div key={plan.planId ?? plan.label} className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    className="h-2 w-2 shrink-0 rounded-full"
                     style={{
                       backgroundColor: hasSubscriptionData
                         ? SUBSCRIPTION_COLORS[index % SUBSCRIPTION_COLORS.length]
                         : '#C8D8EE',
                     }}
                   />
-                  <span className="truncate text-[11px] font-medium text-[#4B5563]">{plan.label}</span>
+                  <span className="truncate text-[11.5px] font-medium text-[#4B5563]">{plan.label}</span>
                 </div>
-                <span className="text-[11px] font-bold text-[#1f2937]">
+                <span className="text-[11.5px] font-bold text-[#1f2937]">
                   {`${Math.round(percentage)}%`}
                 </span>
               </div>
@@ -573,7 +553,7 @@ function RecentActivity({ items }: { items?: SuperAdminActivityItemDto[] | null 
 
   return (
     <div className="mt-1 flex flex-col divide-y divide-[#F3F6FB]">
-      {items.map((activity) => (
+      {items.slice(0, 4).map((activity) => (
         <div key={activity.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
           <div className="h-2 w-2 shrink-0 rounded-full bg-[#2B7FFF] shadow-[0_0_0_3px_rgba(43,127,255,0.12)]" />
           <p className="min-w-0 flex-1 text-[12px] leading-snug text-gray-600">
@@ -647,8 +627,13 @@ export function SuperAdminDashboardView({
   enableDashboardQuery = false,
 }: SuperAdminDashboardViewProps = {}) {
   const [dateTimeLabels, setDateTimeLabels] = useState<DateTimeLabels>(() => getCurrentDateTimeLabels());
-  const dashboardQuery = useSuperAdminDashboard({ enabled: enableDashboardQuery && !initialData });
-  const dashboardData = initialData ?? dashboardQuery.data;
+  const [registrationYear, setRegistrationYear] = useState(CURRENT_YEAR);
+  const [statsPeriod, setStatsPeriod] = useState('');
+  const dashboardQuery = useSuperAdminDashboard(
+    { year: registrationYear, period: statsPeriod },
+    { enabled: enableDashboardQuery },
+  );
+  const dashboardData = dashboardQuery.data ?? initialData;
   const kpis = dashboardData?.kpis;
 
   useEffect(() => {
@@ -671,7 +656,11 @@ export function SuperAdminDashboardView({
         {KPI_DATA.map((kpi) => (
           <KpiCard key={kpi.id} kpi={kpi} value={kpis?.[kpi.valueKey]} />
         ))}
-        <SubscriptionBreakdownCard plans={dashboardData?.subscriptionPlans} />
+        <SubscriptionBreakdownCard
+          plans={dashboardData?.subscriptionPlans}
+          period={statsPeriod}
+          onPeriodChange={setStatsPeriod}
+        />
       </div>
 
       <div
@@ -679,17 +668,20 @@ export function SuperAdminDashboardView({
         style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
       >
         <Card className="!rounded-[20px] min-h-[270px] min-w-0 overflow-hidden border-0 p-6">
-          <SectionHeader title="Company Registrations" />
+          <SectionHeader
+            title="Company Registrations"
+            action={<YearFilterDropdown value={registrationYear} onChange={setRegistrationYear} />}
+          />
           <RegistrationsChart registrations={dashboardData?.companyRegistrations} />
         </Card>
 
-        <Card className="!rounded-[20px] h-[270px] min-w-0 overflow-hidden border-0 p-6">
+        <Card className="!rounded-[20px] min-h-[270px] min-w-0 overflow-hidden border-0 p-6">
           <SectionHeader title="Recent Activity" />
           <RecentActivity items={dashboardData?.recentActivity} />
         </Card>
 
-        <Card className="!rounded-[20px] relative z-20 h-[270px] min-w-0 overflow-visible border-0 p-6">
-          <SectionHeader title="Quick Stats" action={<PeriodFilterDropdown ariaLabelPrefix="Quick stats" />} />
+        <Card className="!rounded-[20px] relative z-20 min-w-0 self-start overflow-visible border-0 p-6">
+          <SectionHeader title="Quick Stats" action={<PeriodFilterDropdown ariaLabelPrefix="Quick stats" value={statsPeriod} onChange={setStatsPeriod} />} />
           <QuickStats stats={dashboardData?.quickStats} />
         </Card>
       </div>

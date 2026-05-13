@@ -4,11 +4,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
-import { useForgotPassword } from '../api/password-reset';
+import { useForgotPassword } from '@/features/auth/api/password-reset';
 
-export function ForgotPasswordView() {
+export function ForgotPasswordView({
+  backHref = '/login',
+  backLabel = 'Back to login',
+  apiPath = '/auth/forgot-password',
+}: {
+  backHref?: string;
+  backLabel?: string;
+  apiPath?: string;
+} = {}) {
   const router = useRouter();
-  const forgotPasswordMutation = useForgotPassword();
+  const forgotPasswordMutation = useForgotPassword(apiPath);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
@@ -31,8 +39,9 @@ export function ForgotPasswordView() {
       try {
         await forgotPasswordMutation.mutateAsync({ email });
         router.push('/check-email');
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      } catch (err: unknown) {
+        const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        setError(message || 'Something went wrong. Please try again.');
       }
     }
   };
@@ -50,11 +59,11 @@ export function ForgotPasswordView() {
       <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10">
         {/* Back Link */}
         <Link
-          href="/login"
+          href={backHref}
           className="absolute top-8 left-8 flex items-center gap-2 text-[14px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft size={16} />
-          Back to login
+          {backLabel}
         </Link>
 
         <div className="mt-6 mb-8">
@@ -67,7 +76,7 @@ export function ForgotPasswordView() {
 
           <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">Forgot Password?</h2>
           <p className="text-gray-500 text-[15px]">
-            No worries, we'll send you reset instructions
+            No worries, we&apos;ll send you reset instructions
           </p>
         </div>
 

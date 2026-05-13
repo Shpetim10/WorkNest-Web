@@ -102,7 +102,7 @@ export function SuperAdminLoginView() {
 
             <div className="flex justify-end pt-1">
               <Link
-                href="/forgot-password"
+                href="/forgot-password?from=superadmin"
                 className="text-[13px] font-bold text-[#0066FF] transition-colors hover:text-blue-700"
               >
                 Forgot password?

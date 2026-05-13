@@ -6,10 +6,10 @@ import { ApiResponse, ApiErrorResponse } from '@/common/types/api';
 /**
  * Mutation hook to initiate the password reset process (Step 1)
  */
-export const useForgotPassword = () => {
+export const useForgotPassword = (path = '/auth/forgot-password') => {
   return useMutation<ApiResponse<any>, ApiErrorResponse, ForgotPasswordRequest>({
     mutationFn: async (data: ForgotPasswordRequest) => {
-      const response = await apiClient.post<ApiResponse<any>>('/auth/forgot-password', data);
+      const response = await apiClient.post<ApiResponse<any>>(path, data);
       return response.data;
     },
   });

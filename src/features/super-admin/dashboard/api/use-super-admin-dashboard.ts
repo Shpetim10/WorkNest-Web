@@ -1,11 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/common/network/api-client';
 import { ApiResponse } from '@/common/types/api';
 import { SuperAdminDashboardDto } from '../types';
 
+export interface DashboardParams {
+  year?: number;
+  period?: string;
+}
+
 export const superAdminDashboardKeys = {
   all: ['super-admin-dashboard'] as const,
-  summary: () => [...superAdminDashboardKeys.all, 'summary'] as const,
+  summary: (params: DashboardParams) => [...superAdminDashboardKeys.all, 'summary', params] as const,
 };
 
 function unwrapDashboardResponse(
@@ -18,19 +23,26 @@ function unwrapDashboardResponse(
   return body;
 }
 
-export async function fetchSuperAdminDashboard(): Promise<SuperAdminDashboardDto> {
+export async function fetchSuperAdminDashboard(params: DashboardParams = {}): Promise<SuperAdminDashboardDto> {
   const response = await apiClient.get<ApiResponse<SuperAdminDashboardDto> | SuperAdminDashboardDto>(
     '/super-admin/dashboard',
+    {
+      params: {
+        ...(params.year ? { year: params.year } : {}),
+        ...(params.period ? { period: params.period } : {}),
+      },
+    },
   );
 
   return unwrapDashboardResponse(response.data);
 }
 
-export function useSuperAdminDashboard(options?: { enabled?: boolean }) {
+export function useSuperAdminDashboard(params: DashboardParams = {}, options?: { enabled?: boolean }) {
   return useQuery<SuperAdminDashboardDto>({
-    queryKey: superAdminDashboardKeys.summary(),
-    queryFn: fetchSuperAdminDashboard,
+    queryKey: superAdminDashboardKeys.summary(params),
+    queryFn: () => fetchSuperAdminDashboard(params),
     enabled: options?.enabled ?? false,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
 }

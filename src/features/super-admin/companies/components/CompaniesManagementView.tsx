@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Ban,
@@ -14,14 +14,13 @@ import {
 } from 'lucide-react';
 import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { CompanyManagementRow, CompanyManagementStatus } from '../types';
+import { useSuperAdminCompanies, useToggleSuspend } from '../api/use-super-admin-companies';
 import { CompanyDetailsModal } from './CompanyDetailsModal';
 import { SuspendCompanyModal } from './SuspendCompanyModal';
 
 const TABLE_HEADERS = ['Company Name', 'Legal Name', 'NIPT', 'Email', 'Plan', 'Status', 'Created', 'Actions'];
 const STATUS_FILTERS = ['All statuses', 'Active', 'Suspended'] as const;
 const PLAN_FILTERS = ['All plans', 'Starter', 'Professional', 'Enterprise'] as const;
-
-const COMPANY_ROWS: CompanyManagementRow[] = [];
 
 function statusBadge(status: CompanyManagementStatus) {
   const isActive = status === 'active';
@@ -65,7 +64,8 @@ function SelectField({
 }
 
 export function CompaniesManagementView() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('All statuses');
   const [planFilter, setPlanFilter] = useState<(typeof PLAN_FILTERS)[number]>('All plans');
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,26 +76,25 @@ export function CompaniesManagementView() {
   const [suspendCompany, setSuspendCompany] = useState<CompanyManagementRow | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const filteredRows = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-    return COMPANY_ROWS.filter((company) => {
-      const matchesSearch =
-        !query ||
-        company.companyName.toLowerCase().includes(query) ||
-        company.legalName.toLowerCase().includes(query) ||
-        company.email.toLowerCase().includes(query) ||
-        company.nipt.toLowerCase().includes(query);
-      const matchesStatus =
-        statusFilter === 'All statuses' || company.status === statusFilter.toLowerCase();
-      const matchesPlan = planFilter === 'All plans' || company.plan === planFilter;
+  const apiStatus = statusFilter === 'All statuses' ? undefined : statusFilter.toLowerCase();
 
-      return matchesSearch && matchesStatus && matchesPlan;
-    });
-  }, [planFilter, searchQuery, statusFilter]);
+  const companiesQuery = useSuperAdminCompanies({
+    search: debouncedSearch,
+    status: apiStatus,
+    page: currentPage - 1,
+    size: pageSize,
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const toggleSuspend = useToggleSuspend();
+
+  const visibleRows = companiesQuery.data?.rows ?? [];
+  const totalPages = companiesQuery.data?.totalPages ?? 1;
+  const totalItems = companiesQuery.data?.total ?? 0;
 
   const resetPage = () => setCurrentPage(1);
 
@@ -179,10 +178,10 @@ export function CompaniesManagementView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search companies locally..."
-            value={searchQuery}
+            placeholder="Search companies..."
+            value={searchInput}
             onChange={(event) => {
-              setSearchQuery(event.target.value);
+              setSearchInput(event.target.value);
               resetPage();
             }}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
@@ -297,7 +296,7 @@ export function CompaniesManagementView() {
           setPageSize(newSize);
           setCurrentPage(1);
         }}
-        totalItems={filteredRows.length}
+        totalItems={totalItems}
       />
 
       {openDropdownId && dropdownPosition && (() => {
@@ -352,6 +351,11 @@ export function CompaniesManagementView() {
         isOpen={!!suspendCompany}
         company={suspendCompany}
         onClose={() => setSuspendCompany(null)}
+        onConfirm={(reason) => {
+          if (suspendCompany) {
+            toggleSuspend.mutate({ companyId: suspendCompany.id, reason });
+          }
+        }}
       />
     </div>
   );

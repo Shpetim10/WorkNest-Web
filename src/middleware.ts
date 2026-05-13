@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-/**
- * Middleware for route protection and access control.
- * It uses the 'auth_token' cookie to determine authentication status.
- */
+const SUPERADMIN_LOGIN_ROUTE = '/login-superadmin';
+const SUPERADMIN_DASHBOARD_PREFIX = '/superadmin_dashboard';
 
-// List of routes that can be accessed without authentication
-const PUBLIC_ROUTES = [
+const AUTH_ONLY_ROUTES = [
   '/login',
   '/register',
   '/forgot-password',
@@ -20,23 +17,26 @@ const PUBLIC_ROUTES = [
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Get the auth token from cookies
   const authToken = request.cookies.get('auth_token')?.value;
   const isAuthenticated = !!authToken;
 
-  // 1. If user is authenticated and tries to access an auth page (login, etc.),
-  // redirect them to the dashboard.
-  const isAuthPage = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+  const isAuthOnlyPage = AUTH_ONLY_ROUTES.some(route => pathname.startsWith(route));
+  const isSuperAdminLogin = pathname.startsWith(SUPERADMIN_LOGIN_ROUTE);
+  const isSuperAdminDashboard = pathname.startsWith(SUPERADMIN_DASHBOARD_PREFIX);
 
-  if (isAuthenticated && isAuthPage) {
+  if (isAuthenticated && isAuthOnlyPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // 2. If user is NOT authenticated and tries to access a protected page,
-  // redirect them to login.
-  // Special exception: allow the root path '/' if it redirects to login (which it does in our app)
-  // or just treat everything not in PUBLIC_ROUTES as protected.
-  if (!isAuthenticated && !isAuthPage && pathname !== '/') {
+  if (isAuthenticated && isSuperAdminLogin) {
+    return NextResponse.redirect(new URL(SUPERADMIN_DASHBOARD_PREFIX, request.url));
+  }
+
+  if (!isAuthenticated && isSuperAdminDashboard) {
+    return NextResponse.redirect(new URL(SUPERADMIN_LOGIN_ROUTE, request.url));
+  }
+
+  if (!isAuthenticated && !isAuthOnlyPage && !isSuperAdminLogin && pathname !== '/') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { GradientModalHeader, Modal } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { AuditLogEntry } from '../types';
 
 interface AuditLogDetailsModalProps {
@@ -19,6 +20,8 @@ function DetailItem({ label, value }: { label: string; value: React.ReactNode })
 }
 
 export function AuditLogDetailsModal({ auditLog, onClose }: AuditLogDetailsModalProps) {
+  const { t } = useI18n();
+
   if (!auditLog) return null;
 
   return (
@@ -30,20 +33,20 @@ export function AuditLogDetailsModal({ auditLog, onClose }: AuditLogDetailsModal
       containerClassName="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
     >
       <GradientModalHeader
-        title="Audit Log Details"
-        subtitle="View full details for this activity"
+        title={t('auditLog.detailsTitle')}
+        subtitle={t('auditLog.detailsSubtitle')}
         onClose={onClose}
       />
 
       <div className="space-y-7 p-6">
         <div className="text-[13px] font-semibold text-[#6A7282] uppercase leading-5 tracking-[0px]">
-          Activity Information
+          {t('auditLog.activityInformation')}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-7 gap-x-10">
-          <DetailItem label="User" value={auditLog.user} />
+          <DetailItem label={t('auditLog.headers.user')} value={auditLog.user} />
           <DetailItem
-            label="Role"
+            label={t('common.fields.role')}
             value={
               <span
                 className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[11px] font-medium ${
@@ -56,15 +59,15 @@ export function AuditLogDetailsModal({ auditLog, onClose }: AuditLogDetailsModal
               </span>
             }
           />
-          <DetailItem label="Action" value={auditLog.action} />
-          <DetailItem label="Timestamp" value={auditLog.timestamp} />
+          <DetailItem label={t('auditLog.headers.action')} value={auditLog.action} />
+          <DetailItem label={t('auditLog.headers.timestamp')} value={auditLog.timestamp} />
           {auditLog.referenceId && (
-            <DetailItem label="Reference ID" value={auditLog.referenceId} />
+            <DetailItem label={t('auditLog.referenceId')} value={auditLog.referenceId} />
           )}
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-[13px] font-medium text-gray-400">Details</p>
+          <p className="text-[13px] font-medium text-gray-400">{t('auditLog.headers.details')}</p>
           <p className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-[15px] font-medium leading-relaxed text-gray-700">
             {auditLog.details}
           </p>
@@ -76,7 +79,7 @@ export function AuditLogDetailsModal({ auditLog, onClose }: AuditLogDetailsModal
             onClick={onClose}
             className="px-8 py-2.5 bg-[#F8FAFC] text-[14px] font-bold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all"
           >
-            Close
+            {t('common.actions.close')}
           </button>
         </div>
       </div>

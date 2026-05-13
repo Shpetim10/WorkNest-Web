@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Textarea } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useDismissWarnings } from '../api/dismiss-warnings';
 
 interface Props {
@@ -22,6 +23,7 @@ function readableFlag(flag: string): string {
 }
 
 export function DismissWarningsModal({ isOpen, onClose, dayRecordId, warningFlags }: Props) {
+  const { t } = useI18n();
   const [note, setNote] = useState('');
   const mutation = useDismissWarnings();
 
@@ -41,7 +43,7 @@ export function DismissWarningsModal({ isOpen, onClose, dayRecordId, warningFlag
           className="px-6 py-5 flex items-center justify-between"
           style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
         >
-          <h2 className="text-base font-bold text-white">Dismiss Warnings</h2>
+          <h2 className="text-base font-bold text-white">{t('attendance.actions.dismissWarnings')}</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
             <X size={18} />
           </button>
@@ -50,7 +52,7 @@ export function DismissWarningsModal({ isOpen, onClose, dayRecordId, warningFlag
         <div className="px-6 py-5 space-y-4">
           {warningFlags.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-gray-500">Warning Flags</p>
+              <p className="text-xs font-semibold text-gray-500">{t('attendance.modal.warningFlags')}</p>
               <div className="flex flex-wrap gap-2">
                 {warningFlags.map((flag) => (
                   <span
@@ -66,10 +68,10 @@ export function DismissWarningsModal({ isOpen, onClose, dayRecordId, warningFlag
 
           <Textarea
             id="dismiss-note"
-            label="Audit note"
+            label={t('attendance.modal.auditNote')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Spoke to employee. Remote work was pre-approved."
+            placeholder={t('attendance.modal.auditNotePlaceholder')}
             rows={3}
           />
         </div>
@@ -79,14 +81,14 @@ export function DismissWarningsModal({ isOpen, onClose, dayRecordId, warningFlag
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
           >
-            Cancel
+            {t('common.actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
             className="px-6 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-50"
           >
-            {mutation.isPending ? 'Dismissing…' : 'Dismiss'}
+            {mutation.isPending ? t('attendance.modal.dismissing') : t('attendance.modal.dismiss')}
           </button>
         </div>
       </div>

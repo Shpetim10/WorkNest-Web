@@ -12,7 +12,10 @@ export function useRealtimeSubscription(
   const { client, connected } = useRealtimeClient();
   // Stable ref so the effect closure always calls the latest handler
   const onMessageRef = useRef(onMessage);
-  onMessageRef.current = onMessage;
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   useEffect(() => {
     if (!client || !connected || !destination) return;

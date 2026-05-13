@@ -7,13 +7,13 @@ import { AnnouncementListResponse, AnnouncementAudience, AnnouncementPriority } 
 import { useAnnouncements, useDeleteAnnouncement } from '../api';
 import { CreateAnnouncementModal } from './CreateAnnouncementModal';
 import { DeleteAnnouncementModal } from './DeleteAnnouncementModal';
+import { useI18n } from '@/common/i18n';
 
-
-function audienceLabel(audience: AnnouncementAudience): string {
+function audienceLabel(audience: AnnouncementAudience, t: (key: string) => string): string {
   switch (audience) {
-    case 'ALL_EMPLOYEES': return 'All Employees';
-    case 'DEPARTMENT': return 'Department';
-    case 'SPECIFIC_USERS': return 'Specific Users';
+    case 'ALL_EMPLOYEES': return t('announcements.allEmployees');
+    case 'DEPARTMENT': return t('announcements.department');
+    case 'SPECIFIC_USERS': return t('announcements.specificUsers');
   }
 }
 
@@ -38,6 +38,7 @@ function formatDate(iso: string): string {
 }
 
 export function AnnouncementsDashboardView() {
+  const { t } = useI18n();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState<AnnouncementListResponse | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,8 +79,8 @@ export function AnnouncementsDashboardView() {
             <Megaphone size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Announcements</h1>
-            <p className="text-white/80 text-sm mt-0.5">Create and manage company announcements</p>
+            <h1 className="text-3xl font-bold text-white">{t('announcements.title')}</h1>
+            <p className="text-white/80 text-sm mt-0.5">{t('announcements.subtitle')}</p>
           </div>
         </div>
         <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
@@ -90,11 +91,11 @@ export function AnnouncementsDashboardView() {
 
       {/* Announcement list */}
       {isLoading ? (
-        <div className="py-20 text-center text-sm text-gray-400">Loading...</div>
+        <div className="py-20 text-center text-sm text-gray-400">{t('announcements.loading')}</div>
       ) : announcements.length === 0 ? (
         <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
           <Megaphone size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-400 text-sm">No announcements yet. Create one to get started.</p>
+          <p className="text-gray-400 text-sm">{t('announcements.empty')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4 px-2">
@@ -115,13 +116,13 @@ export function AnnouncementsDashboardView() {
                       style={priorityBadgeStyle(item.priority)}
                     >
                       <AlertCircle size={11} />
-                      Important
+                      {t('announcements.important')}
                     </span>
                   )}
                 </div>
 
                 <p className="mt-1 text-[12px] font-medium text-[#6A7282]">
-                  By {item.createdByName} &bull; {formatDate(item.createdAt)}
+                  {t('announcements.byline', { name: item.createdByName, date: formatDate(item.createdAt) })}
                 </p>
 
                 <p className="mt-4 text-[14px] leading-6 text-[#4A5565]">

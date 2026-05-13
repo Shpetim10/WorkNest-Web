@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { GradientModalHeader, Modal, Input, Select, Textarea, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useUpdateDepartment } from '../api';
 import { DepartmentListItem } from '../types';
 
@@ -12,6 +13,8 @@ interface EditDepartmentModalProps {
 }
 
 export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartmentModalProps) {
+  const { t } = useI18n();
+
   if (!department) return null;
 
   return (
@@ -23,8 +26,8 @@ export function EditDepartmentModal({ isOpen, onClose, department }: EditDepartm
       containerClassName="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
     >
       <GradientModalHeader
-        title="Edit Department"
-        subtitle="Edit the department details below."
+        title={t('departments.modal.editTitle')}
+        subtitle={t('departments.modal.editSubtitle')}
         onClose={onClose}
       />
 
@@ -40,6 +43,7 @@ function EditDepartmentForm({
   department: DepartmentListItem;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     name: department.name,
     status: department.status,
@@ -57,7 +61,7 @@ function EditDepartmentForm({
       });
       onClose();
     } catch (error) {
-      console.error('Failed to update department:', error);
+      console.error(t('departments.modal.updateFailed'), error);
     }
   };
 
@@ -67,21 +71,21 @@ function EditDepartmentForm({
         <div className="grid grid-cols-2 gap-x-10 items-start">
           <Input
             id="edit-dept-name"
-            label="Name"
+            label={t('tables.headers.name')}
             required
-            placeholder="e.g Economy"
+            placeholder={t('departments.modal.namePlaceholder')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             autoComplete="off"
           />
           <Select
             id="edit-dept-status"
-            label="Status"
+            label={t('tables.headers.status')}
             value={formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
             onChange={(e) => setFormData({ ...formData, status: e.target.value === 'Active' ? 'ACTIVE' : 'INACTIVE' })}
             options={[
-              { value: 'Active', label: 'Active' },
-              { value: 'Inactive', label: 'Inactive' }
+              { value: 'Active', label: t('common.statuses.active') },
+              { value: 'Inactive', label: t('common.statuses.inactive') }
             ]}
           />
         </div>
@@ -90,8 +94,8 @@ function EditDepartmentForm({
         <div className="w-full">
           <Textarea
             id="edit-dept-description"
-            label="Description"
-            placeholder="Department description.."
+            label={t('tables.headers.description')}
+            placeholder={t('departments.modal.descriptionPlaceholder')}
             rows={2}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -105,7 +109,7 @@ function EditDepartmentForm({
             disabled={updateMutation.isPending}
             className="px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all disabled:opacity-50"
           >
-            Back
+            {t('common.actions.back')}
           </button>
           <Button
             onClick={handleSave}
@@ -113,7 +117,7 @@ function EditDepartmentForm({
             disabled={!formData.name.trim()}
             className="h-11 rounded-xl px-12 font-bold min-w-[140px]"
           >
-            Update
+            {t('common.actions.update')}
           </Button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Trash2 } from 'lucide-react';
 import { LeaveRequestDto } from '@/features/leave/types';
+import { useI18n } from '@/common/i18n';
 
 interface RejectLeaveModalProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export function RejectLeaveModal({
   onConfirm,
   isLoading = false,
 }: RejectLeaveModalProps) {
+  const { t } = useI18n();
+
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
@@ -63,7 +66,7 @@ export function RejectLeaveModal({
           className="text-gray-900 text-center mb-2"
           style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '24px', lineHeight: '32px' }}
         >
-          Reject Request
+          {t('leave.rejectTitle')}
         </h2>
 
         {/* Description */}
@@ -71,20 +74,20 @@ export function RejectLeaveModal({
           className="text-[#64748B] text-center max-w-md mx-auto mb-8"
           style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: '14px', lineHeight: '20px' }}
         >
-          Are you sure you want to reject the request from{' '}
-          <span className="font-bold text-gray-900">{leaveRequest.employeeName}</span>? This action
-          cannot be undone.
+          {t('leave.rejectQuestionPrefix')}{' '}
+          <span className="font-bold text-gray-900">{leaveRequest.employeeName}</span>?{' '}
+          {t('leave.rejectQuestionSuffix')}
         </p>
 
         {/* Reason Field */}
         <div className="mb-8">
-          <label className="block text-sm font-bold text-[#64748B] mb-2">Give a reason</label>
+          <label className="block text-sm font-bold text-[#64748B] mb-2">{t('leave.giveReason')}</label>
           <textarea
             value={reason}
             onChange={(e) => onReasonChange(e.target.value)}
             maxLength={500}
             className="w-full h-32 p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40 resize-none"
-            placeholder="Write reason here..."
+            placeholder={t('leave.reasonPlaceholder')}
           />
         </div>
 
@@ -98,14 +101,14 @@ export function RejectLeaveModal({
             disabled={isLoading}
             className="flex-1 max-w-[140px] py-3.5 bg-[#E2E8F0] hover:bg-[#CBD5E1] text-[#475569] text-base font-bold rounded-xl transition-colors disabled:opacity-50"
           >
-            Back
+            {t('common.actions.back')}
           </button>
           <button
             onClick={() => onConfirm(leaveRequest.id, reason)}
             disabled={isLoading || !reason.trim()}
             className="flex-1 max-w-[240px] py-3.5 bg-[#EF4444] hover:bg-[#DC2626] text-white text-base font-bold rounded-xl transition-colors shadow-[0_4px_12px_rgba(239,68,68,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Rejecting...' : 'Reject'}
+            {isLoading ? t('leave.rejecting') : t('leave.reject')}
           </button>
         </div>
       </div>

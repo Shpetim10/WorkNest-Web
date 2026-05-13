@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { AnnouncementAudience, AnnouncementPriority, CreateAnnouncementBody } from '../types';
 import { useCreateAnnouncement, useEmployeeLookup } from '../api';
 import { useDepartmentLookup } from '@/features/departments';
+import { useI18n } from '@/common/i18n';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const INITIAL: CreateAnnouncementBody = {
 };
 
 export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
+  const { t } = useI18n();
   const [form, setForm] = useState<CreateAnnouncementBody>(INITIAL);
   const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>([]);
   const [selectedEmpIds, setSelectedEmpIds] = useState<string[]>([]);
@@ -65,14 +67,14 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
 
   const handleSubmit = () => {
     setError(null);
-    if (!form.title.trim()) return setError('Title is required.');
-    if (!form.content.trim()) return setError('Content is required.');
+    if (!form.title.trim()) return setError(t('announcements.modal.titleRequired'));
+    if (!form.content.trim()) return setError(t('announcements.modal.contentRequired'));
     if (form.targetAudience === 'DEPARTMENT' && selectedDeptIds.length === 0)
-      return setError('Select at least one department.');
+      return setError(t('announcements.modal.selectDepartment'));
     if (form.targetAudience === 'SPECIFIC_USERS' && selectedDeptIds.length === 0)
-      return setError('Select at least one department.');
+      return setError(t('announcements.modal.selectDepartment'));
     if (form.targetAudience === 'SPECIFIC_USERS' && selectedEmpIds.length === 0)
-      return setError('Select at least one user.');
+      return setError(t('announcements.modal.selectUser'));
 
     const body: CreateAnnouncementBody = {
       ...form,
@@ -87,20 +89,20 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
         setSelectedEmpIds([]);
         onClose();
       },
-      onError: () => setError('Failed to create announcement. Please try again.'),
+      onError: () => setError(t('announcements.modal.createFailed')),
     });
   };
 
   const AUDIENCE_OPTIONS: { value: AnnouncementAudience; label: string }[] = [
-    { value: 'ALL_EMPLOYEES', label: 'All Employees' },
-    { value: 'DEPARTMENT', label: 'Department' },
-    { value: 'SPECIFIC_USERS', label: 'Specific Users' },
+    { value: 'ALL_EMPLOYEES', label: t('announcements.allEmployees') },
+    { value: 'DEPARTMENT', label: t('announcements.department') },
+    { value: 'SPECIFIC_USERS', label: t('announcements.specificUsers') },
   ];
 
   const renderDepartmentChips = () => (
     <div className="flex flex-wrap gap-3">
       {departments.length === 0 ? (
-        <p className="text-xs text-gray-400">No departments found.</p>
+        <p className="text-xs text-gray-400">{t('tables.empty.departments')}</p>
       ) : (
         departments.map((dept) => {
           const isSelected = selectedDeptIds.includes(dept.id);
@@ -147,14 +149,14 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
           style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
         >
           <div>
-            <h2 className="text-[24px] font-bold leading-7 text-white">Create Announcement</h2>
+            <h2 className="text-[24px] font-bold leading-7 text-white">{t('announcements.create')}</h2>
             <p className="mt-1 text-[12px] font-normal leading-4 text-white/90">
-              Create a new announcement to share with your team
+              {t('announcements.modal.subtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.actions.close')}
             className="rounded-md p-1 text-white/85 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X size={20} />
@@ -167,13 +169,13 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
             {/* Title */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-medium text-[#1F2937]">
-                Title <span className="text-red-500">*</span>
+                {t('announcements.modal.titleLabel')} <span className="text-red-500">*</span>
               </label>
               <input
                 value={form.title}
                 onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
                 maxLength={255}
-                placeholder="Announcement title"
+                placeholder={t('announcements.modal.titlePlaceholder')}
                 className="h-12 rounded-[10px] border border-[#D1D5DC] px-4 text-[14px] text-gray-800 placeholder:text-[#99A1AF] focus:border-[#2B7FFF] focus:outline-none focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
@@ -181,13 +183,13 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
           {/* Content */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[12px] font-medium text-[#1F2937]">
-              Content <span className="text-red-500">*</span>
+              {t('announcements.modal.contentLabel')} <span className="text-red-500">*</span>
             </label>
             <textarea
               value={form.content}
               onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
               rows={4}
-              placeholder="Write your announcement here..."
+              placeholder={t('announcements.modal.contentPlaceholder')}
               className="min-h-[72px] resize-none rounded-[10px] border border-[#E5E7EB] px-4 py-3 text-[14px] text-gray-800 placeholder:text-[#99A1AF] focus:border-[#2B7FFF] focus:outline-none focus:ring-2 focus:ring-blue-500/15"
             />
           </div>
@@ -195,7 +197,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
           {/* Target Audience */}
           <div className="flex flex-col gap-2">
             <label className="text-[12px] font-medium text-[#1F2937]">
-              Target Audience <span className="text-red-500">*</span>
+              {t('announcements.modal.targetAudience')} <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2 rounded-[10px] bg-[#F3F4F6] p-1">
               {AUDIENCE_OPTIONS.map(({ value, label }) => (
@@ -219,7 +221,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
           {form.targetAudience === 'DEPARTMENT' && (
             <div className="flex flex-col gap-3 pt-1">
               <label className="text-[12px] font-medium text-[#1F2937]">
-                Select Departments <span className="text-red-500">*</span>
+                {t('announcements.modal.selectDepartments')} <span className="text-red-500">*</span>
               </label>
               {renderDepartmentChips()}
             </div>
@@ -230,22 +232,22 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
             <div className="flex flex-col gap-4 pt-1">
               <div className="flex flex-col gap-3">
                 <label className="text-[12px] font-medium text-[#1F2937]">
-                  Select Departments <span className="text-red-500">*</span>
+                  {t('announcements.modal.selectDepartments')} <span className="text-red-500">*</span>
                 </label>
                 {renderDepartmentChips()}
               </div>
 
               <div className="flex flex-col gap-3">
                 <label className="text-[12px] font-medium text-[#1F2937]">
-                  Select Users <span className="text-red-500">*</span>
+                  {t('announcements.modal.selectUsers')} <span className="text-red-500">*</span>
               </label>
                 <div className="flex flex-wrap gap-3">
                   {selectedDeptIds.length === 0 ? (
-                    <p className="text-xs text-gray-400">Select a department to view users.</p>
+                    <p className="text-xs text-gray-400">{t('announcements.modal.selectDepartmentToViewUsers')}</p>
                   ) : isLoadingEmployees ? (
-                    <p className="text-xs text-gray-400">Loading users...</p>
+                    <p className="text-xs text-gray-400">{t('announcements.modal.loadingUsers')}</p>
                   ) : employees.length === 0 ? (
-                    <p className="text-xs text-gray-400">No users found for selected department.</p>
+                    <p className="text-xs text-gray-400">{t('announcements.modal.noUsers')}</p>
                   ) : (
                   employees.map((emp) => {
                     const displayName = emp.fullName?.trim() || emp.email;
@@ -280,7 +282,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
 
           {/* Priority */}
           <div className="flex flex-col gap-2">
-            <label className="text-[12px] font-medium text-[#1F2937]">Priority (Optional)</label>
+            <label className="text-[12px] font-medium text-[#1F2937]">{t('announcements.modal.priorityOptional')}</label>
             <div className="flex flex-wrap gap-3">
               {(['NORMAL', 'IMPORTANT'] as AnnouncementPriority[]).map((p) => (
                 <button
@@ -302,7 +304,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
                       <span className="h-1.5 w-1.5 rounded-full bg-[#2B7FFF]" />
                     )}
                   </span>
-                  {p === 'IMPORTANT' ? 'Important' : 'Normal'}
+                  {p === 'IMPORTANT' ? t('announcements.important') : t('announcements.modal.normalPriority')}
                 </button>
               ))}
             </div>
@@ -321,7 +323,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
             onClick={onClose}
             className="h-11 min-w-[100px] rounded-[8px] bg-[#E5E7EB] px-6 text-sm font-medium text-[#364153] transition-colors hover:bg-[#D1D5DC]"
           >
-            Back
+            {t('common.actions.back')}
           </button>
           <button
             onClick={handleSubmit}
@@ -329,7 +331,7 @@ export function CreateAnnouncementModal({ isOpen, onClose }: Props) {
             className="h-11 min-w-[158px] rounded-[8px] px-6 text-sm font-semibold text-white transition-colors disabled:opacity-50"
             style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
-            {create.isPending ? 'Creating...' : 'Add'}
+            {create.isPending ? t('announcements.modal.creating') : t('announcements.modal.add')}
           </button>
         </div>
       </div>

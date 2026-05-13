@@ -6,12 +6,14 @@ import { Building2, ChevronRight, LogOut, UserCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useSelectRole } from '../api/login';
 import { PlatformAccess } from '../types';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 
 /**
  * Premium Role Selection View
  * Allows users to choose a specific organization/role context after login.
  */
 export const SelectRoleView: React.FC = () => {
+  const { t } = useI18n();
   const router = useRouter();
   const { loginResponse, clearAuth } = useAuthStore();
   const selectRoleMutation = useSelectRole();
@@ -34,7 +36,7 @@ export const SelectRoleView: React.FC = () => {
       // On success, tokens are updated in localStorage via mutation onSuccess
       router.push('/dashboard');
     } catch (error) {
-      console.error('Failed to select role:', error);
+      console.error(t('auth.selectRole.failedLog'), error);
     }
   };
 
@@ -44,17 +46,20 @@ export const SelectRoleView: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB] px-4 py-12 sm:px-6 lg:px-8">
+    <div className="relative flex min-h-screen items-center justify-center bg-[#F9FAFB] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="absolute right-6 top-6 z-20">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
             <Building2 className="h-8 w-8 text-blue-600" />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-gray-900">
-            Select Workspace
+            {t('auth.selectRole.title')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Choose the organization and role you'd like to use for this session.
+            {t('auth.selectRole.subtitle')}
           </p>
         </div>
 
@@ -92,7 +97,7 @@ export const SelectRoleView: React.FC = () => {
             className="flex items-center space-x-2 text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none"
           >
             <LogOut className="h-4 w-4" />
-            <span>Sign out and use a different account</span>
+            <span>{t('auth.selectRole.signOut')}</span>
           </button>
         </div>
       </div>

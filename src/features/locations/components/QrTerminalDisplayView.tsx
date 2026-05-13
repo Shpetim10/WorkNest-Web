@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import QRCode from 'qrcode';
 import { AlertCircle, Expand, Loader2, RefreshCw, Shrink } from 'lucide-react';
 import { Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { fetchCurrentQrToken, refreshCurrentQrToken } from '../api';
 import { QR_TERMINAL_PAGE_BACKGROUND } from '../constants/qr-terminal';
 import { CurrentQrToken } from '../types';
@@ -43,6 +44,7 @@ export function QrTerminalDisplayView({
   terminalName,
   siteName,
 }: QrTerminalDisplayViewProps) {
+  const { t } = useI18n();
   const [qrData, setQrData] = useState<CurrentQrToken | null>(null);
   const [qrImage, setQrImage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export function QrTerminalDisplayView({
             ? await refreshCurrentQrToken(terminalId)
             : await fetchCurrentQrToken(terminalId);
         await applyToken(tokenData);
-        setBannerMessage(mode === 'manual' ? 'QR refreshed.' : '');
+        setBannerMessage(mode === 'manual' ? t('locations.qrDisplay.refreshed') : '');
       } catch (error) {
         if (!mountedRef.current) return;
 
@@ -120,8 +122,8 @@ export function QrTerminalDisplayView({
         });
         setErrorMessage(
           mode === 'manual'
-            ? "QR refresh failed. We'll try again automatically."
-            : formatAttendanceFriendlyError(error, "We couldn't load the current QR code. Retrying..."),
+            ? t('locations.qrDisplay.refreshFailed')
+            : formatAttendanceFriendlyError(error, t('locations.qrDisplay.loadFailed')),
         );
       } finally {
         requestInFlightRef.current = false;
@@ -130,7 +132,7 @@ export function QrTerminalDisplayView({
         setRefreshing(false);
       }
     },
-    [applyToken, terminalId],
+    [applyToken, terminalId, t],
   );
 
   useEffect(() => {
@@ -192,15 +194,15 @@ export function QrTerminalDisplayView({
   const remainingMs = qrData ? new Date(qrData.expiresAt).getTime() - now : 0;
   const isExpired = !qrData || remainingMs <= 0;
 
-  const terminalLabel = terminalName || 'QR Terminal';
-  const siteLabel = siteName || (qrData?.siteId ? `Site ${qrData.siteId}` : 'Attendance Terminal');
+  const terminalLabel = terminalName || t('locations.qrDisplay.terminalFallback');
+  const siteLabel = siteName || (qrData?.siteId ? t('locations.qrDisplay.siteId', { id: qrData.siteId }) : t('locations.qrDisplay.siteFallback'));
 
   const statusText = useMemo(() => {
-    if (loading) return 'Loading current QR...';
+    if (loading) return t('locations.qrDisplay.loadingCurrent');
     if (errorMessage) return errorMessage;
-    if (isExpired) return "QR unavailable. We're requesting a fresh code now.";
-    return 'Ready for attendance scans';
-  }, [errorMessage, isExpired, loading]);
+    if (isExpired) return t('locations.qrDisplay.unavailableRequesting');
+    return t('locations.qrDisplay.readyForScans');
+  }, [errorMessage, isExpired, loading, t]);
 
   const toggleFullscreen = async () => {
     try {
@@ -210,7 +212,7 @@ export function QrTerminalDisplayView({
         await document.documentElement.requestFullscreen();
       }
     } catch {
-      setBannerMessage('Fullscreen is not available in this browser.');
+      setBannerMessage(t('locations.qrDisplay.fullscreenUnavailable'));
     }
   };
 
@@ -219,7 +221,7 @@ export function QrTerminalDisplayView({
       <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-6">
         <div className="flex flex-col justify-between gap-4 rounded-[28px] border border-white/70 bg-white/85 px-6 py-5 shadow-[0_20px_60px_-25px_rgba(21,93,252,0.35)] backdrop-blur sm:flex-row sm:items-center">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#155DFC]">Attendance QR Terminal</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#155DFC]">{t('locations.qrDisplay.title')}</p>
             <h1 className="mt-1 text-[28px] font-bold tracking-tight text-[#101828]">{terminalLabel}</h1>
             <p className="mt-1 text-[14px] font-medium text-[#4A5565]">{siteLabel}</p>
           </div>
@@ -232,7 +234,7 @@ export function QrTerminalDisplayView({
               icon={<RefreshCw size={16} />}
               iconPosition="left"
             >
-              Refresh Now
+              {t('locations.qrDisplay.refreshNow')}
             </Button>
             <Button
               variant="secondary"
@@ -241,7 +243,7 @@ export function QrTerminalDisplayView({
               icon={isFullscreen ? <Shrink size={16} /> : <Expand size={16} />}
               iconPosition="left"
             >
-              {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              {isFullscreen ? t('locations.qrDisplay.exitFullscreen') : t('locations.qrDisplay.fullscreen')}
             </Button>
           </div>
         </div>
@@ -258,18 +260,19 @@ export function QrTerminalDisplayView({
               {loading ? (
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="h-10 w-10 animate-spin text-[#155DFC]" />
-                  <p className="text-[16px] font-semibold text-[#364153]">Loading current QR...</p>
+                  <p className="text-[16px] font-semibold text-[#364153]">{t('locations.qrDisplay.loadingCurrent')}</p>
                 </div>
               ) : !isExpired && qrImage ? (
                 <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={qrImage}
-                    alt="Attendance QR code"
+                    alt={t('locations.qrDisplay.qrAlt')}
                     className="h-auto w-full max-w-[420px] rounded-[24px] border border-[#E5E7EB] bg-white p-5 shadow-sm"
                     style={{ imageRendering: 'pixelated' }}
                   />
                   <div className="mt-6 rounded-full bg-[#ECFDF3] px-4 py-2 text-[13px] font-semibold text-[#027A48]">
-                    Valid for {formatCountdown(remainingMs)}
+                    {t('locations.qrDisplay.validFor', { time: formatCountdown(remainingMs) })}
                   </div>
                 </>
               ) : (
@@ -277,7 +280,7 @@ export function QrTerminalDisplayView({
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600">
                     <AlertCircle size={28} />
                   </div>
-                  <h2 className="text-[22px] font-bold text-[#101828]">QR unavailable</h2>
+                  <h2 className="text-[22px] font-bold text-[#101828]">{t('locations.qrDisplay.unavailableTitle')}</h2>
                   <p className="text-[15px] font-medium leading-6 text-[#4A5565]">{statusText}</p>
                 </div>
               )}
@@ -286,24 +289,24 @@ export function QrTerminalDisplayView({
 
           <div className="space-y-4">
             <div className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_20px_60px_-30px_rgba(16,24,40,0.3)]">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#155DFC]">Status</p>
-              <p className="mt-3 text-[20px] font-bold text-[#101828]">{isExpired ? 'Refreshing QR' : 'Live QR Active'}</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#155DFC]">{t('locations.qrDisplay.status')}</p>
+              <p className="mt-3 text-[20px] font-bold text-[#101828]">{isExpired ? t('locations.qrDisplay.refreshingQr') : t('locations.qrDisplay.liveQrActive')}</p>
               <p className="mt-2 text-[14px] font-medium leading-6 text-[#4A5565]">{statusText}</p>
             </div>
 
             <div className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_20px_60px_-30px_rgba(16,24,40,0.3)]">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#155DFC]">Rotation</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#155DFC]">{t('locations.qrDisplay.rotation')}</p>
               <div className="mt-4 space-y-3 text-[14px] font-medium text-[#364153]">
                 <div className="flex items-center justify-between">
-                  <span>Rotation Seconds</span>
+                  <span>{t('locations.qrDisplay.rotationSeconds')}</span>
                   <span className="font-bold text-[#101828]">{qrData?.rotationSeconds ?? '--'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Expires In</span>
-                  <span className="font-bold text-[#101828]">{isExpired ? 'Expired' : formatCountdown(remainingMs)}</span>
+                  <span>{t('locations.qrDisplay.expiresIn')}</span>
+                  <span className="font-bold text-[#101828]">{isExpired ? t('locations.qrDisplay.expired') : formatCountdown(remainingMs)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Issued At</span>
+                  <span>{t('locations.qrDisplay.issuedAt')}</span>
                   <span className="font-bold text-[#101828]">
                     {qrData ? new Date(qrData.issuedAt).toLocaleTimeString() : '--'}
                   </span>
@@ -312,7 +315,7 @@ export function QrTerminalDisplayView({
             </div>
 
             <div className="rounded-[28px] border border-[#D6E4FF] bg-[#F8FBFF] p-5 text-[13px] font-medium leading-6 text-[#4A5565] shadow-[0_20px_60px_-30px_rgba(21,93,252,0.25)]">
-              This page renders only the opaque token returned by the backend. Expired QR codes are removed automatically and replaced after the next successful refresh.
+              {t('locations.qrDisplay.tokenPrivacyNote')}
             </div>
           </div>
         </div>

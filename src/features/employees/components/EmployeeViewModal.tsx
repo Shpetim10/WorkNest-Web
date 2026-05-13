@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { apiClient } from '@/common/network/api-client';
+import { useI18n } from '@/common/i18n';
 import { EmployeeStatus, PaymentMethod } from '../types';
 import { useEmployee } from '../api/get-employee-details';
 import { formatCurrencyAmount, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
@@ -19,6 +20,7 @@ interface EmployeeViewModalProps {
 }
 
 type ActiveTab = 'profile' | 'employment';
+type Translate = ReturnType<typeof useI18n>['t'];
 
 const DETAIL_ROW = "flex flex-col gap-1.5 p-4 rounded-xl border border-gray-100 bg-gray-50/30 transition-colors hover:bg-[#F8FAFF] hover:border-[#155DFC]/20";
 const LABEL_CLS = "flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-gray-400";
@@ -28,31 +30,28 @@ function getInitials(firstName?: string, lastName?: string) {
   return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase() || '??';
 }
 
-function formatDate(dateString: string | undefined | null) {
-  if (!dateString) return '—';
+function localeToDateLocale(locale: string): string {
+  if (locale === 'sq') return 'sq-AL';
+  if (locale === 'de') return 'de-DE';
+  if (locale === 'it') return 'it-IT';
+  return 'en-US';
+}
+
+function formatDate(dateString: string | undefined | null, locale: string) {
+  if (!dateString) return '-';
   try {
-    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
     return dateString;
   }
 }
 
-function formatEmploymentType(type: string | null | undefined) {
-  const map: Record<string, string> = {
-    FULL_TIME: 'Full-Time',
-    PART_TIME: 'Part-Time',
-    CONTRACT: 'Fixed-Term Contract',
-    INTERN: 'Internship',
-  };
-  return type ? (map[type] || type) : '—';
+function formatEmploymentType(type: string | null | undefined, t: Translate) {
+  return type ? t(`employees.employmentTypes.${type}`) : '-';
 }
 
-function formatPaymentMethod(method: string | null | undefined) {
-  const map: Record<string, string> = {
-    FIXED_MONTHLY: 'Fixed Monthly Salary',
-    HOURLY: 'Hourly Rate',
-  };
-  return method ? (map[method] || method) : '—';
+function formatPaymentMethod(method: string | null | undefined, t: Translate) {
+  return method ? t(`employees.paymentMethods.${method}`) : '-';
 }
 
 function resolveContractUrl(path?: string | null) {
@@ -68,6 +67,8 @@ function resolveContractUrl(path?: string | null) {
 }
 
 export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewModalProps) {
+  const { locale, t } = useI18n();
+  const displayLocale = localeToDateLocale(locale);
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
   const currencyCode = getStoredCompanyCurrency();
   const currencyLocale = getStoredCompanyLocale();
@@ -86,7 +87,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
   }, [isOpen, onClose]);
 
   const initials = employee ? getInitials(employee.firstName, employee.lastName) : '??';
-  const fullName = employee ? `${employee.firstName} ${employee.lastName}` : 'Loading...';
+  const fullName = employee ? `${employee.firstName} ${employee.lastName}` : t('common.feedback.loading');
   const contractUrl = resolveContractUrl(employee?.contractDocumentPath);
   const hasPdfContract = Boolean(contractUrl && contractUrl.toLowerCase().endsWith('.pdf'));
 
@@ -113,7 +114,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
         setContractPreviewUrl(objectUrlToRevoke);
       } catch {
         if (!isMounted) return;
-        setContractPreviewError('Unable to load contract preview.');
+        setContractPreviewError(t('employees.view.unableContractPreview'));
       } finally {
         if (isMounted) setIsContractPreviewLoading(false);
       }
@@ -125,7 +126,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
       isMounted = false;
       if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke);
     };
-  }, [isOpen, contractUrl, hasPdfContract]);
+  }, [isOpen, contractUrl, hasPdfContract, t]);
 
   if (!isOpen) return null;
 
@@ -139,9 +140,9 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
   const scopedAccessMessage = (() => {
     const status = (error as { response?: { status?: number } } | null)?.response?.status;
     if (status === 403 || status === 404) {
-      return 'You can only view details for employees in your assigned scope.';
+      return t('employees.view.scopedAccess');
     }
-    return 'Failed to load employee details';
+    return t('employees.view.loadFailed');
   })();
 
   return createPortal(
@@ -170,8 +171,8 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
                     : 'bg-[#FFF7ED] text-[#CA3500]'
                   }`}>
                     <div className="mr-1.5 h-1 w-1 rounded-full bg-current" />
-                    {employee.status === EmployeeStatus.ACTIVE ? 'Active'
-                      : employee.status === EmployeeStatus.PENDING ? 'Pending'
+                    {employee.status === EmployeeStatus.ACTIVE ? t('common.statuses.active')
+                      : employee.status === EmployeeStatus.PENDING ? t('common.statuses.pending')
                       : employee.status.replace('_', ' ')}
                   </span>
                 )}
@@ -186,10 +187,10 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
           {!isLoading && !isError && employee && (
             <div className="flex items-center gap-2 px-8 pt-5 pb-0 shrink-0">
               <button onClick={() => setActiveTab('profile')} className={tabClass('profile')}>
-                Profile & Organization
+                {t('employees.view.profileOrganization')}
               </button>
               <button onClick={() => setActiveTab('employment')} className={tabClass('employment')}>
-                Employment & Contract
+                {t('employees.view.employmentContract')}
               </button>
             </div>
           )}
@@ -199,7 +200,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-[#155DFC]" />
-                <p className="text-gray-400 font-medium">Fetching employee details...</p>
+                <p className="text-gray-400 font-medium">{t('employees.view.fetchingDetails')}</p>
               </div>
             ) : isError || !employee ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -211,37 +212,37 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
             ) : activeTab === 'profile' ? (
               <div className="grid grid-cols-2 gap-4">
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><User size={14} strokeWidth={2.5} /> Full Name</span>
+                  <span className={LABEL_CLS}><User size={14} strokeWidth={2.5} /> {t('employees.view.fullName')}</span>
                   <span className={VALUE_CLS}>{fullName}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Mail size={14} strokeWidth={2.5} /> Email Address</span>
+                  <span className={LABEL_CLS}><Mail size={14} strokeWidth={2.5} /> {t('common.fields.emailAddress')}</span>
                   <span className={VALUE_CLS}>{employee.email}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Building2 size={14} strokeWidth={2.5} /> Department</span>
-                  <span className={VALUE_CLS}>{employee.departmentName || '—'}</span>
+                  <span className={LABEL_CLS}><Building2 size={14} strokeWidth={2.5} /> {t('tables.headers.department')}</span>
+                  <span className={VALUE_CLS}>{employee.departmentName || '-'}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><UserCog size={14} strokeWidth={2.5} /> Job Title</span>
+                  <span className={LABEL_CLS}><UserCog size={14} strokeWidth={2.5} /> {t('tables.headers.jobTitle')}</span>
                   <span className={VALUE_CLS}>{employee.jobTitle}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><MapPin size={14} strokeWidth={2.5} /> Location</span>
-                  <span className={VALUE_CLS}>{employee.companySiteName || '—'}</span>
+                  <span className={LABEL_CLS}><MapPin size={14} strokeWidth={2.5} /> {t('tables.headers.location')}</span>
+                  <span className={VALUE_CLS}>{employee.companySiteName || '-'}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Calendar size={14} strokeWidth={2.5} /> Hire Date</span>
-                  <span className={VALUE_CLS}>{formatDate(employee.hireDate)}</span>
+                  <span className={LABEL_CLS}><Calendar size={14} strokeWidth={2.5} /> {t('employees.view.hireDate')}</span>
+                  <span className={VALUE_CLS}>{formatDate(employee.hireDate, displayLocale)}</span>
                 </div>
                 <div className={`${DETAIL_ROW} col-span-2`}>
-                  <span className={LABEL_CLS}><UserCog size={14} strokeWidth={2.5} /> Assigned Supervisor</span>
+                  <span className={LABEL_CLS}><UserCog size={14} strokeWidth={2.5} /> {t('employees.view.assignedSupervisor')}</span>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-lg bg-[#E8F1FF] flex items-center justify-center text-[#155DFC]">
                         <User size={16} strokeWidth={2.5} />
                       </div>
-                      <span className={VALUE_CLS}>{employee.supervisorName || 'No supervisor assigned'}</span>
+                      <span className={VALUE_CLS}>{employee.supervisorName || t('employees.view.noSupervisor')}</span>
                     </div>
                     {employee.supervisorJobTitle && (
                       <span className="text-[12px] font-bold text-[#155DFC] bg-[#E8F1FF] px-3 py-1 rounded-lg border border-[#155DFC]/10 uppercase tracking-tighter">
@@ -255,66 +256,66 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
               /* Employment & Contract Tab */
               <div className="grid grid-cols-2 gap-4">
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Briefcase size={14} strokeWidth={2.5} /> Employment Type</span>
-                  <span className={VALUE_CLS}>{formatEmploymentType(employee.employmentType)}</span>
+                  <span className={LABEL_CLS}><Briefcase size={14} strokeWidth={2.5} /> {t('employees.view.employmentType')}</span>
+                  <span className={VALUE_CLS}>{formatEmploymentType(employee.employmentType, t)}</span>
                 </div>
                 <div className={DETAIL_ROW}>
-                  <span className={LABEL_CLS}><Sun size={14} strokeWidth={2.5} /> Paid Leave Days / Year</span>
+                  <span className={LABEL_CLS}><Sun size={14} strokeWidth={2.5} /> {t('employees.view.paidLeaveDays')}</span>
                   <span className={VALUE_CLS}>
-                    {employee.leaveDaysPerYear != null ? `${employee.leaveDaysPerYear} days` : '—'}
+                    {employee.leaveDaysPerYear != null ? t('dashboard.days', { count: employee.leaveDaysPerYear }) : '-'}
                   </span>
                 </div>
                 <div className={`${DETAIL_ROW} col-span-2`}>
-                  <span className={LABEL_CLS}><Calendar size={14} strokeWidth={2.5} /> Contract Expiry</span>
-                  <span className={VALUE_CLS}>{formatDate(employee.contractExpiryDate)}</span>
+                  <span className={LABEL_CLS}><Calendar size={14} strokeWidth={2.5} /> {t('employees.view.contractExpiry')}</span>
+                  <span className={VALUE_CLS}>{formatDate(employee.contractExpiryDate, displayLocale)}</span>
                 </div>
                 {employee.contractDocumentKey && (
                   <div className={`${DETAIL_ROW} col-span-2`}>
-                    <span className={LABEL_CLS}><FileText size={14} strokeWidth={2.5} /> PDF Contract Preview</span>
+                    <span className={LABEL_CLS}><FileText size={14} strokeWidth={2.5} /> {t('employees.view.pdfContractPreview')}</span>
                     {hasPdfContract && isContractPreviewLoading ? (
                       <div className="flex items-center gap-2 text-[13px] font-medium text-gray-500">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading contract preview...
+                        {t('employees.view.loadingContractPreview')}
                       </div>
                     ) : hasPdfContract && contractPreviewUrl ? (
                       <button
                         type="button"
                         onClick={() => window.open(contractPreviewUrl, '_blank', 'noopener,noreferrer')}
                         className="w-full overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left transition-all hover:border-[#155DFC]/40"
-                        title="Open full PDF in a new page"
+                        title={t('employees.view.openFullPdf')}
                       >
                         <iframe
                           src={contractPreviewUrl}
-                          title="Employee Contract PDF"
+                          title={t('employees.view.employeeContractPdf')}
                           className="h-[360px] w-full pointer-events-none"
                         />
                         <div className="px-3 py-2 text-[12px] font-semibold text-[#155DFC] bg-[#F8FAFF] border-t border-[#E5E7EB]">
-                          Open full PDF in new page
+                          {t('employees.view.openFullPdf')}
                         </div>
                       </button>
                     ) : contractPreviewError ? (
                       <p className="text-[13px] font-medium text-red-500">{contractPreviewError}</p>
                     ) : (
                       <p className="text-[13px] font-medium text-gray-500">
-                        Contract is on file, but no direct PDF URL is available to preview in-app yet.
+                        {t('employees.view.contractNoPreview')}
                       </p>
                     )}
                   </div>
                 )}
                 <div className={`${DETAIL_ROW} col-span-2`}>
-                  <span className={LABEL_CLS}><CreditCard size={14} strokeWidth={2.5} /> Payment Method</span>
+                  <span className={LABEL_CLS}><CreditCard size={14} strokeWidth={2.5} /> {t('employees.view.paymentMethod')}</span>
                   <div className="flex items-center justify-between">
-                    <span className={VALUE_CLS}>{formatPaymentMethod(employee.paymentMethod)}</span>
+                    <span className={VALUE_CLS}>{formatPaymentMethod(employee.paymentMethod, t)}</span>
                     {employee.paymentMethod === PaymentMethod.FIXED_MONTHLY && employee.monthlySalary != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
                         {formatCurrencyAmount(employee.monthlySalary, currencyCode, currencyLocale)}
-                        <span className="text-[12px] font-semibold text-gray-400 ml-1">/month</span>
+                        <span className="text-[12px] font-semibold text-gray-400 ml-1">{t('auth.register.pricing.perMonth')}</span>
                       </span>
                     )}
                     {employee.paymentMethod === PaymentMethod.HOURLY && employee.hourlyRate != null && (
                       <span className="text-[18px] font-bold text-[#155DFC]">
                         {formatCurrencyAmount(employee.hourlyRate, currencyCode, currencyLocale)}
-                        <span className="text-[12px] font-semibold text-gray-400 ml-1">/hour</span>
+                        <span className="text-[12px] font-semibold text-gray-400 ml-1">{t('employees.view.perHour')}</span>
                       </span>
                     )}
                   </div>
@@ -329,7 +330,7 @@ export function EmployeeViewModal({ isOpen, onClose, employeeId }: EmployeeViewM
               onClick={onClose}
               className="h-11 rounded-xl bg-[#1E2939] px-8 text-[14px] font-bold text-white shadow-lg shadow-gray-200 transition-all hover:bg-black hover:scale-[1.02] active:scale-[0.98] font-[Inter,sans-serif]"
             >
-              Close
+              {t('common.actions.close')}
             </button>
           </div>
         </div>

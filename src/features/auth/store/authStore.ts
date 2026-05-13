@@ -22,6 +22,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem('access_token_expires_at');
       localStorage.removeItem('current_company_id');
       localStorage.removeItem('user_email');
+      localStorage.removeItem('user_display_name');
+      localStorage.removeItem('user_profile_image_key');
+      localStorage.removeItem('user_profile_image_url');
+      localStorage.removeItem('superadmin_profile_name');
       localStorage.removeItem('platform_role');
       clearStoredCompanySettings();
       removeCookie('auth_token');

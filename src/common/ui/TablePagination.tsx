@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { useI18n } from '@/common/i18n';
 
 interface TablePaginationProps {
   currentPage: number;
@@ -22,6 +23,7 @@ export function TablePagination({
   totalItems,
   className = "",
 }: TablePaginationProps) {
+  const { t } = useI18n();
   const pageCount = Math.max(1, totalPages);
   const safeCurrentPage = Math.min(Math.max(currentPage, 1), pageCount);
 
@@ -68,7 +70,7 @@ export function TablePagination({
           <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#F5F9FF]/60 px-4 py-2 text-[12px] font-semibold text-[#4B5565] font-[Inter,sans-serif] ring-1 ring-[#D9E7FF]/40">
             {safePageSize && (
               <span className="inline-flex items-center gap-2">
-                Rows
+                {t('common.pagination.rows')}
                 {onPageSizeChange ? (
                   <div className="relative inline-block group">
                     <select
@@ -95,8 +97,8 @@ export function TablePagination({
             {safeTotalItems !== undefined && (
               <span className="text-[#6B7280] border-l border-[#D9E7FF] pl-3 ml-1">
                 {safeTotalItems === 0 || rangeStart === undefined || rangeEnd === undefined
-                  ? '0 items'
-                  : `${rangeStart}-${rangeEnd} of ${safeTotalItems}`}
+                  ? t('common.pagination.itemsCount', { count: 0 })
+                  : t('common.pagination.rangeOf', { start: rangeStart, end: rangeEnd, total: safeTotalItems })}
               </span>
             )}
           </div>
@@ -113,7 +115,7 @@ export function TablePagination({
           style={{ background: gradient }}
         >
           <ChevronLeft size={16} strokeWidth={2.5} />
-          <span className="hidden sm:inline">Prev</span>
+          <span className="hidden sm:inline">{t('common.actions.previous')}</span>
         </button>
 
         {/* Page Numbers */}
@@ -156,7 +158,7 @@ export function TablePagination({
           className="inline-flex h-9 items-center gap-1.5 rounded-xl px-4 text-[13px] font-bold text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:active:scale-100 font-[Inter,sans-serif] shadow-sm hover:brightness-105"
           style={{ background: gradient }}
         >
-          <span className="hidden sm:inline">Next</span>
+          <span className="hidden sm:inline">{t('common.actions.next')}</span>
           <ChevronRight size={16} strokeWidth={2.5} />
         </button>
       </nav>

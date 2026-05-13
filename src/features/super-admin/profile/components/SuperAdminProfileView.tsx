@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { Check, Eye, EyeOff, KeyRound, Loader2, Lock, Save, ShieldCheck, UserCircle, X } from 'lucide-react';
 import { Button, PageHeaderDecorativeCircles } from '@/common/ui';
 import { useChangePassword } from '@/features/auth/api/change-password';
@@ -27,12 +27,14 @@ function getUserEmailSnapshot() {
 
 function getStoredSuperAdminProfile(): SuperAdminProfile {
   if (typeof window === 'undefined') return DEFAULT_SUPER_ADMIN_PROFILE;
+  const storedProfile = readUserMenuProfile('superadmin');
 
   return {
     ...DEFAULT_SUPER_ADMIN_PROFILE,
-    displayName:
-      localStorage.getItem('superadmin_profile_name') || DEFAULT_SUPER_ADMIN_PROFILE.displayName,
-    email: localStorage.getItem('user_email') || DEFAULT_SUPER_ADMIN_PROFILE.email,
+    displayName: storedProfile.displayName || DEFAULT_SUPER_ADMIN_PROFILE.displayName,
+    email: storedProfile.email || DEFAULT_SUPER_ADMIN_PROFILE.email,
+    role: storedProfile.role || DEFAULT_SUPER_ADMIN_PROFILE.role,
+    imageUrl: storedProfile.imageUrl || DEFAULT_SUPER_ADMIN_PROFILE.imageUrl,
   };
 }
 
@@ -41,22 +43,27 @@ function persistSuperAdminProfile(profile: SuperAdminProfile) {
 
   localStorage.setItem('superadmin_profile_name', profile.displayName);
   localStorage.setItem('user_email', profile.email);
-  window.dispatchEvent(new Event('worknest:user-email-changed'));
+  persistUserProfileFromAuthPayload(profile, {
+    displayName: profile.displayName,
+    email: profile.email,
+    role: profile.role,
+    imageUrl: profile.imageUrl,
+  });
 }
 
 type PasswordKey = 'current' | 'next' | 'confirm';
 export type SuperAdminProfileSection = 'personal-info' | 'change-password';
 
-const PASSWORD_LABELS: Record<PasswordKey, string> = {
-  current: 'Current Password',
-  next: 'New Password',
-  confirm: 'Confirm New Password',
+const PASSWORD_LABEL_KEYS: Record<PasswordKey, string> = {
+  current: 'dashboard.changePassword.currentPassword',
+  next: 'auth.resetPassword.newPassword',
+  confirm: 'dashboard.changePassword.confirmNewPassword',
 };
 
 const PASSWORD_RULES = [
-  { label: 'At least 8 characters', test: (password: string) => password.length >= 8 },
-  { label: 'At least one uppercase letter', test: (password: string) => /[A-Z]/.test(password) },
-  { label: 'At least one number', test: (password: string) => /[0-9]/.test(password) },
+  { labelKey: 'passwordRules.atLeast8', test: (password: string) => password.length >= 8 },
+  { labelKey: 'passwordRules.uppercase', test: (password: string) => /[A-Z]/.test(password) },
+  { labelKey: 'passwordRules.number', test: (password: string) => /[0-9]/.test(password) },
 ];
 
 function EditableField({
@@ -132,6 +139,7 @@ export function SuperAdminProfileView({
   activeSection = 'personal-info',
   enableProfileQuery = false,
 }: SuperAdminProfileViewProps = {}) {
+  const { t } = useI18n();
   const changePassword = useChangePassword();
   const profileQuery = useSuperAdminProfile({ enabled: enableProfileQuery });
   const updateProfile = useUpdateSuperAdminProfile();
@@ -161,6 +169,7 @@ export function SuperAdminProfileView({
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const userInitial = (profileForm.email || currentProfile.email || 'S').charAt(0).toUpperCase() || 'S';
+  const profileImageUrl = profileForm.imageUrl || localProfile.imageUrl || currentProfile.imageUrl || '';
   const newPassword = passwordData.next;
   const passedRuleCount = PASSWORD_RULES.filter((rule) => rule.test(newPassword)).length;
   const strength =
@@ -173,12 +182,18 @@ export function SuperAdminProfileView({
   }[strength];
   const isPasswordSection = activeSection === 'change-password';
   const PageIcon = isPasswordSection ? KeyRound : UserCircle;
-  const pageTitle = isPasswordSection ? 'Change Password' : 'Personal Info';
+  const pageTitle = isPasswordSection ? t('shell.nav.changePassword') : t('superAdmin.profile.personalInfo');
   const pageSubtitle = isPasswordSection
-    ? 'Update your super administrator account password'
-    : 'Manage your super administrator account details';
+    ? t('superAdmin.profile.passwordSubtitle')
+    : t('superAdmin.profile.subtitle');
   const profileLoadError =
-    enableProfileQuery && profileQuery.isError ? 'Profile could not be loaded from API. Showing local values.' : '';
+    enableProfileQuery && profileQuery.isError ? t('superAdmin.profile.loadFailed') : '';
+
+  useEffect(() => {
+    if (profileQuery.data) {
+      persistSuperAdminProfile(profileQuery.data);
+    }
+  }, [profileQuery.data]);
 
   const updateProfileField = (field: keyof SuperAdminProfile) => (value: string) => {
     setDraftProfile((current) => ({ ...(current ?? currentProfile), [field]: value }));
@@ -210,9 +225,9 @@ export function SuperAdminProfileView({
       persistSuperAdminProfile(savedProfile);
       setDraftProfile(null);
       setProfileError('');
-      setProfileMessage('Profile saved successfully.');
+      setProfileMessage(t('superAdmin.profile.saved'));
     } catch (error: unknown) {
-      const message = error instanceof Error && error.message ? error.message : 'Failed to save profile.';
+      const message = error instanceof Error && error.message ? error.message : t('superAdmin.profile.saveFailed');
       setProfileError(message);
       setProfileMessage('');
     }
@@ -222,6 +237,44 @@ export function SuperAdminProfileView({
     setDraftProfile(null);
     setProfileError('');
     setProfileMessage('');
+  };
+
+  const handleProfilePhotoUpload = async (file: File) => {
+    const uploaded = await uploadMedia(file, 'USER_PROFILE');
+    const imageUrl = resolveProfileImageUrl('', uploaded.storageKey);
+    const updatedProfile: SuperAdminProfile = {
+      ...currentProfile,
+      ...profileForm,
+      imageUrl,
+    };
+
+    setLocalProfile(updatedProfile);
+    if (draftProfile) {
+      setDraftProfile({ ...profileForm, imageUrl });
+    }
+    persistSuperAdminProfile(updatedProfile);
+    persistUserProfileFromAuthPayload(updatedProfile, {
+      displayName: updatedProfile.displayName,
+      email: updatedProfile.email,
+      role: updatedProfile.role,
+      imageUrl,
+      imageKey: uploaded.storageKey,
+    });
+  };
+
+  const handleProfilePhotoRemove = () => {
+    const updatedProfile: SuperAdminProfile = {
+      ...currentProfile,
+      ...profileForm,
+      imageUrl: '',
+    };
+
+    setLocalProfile(updatedProfile);
+    if (draftProfile) {
+      setDraftProfile({ ...profileForm, imageUrl: '' });
+    }
+    persistSuperAdminProfile(updatedProfile);
+    clearUserProfileImage();
   };
 
   const updatePasswordField = (field: PasswordKey) => (value: string) => {
@@ -235,17 +288,17 @@ export function SuperAdminProfileView({
     setPasswordSuccess('');
 
     if (!passwordData.current || !passwordData.next || !passwordData.confirm) {
-      setPasswordError('All password fields are required.');
+      setPasswordError(t('validation.allFieldsRequired'));
       return;
     }
 
     if (passwordData.next !== passwordData.confirm) {
-      setPasswordError('New passwords do not match.');
+      setPasswordError(t('validation.newPasswordsDoNotMatch'));
       return;
     }
 
     if (passedRuleCount < PASSWORD_RULES.length) {
-      setPasswordError('New password does not meet the requirements.');
+      setPasswordError(t('superAdmin.profile.passwordRequirementsFailed'));
       return;
     }
 
@@ -255,10 +308,10 @@ export function SuperAdminProfileView({
         newPassword: passwordData.next,
       });
       setPasswordData({ current: '', next: '', confirm: '' });
-      setPasswordSuccess('Password updated successfully.');
+      setPasswordSuccess(t('dashboard.changePassword.success'));
     } catch (error: unknown) {
       const message =
-        error instanceof Error && error.message ? error.message : 'Failed to change password. Please try again.';
+        error instanceof Error && error.message ? error.message : t('validation.changePasswordFailed');
       setPasswordError(message);
     }
   };
@@ -294,9 +347,13 @@ export function SuperAdminProfileView({
             className="flex items-center gap-4 px-6 py-5"
             style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[22px] font-bold text-[#155DFC]">
-              {userInitial}
-            </div>
+            <ProfileAvatar
+              imageUrl={profileImageUrl}
+              initial={userInitial}
+              alt={profileForm.displayName}
+              className="h-14 w-14 shrink-0"
+              fallbackClassName="bg-white text-[#155DFC]"
+            />
             <div className="min-w-0">
               <h2 className="text-[20px] font-bold leading-7 text-white">{profileForm.displayName}</h2>
               <p className="truncate text-[13px] font-medium text-white/85">{profileForm.email}</p>
@@ -310,7 +367,7 @@ export function SuperAdminProfileView({
                     className="flex h-9 items-center gap-2 rounded-xl bg-white/15 px-4 text-[13px] font-bold text-white transition-colors hover:bg-white/20"
                   >
                     <X size={15} strokeWidth={2.2} />
-                    Cancel
+                    {t('common.actions.cancel')}
                   </button>
                   <button
                     type="button"
@@ -323,7 +380,7 @@ export function SuperAdminProfileView({
                     ) : (
                       <Save size={15} strokeWidth={2.2} />
                     )}
-                    {updateProfile.isPending ? 'Saving...' : 'Save'}
+                    {updateProfile.isPending ? t('common.actions.saving') : t('common.actions.save')}
                   </button>
                 </>
               ) : (
@@ -336,7 +393,7 @@ export function SuperAdminProfileView({
                   }}
                   className="flex h-9 items-center rounded-xl bg-white px-4 text-[13px] font-bold text-[#155DFC] transition-colors hover:bg-white/90"
                 >
-                  Edit Profile
+                  {t('superAdmin.profile.editProfile')}
                 </button>
               )}
             </div>
@@ -363,6 +420,29 @@ export function SuperAdminProfileView({
               disabled
               onChange={updateProfileField('accountStatus')}
             />
+
+            <div className="grid content-start grid-cols-2 gap-x-10 gap-y-6">
+              <EditableField
+                label={t('superAdmin.profile.displayName')}
+                value={profileForm.displayName}
+                disabled={!isEditing}
+                onChange={updateProfileField('displayName')}
+              />
+              <EditableField
+                label={t('common.fields.emailAddress')}
+                value={profileForm.email}
+                disabled={!isEditing}
+                type="email"
+                onChange={updateProfileField('email')}
+              />
+              <EditableField label={t('common.fields.role')} value={profileForm.role} disabled onChange={updateProfileField('role')} />
+              <EditableField
+                label={t('superAdmin.profile.accountStatus')}
+                value={profileForm.accountStatus}
+                disabled
+                onChange={updateProfileField('accountStatus')}
+              />
+            </div>
           </div>
 
           {(profileMessage || profileError || profileLoadError) && (
@@ -394,7 +474,7 @@ export function SuperAdminProfileView({
               {(['current', 'next', 'confirm'] as PasswordKey[]).map((key) => (
                 <PasswordInput
                   key={key}
-                  label={PASSWORD_LABELS[key]}
+                  label={t(PASSWORD_LABEL_KEYS[key])}
                   value={passwordData[key]}
                   visible={visiblePassword[key]}
                   onChange={updatePasswordField(key)}

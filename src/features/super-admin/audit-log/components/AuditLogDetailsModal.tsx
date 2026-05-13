@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { AuditLogRow, AuditLogSeverity } from '../types';
+import { useI18n } from '@/common/i18n';
 
 interface AuditLogDetailsModalProps {
   auditLog: AuditLogRow | null;
@@ -35,6 +36,8 @@ function SeverityPill({ severity }: { severity: AuditLogSeverity }) {
 }
 
 export function AuditLogDetailsModal({ auditLog, isOpen, onClose }: AuditLogDetailsModalProps) {
+  const { t } = useI18n();
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -68,8 +71,8 @@ export function AuditLogDetailsModal({ auditLog, isOpen, onClose }: AuditLogDeta
             style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
           >
             <div>
-              <h2 className="text-[20px] font-bold leading-7 text-white">Audit Log Details</h2>
-              <p className="mt-1 text-[13px] font-medium text-white/85">View the audit event details</p>
+              <h2 className="text-[20px] font-bold leading-7 text-white">{t('superAdmin.auditLog.detailsTitle')}</h2>
+              <p className="mt-1 text-[13px] font-medium text-white/85">{t('superAdmin.auditLog.detailsSubtitle')}</p>
             </div>
             <button
               type="button"
@@ -82,15 +85,15 @@ export function AuditLogDetailsModal({ auditLog, isOpen, onClose }: AuditLogDeta
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
             <section className="space-y-3">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">Table Details</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">{t('superAdmin.auditLog.tableDetails')}</h3>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                <DetailField label="Event" value={auditLog.event} />
-                <DetailField label="Company" value={auditLog.company} />
-                <DetailField label="Actor" value={auditLog.actor} />
-                <DetailField label="Timestamp" value={auditLog.timestamp} />
-                <DetailField label="Severity" value={<SeverityPill severity={auditLog.severity} />} />
+                <DetailField label={t('superAdmin.auditLog.headers.event')} value={auditLog.event} />
+                <DetailField label={t('superAdmin.auditLog.headers.company')} value={auditLog.company} />
+                <DetailField label={t('superAdmin.auditLog.headers.actor')} value={auditLog.actor} />
+                <DetailField label={t('superAdmin.auditLog.headers.timestamp')} value={auditLog.timestamp} />
+                <DetailField label={t('superAdmin.auditLog.headers.severity')} value={<SeverityPill severity={auditLog.severity} />} />
                 <div className="col-span-2">
-                  <DetailField label="Description" value={auditLog.description} />
+                  <DetailField label={t('superAdmin.auditLog.headers.description')} value={auditLog.description} />
                 </div>
               </div>
             </section>

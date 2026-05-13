@@ -19,8 +19,19 @@ import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { StatusActionModal } from './StatusActionModal';
 import { StaffViewModal } from './StaffViewModal';
 import { resolvePersonDetailTarget } from '../utils/people';
+import { useI18n } from '@/common/i18n';
 
-const TABLE_HEADERS = ['Name', 'Role', 'Employment Type', 'Email', 'Department', 'Location', 'Job Title', 'Status', 'Actions'];
+const TABLE_HEADER_KEYS = [
+  'tables.headers.name',
+  'common.fields.role',
+  'employees.view.employmentType',
+  'tables.headers.email',
+  'tables.headers.department',
+  'tables.headers.location',
+  'tables.headers.jobTitle',
+  'tables.headers.status',
+  'tables.headers.actions',
+];
 
 function getInitials(name?: string | null) {
   if (!name) return '??';
@@ -39,6 +50,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function EmployeeListView() {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -98,9 +110,9 @@ export function EmployeeListView() {
     if (!companyId) return;
     try {
       await resendMutation.mutateAsync({ companyId, employeeId });
-      alert('Invitation resent successfully!');
+      alert(t('employees.invitationResent'));
     } catch (err: unknown) {
-      alert(getErrorMessage(err, 'Failed to resend invitation'));
+      alert(getErrorMessage(err, t('employees.resendFailed')));
     }
   };
 
@@ -112,7 +124,7 @@ export function EmployeeListView() {
       await deleteMutation.mutateAsync({ companyId, employeeId: deleteEmployee.id });
       setDeleteEmployee(null);
     } catch (err: unknown) {
-      alert(getErrorMessage(err, 'Failed to delete employee'));
+      alert(getErrorMessage(err, t('employees.deleteFailed')));
     }
   };
 
@@ -154,16 +166,17 @@ export function EmployeeListView() {
         action,
       });
     } catch (err: unknown) {
-      alert(getErrorMessage(err, `Failed to ${action} employee`));
+      alert(getErrorMessage(err, t('employees.statusFailed', { action })));
     }
   };
 
-  const [supervisor, setSupervisor] = useState('All supervisors');
-  const [department, setDepartment] = useState('All departments');
+  const [supervisor, setSupervisor] = useState('all');
+  const [department, setDepartment] = useState('all');
 
   const employeeStatusAction = statusActionEmployee?.status === EmployeeStatus.ACTIVE ? 'terminate' : 'activate';
 
   const employees = data?.data.items || [];
+  const tableHeaders = TABLE_HEADER_KEYS.map((key) => t(key));
   const totalPages = Math.max(1, data?.data.totalPages ?? 1);
   const totalItems = data?.data.totalItems ?? employees.length;
   // Use pageSize from state
@@ -187,9 +200,9 @@ export function EmployeeListView() {
             <UserCog size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Employee List</h1>
+            <h1 className="text-3xl font-bold text-white">{t('employees.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Manage all employees
+              {t('employees.subtitle')}
             </p>
           </div>
         </div>
@@ -209,7 +222,7 @@ export function EmployeeListView() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search employee locally..."
+            placeholder={t('employees.searchPlaceholder')}
             value={searchQuery}
             onChange={handleSearchChange}
             className="w-full h-8 pl-9 pr-4 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
@@ -223,7 +236,7 @@ export function EmployeeListView() {
               onChange={(e) => setSupervisor(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option>All supervisors</option>
+              <option value="all">{t('employees.allSupervisors')}</option>
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -234,7 +247,7 @@ export function EmployeeListView() {
               onChange={(e) => setDepartment(e.target.value)}
               className="appearance-none h-8 pl-3 pr-8 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40"
             >
-              <option>All departments</option>
+              <option value="all">{t('employees.allDepartments')}</option>
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
@@ -243,7 +256,7 @@ export function EmployeeListView() {
             onClick={() => {}}
             className="h-8 px-6 bg-[#2B7FFF] text-white text-[13px] font-medium rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            Apply
+            {t('common.actions.apply')}
           </button>
         </div>
       </div>
@@ -259,7 +272,7 @@ export function EmployeeListView() {
                 className="text-xs font-semibold text-white uppercase tracking-wide"
                 style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}
               >
-                {TABLE_HEADERS.map((header) => (
+                {tableHeaders.map((header) => (
                   <th key={header} className="px-4 py-3.5 text-left font-semibold">
                     {header}
                   </th>
@@ -269,22 +282,22 @@ export function EmployeeListView() {
             <tbody className="bg-white text-left">
               {isLoading ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center">
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Loader2 className="h-8 w-8 animate-spin text-[#155DFC]" />
-                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">Loading employees...</p>
+                      <p className="text-[14px] font-medium text-gray-500 font-[Inter,sans-serif]">{t('tables.loading.employees')}</p>
                     </div>
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
-                    <p className="text-[14px] font-medium">Failed to load employees</p>
+                  <td colSpan={tableHeaders.length} className="px-6 py-20 text-center text-red-500 font-[Inter,sans-serif]">
+                    <p className="text-[14px] font-medium">{t('tables.failed.employees')}</p>
                   </td>
                 </tr>
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={TABLE_HEADERS.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">No employees found</td>
+                  <td colSpan={tableHeaders.length} className="px-6 py-16 text-center text-gray-400 font-medium font-[Inter,sans-serif]">{t('tables.empty.employees')}</td>
                 </tr>
               ) : (
                 employees.map((person, index) => (
@@ -347,8 +360,8 @@ export function EmployeeListView() {
                         : person.status === EmployeeStatus.PENDING ? 'bg-[#FF690033] text-[#FF6900]'
                         : 'bg-[#EF444433] text-[#EF4444]'
                       }`}>
-                        {person.status === EmployeeStatus.ACTIVE ? 'Active'
-                          : person.status === EmployeeStatus.PENDING ? 'Pending'
+                        {person.status === EmployeeStatus.ACTIVE ? t('common.statuses.active')
+                          : person.status === EmployeeStatus.PENDING ? t('common.statuses.pending')
                           : person.status.replace('_', ' ').toLowerCase()}
                       </span>
                     </td>
@@ -359,7 +372,7 @@ export function EmployeeListView() {
                           <button
                             onClick={() => handleResend(person.id)}
                             disabled={resendMutation.isPending}
-                            title="Resend Invitation"
+                            title={t('employees.resendInvitation')}
                             className="rounded-lg p-2 text-gray-400 transition-all hover:bg-orange-50 hover:text-[#B45309] disabled:opacity-50"
                           >
                             {resendMutation.isPending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
@@ -369,7 +382,7 @@ export function EmployeeListView() {
                         {/* View */}
                         <button
                           onClick={() => setViewPerson(person)}
-                          title="View Details"
+                          title={t('common.actions.viewDetails')}
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC]"
                         >
                           <Eye size={17} />
@@ -381,7 +394,7 @@ export function EmployeeListView() {
                           <button
                             data-employee-dropdown-trigger={person.id}
                             onClick={(event) => handleDropdownToggle(event, person.id)}
-                            title="Update"
+                            title={t('common.actions.update')}
                             className={`rounded-lg p-2 text-gray-400 transition-all hover:bg-blue-50 hover:text-[#155DFC] flex items-center gap-0.5 ${openDropdownId === person.id ? 'bg-blue-50 text-[#155DFC]' : ''}`}
                           >
                             <ChevronDown size={17} />
@@ -393,7 +406,7 @@ export function EmployeeListView() {
                         {person.platformRole === 'EMPLOYEE' && (person.status === EmployeeStatus.ACTIVE || person.status === EmployeeStatus.INACTIVE || person.status === EmployeeStatus.TERMINATED) && (
                           <button
                             onClick={() => setStatusActionEmployee(person.raw)}
-                            title={person.status === EmployeeStatus.ACTIVE ? 'Terminate Employee' : 'Activate Employee'}
+                            title={person.status === EmployeeStatus.ACTIVE ? t('employees.terminateEmployee') : t('employees.activateEmployee')}
                             className={`rounded-lg p-2 text-gray-400 transition-all ${
                               person.status === EmployeeStatus.ACTIVE
                                 ? 'hover:bg-amber-50 hover:text-amber-500'
@@ -406,7 +419,7 @@ export function EmployeeListView() {
 
                         {person.platformRole === 'EMPLOYEE' && <button
                           onClick={() => setDeleteEmployee(person.raw)}
-                          title="Delete Employee"
+                          title={t('employees.deleteEmployee')}
                           className="rounded-lg p-2 text-gray-400 transition-all hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 size={17} />
@@ -483,8 +496,8 @@ export function EmployeeListView() {
           isOpen={!!deleteEmployee}
           onClose={() => setDeleteEmployee(null)}
           onConfirm={handleDeleteConfirm}
-          title="Delete Employee"
-          message="Are you sure you want to permanently delete"
+          title={t('employees.deleteEmployee')}
+          message={t('employees.deleteMessage')}
           itemName={`${deleteEmployee.firstName} ${deleteEmployee.lastName}`}
         />
       )}
@@ -499,7 +512,7 @@ export function EmployeeListView() {
           }}
           isLoading={toggleStatusMutation.isPending}
           action={employeeStatusAction}
-          entityLabel="Employee"
+          entityLabel={t('employees.title')}
           itemName={statusActionEmployee.name || `${statusActionEmployee.firstName || ''} ${statusActionEmployee.lastName || ''}`.trim()}
         />
       )}
@@ -526,8 +539,8 @@ export function EmployeeListView() {
                 <UserCog size={16} />
               </div>
               <div className="text-left">
-                <div className="font-bold">Personal Info</div>
-                <div className="text-[11px] text-gray-400 font-normal">Name, email, dept, supervisor</div>
+                <div className="font-bold">{t('employees.personalInfo')}</div>
+                <div className="text-[11px] text-gray-400 font-normal">{t('employees.personalInfoDescription')}</div>
               </div>
             </button>
             <div className="h-px bg-gray-50 mx-3" />
@@ -543,8 +556,8 @@ export function EmployeeListView() {
                 <FileText size={16} />
               </div>
               <div className="text-left">
-                <div className="font-bold">Job & Contract</div>
-                <div className="text-[11px] text-gray-400 font-normal">Employment, payment, leave</div>
+                <div className="font-bold">{t('employees.jobContract')}</div>
+                <div className="text-[11px] text-gray-400 font-normal">{t('employees.jobContractDescription')}</div>
               </div>
             </button>
           </div>,

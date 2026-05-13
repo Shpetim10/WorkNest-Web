@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Modal, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { Trash2 } from 'lucide-react';
 import { useDeleteDepartment } from '../api';
 import { DepartmentListItem } from '../types';
@@ -13,6 +14,7 @@ interface DeleteDepartmentModalProps {
 }
 
 export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDepartmentModalProps) {
+  const { t } = useI18n();
   const deleteMutation = useDeleteDepartment();
 
   if (!department) return null;
@@ -22,7 +24,7 @@ export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDep
       await deleteMutation.mutateAsync(department.id);
       onClose();
     } catch (error) {
-      console.error('Failed to delete department:', error);
+      console.error(t('departments.modal.deleteFailed'), error);
     }
   };
 
@@ -41,9 +43,11 @@ export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDep
 
         {/* Content */}
         <div className="space-y-2">
-          <h2 className="text-[24px] font-bold text-[#1E2939] tracking-tight">Delete Department</h2>
+          <h2 className="text-[24px] font-bold text-[#1E2939] tracking-tight">{t('departments.modal.deleteTitle')}</h2>
           <p className="text-[14.5px] text-gray-500 font-medium max-w-[340px] mx-auto leading-relaxed">
-            Are you sure you want to delete <span className="font-bold text-gray-700">"{department.name}"</span>? This action cannot be undone.
+            {t('departments.modal.deleteQuestion')}{' '}
+            <span className="font-bold text-gray-700">&quot;{department.name}&quot;</span>?{' '}
+            {t('departments.modal.cannotUndo')}
           </p>
         </div>
 
@@ -54,7 +58,7 @@ export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDep
             disabled={deleteMutation.isPending}
             className="flex-1 py-3 text-[14px] font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 hover:text-gray-700 rounded-2xl transition-all disabled:opacity-50"
           >
-            Back
+            {t('common.actions.back')}
           </button>
           <Button
             onClick={handleDelete}
@@ -62,7 +66,7 @@ export function DeleteDepartmentModal({ isOpen, onClose, department }: DeleteDep
             isLoading={deleteMutation.isPending}
             className="flex-1 h-12 rounded-2xl font-bold"
           >
-            Delete
+            {t('common.actions.delete')}
           </Button>
         </div>
       </div>

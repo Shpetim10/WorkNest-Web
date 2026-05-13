@@ -25,9 +25,9 @@ interface UpdateParams {
 export const useUpdateEmployeeJobDetails = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<ApiResponse<any>, Error, UpdateParams>({
+  return useMutation<ApiResponse<unknown>, Error, UpdateParams>({
     mutationFn: async ({ employeeId, data }) => {
-      const response = await apiClient.put<ApiResponse<any>>(
+      const response = await apiClient.put<ApiResponse<unknown>>(
         `/companies/${data.companyId}/provisioning/employee/${employeeId}/job-details`,
         data
       );

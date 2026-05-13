@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { GradientModalHeader, Modal, Input, Select, Textarea, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useCreateDepartment } from '../api';
 import { DepartmentStatus } from '../types';
 
@@ -11,6 +12,7 @@ interface AddDepartmentModalProps {
 }
 
 export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps) {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     name: '',
     status: 'ACTIVE' as DepartmentStatus,
@@ -34,7 +36,7 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
       onClose();
       setFormData({ name: '', status: 'ACTIVE', description: '' });
     } catch (error) {
-      console.error('Failed to create department:', error);
+      console.error(t('departments.modal.createFailed'), error);
     }
   };
 
@@ -47,8 +49,8 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
       containerClassName="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
     >
       <GradientModalHeader
-        title="Add Department"
-        subtitle="Add new department for your company"
+        title={t('departments.modal.addTitle')}
+        subtitle={t('departments.modal.addSubtitle')}
         onClose={handleModalClose}
       />
 
@@ -57,21 +59,21 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
         <div className="grid grid-cols-2 gap-x-10 items-start">
           <Input
             id="dept-name"
-            label="Name"
+            label={t('tables.headers.name')}
             required
-            placeholder="e.g Economy"
+            placeholder={t('departments.modal.namePlaceholder')}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             autoComplete="off"
           />
           <Select
             id="dept-status"
-            label="Status"
+            label={t('tables.headers.status')}
             value={formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
             onChange={(e) => setFormData({ ...formData, status: e.target.value === 'Active' ? 'ACTIVE' : 'INACTIVE' })}
             options={[
-              { value: 'Active', label: 'Active' },
-              { value: 'Inactive', label: 'Inactive' }
+              { value: 'Active', label: t('common.statuses.active') },
+              { value: 'Inactive', label: t('common.statuses.inactive') }
             ]}
           />
         </div>
@@ -80,8 +82,8 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
         <div className="w-full">
           <Textarea
             id="dept-description"
-            label="Description"
-            placeholder="Department description.."
+            label={t('tables.headers.description')}
+            placeholder={t('departments.modal.descriptionPlaceholder')}
             rows={2}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -95,7 +97,7 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
             disabled={createMutation.isPending}
             className="px-10 py-2.5 text-[14px] font-bold text-gray-500 bg-gray-100/60 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-all disabled:opacity-50"
           >
-            Back
+            {t('common.actions.back')}
           </button>
           <Button
             onClick={handleAdd}
@@ -103,7 +105,7 @@ export function AddDepartmentModal({ isOpen, onClose }: AddDepartmentModalProps)
             disabled={!formData.name.trim()}
             className="h-11 rounded-xl px-12 font-bold min-w-[140px]"
           >
-            Add
+            {t('departments.modal.add')}
           </Button>
         </div>
       </div>

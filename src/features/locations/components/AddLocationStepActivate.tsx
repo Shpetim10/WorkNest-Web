@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { useI18n } from '@/common/i18n';
 import { Issue, LocationFormData, LocationStep2Data, LocationStep3Data } from '../types';
 import { LocationFormMode } from './LocationFormModal';
 
@@ -46,6 +47,7 @@ export function AddLocationStepActivate({
   readyToActivate = false,
   isCheckingReadiness = false,
 }: AddLocationStepActivateProps) {
+  const { t } = useI18n();
   const isEdit = mode === 'edit';
 
   return (
@@ -54,7 +56,7 @@ export function AddLocationStepActivate({
         <div className="absolute top-0 right-0 -z-1 h-32 w-32 bg-gradient-to-br from-blue-50/50 to-emerald-50/50 blur-3xl" />
         <div className="mb-4 flex items-center justify-between">
           <p className="text-[16px] font-bold text-[#101828]">
-            {isEdit ? 'Review Changes' : 'Summary Before Activation'}
+            {isEdit ? t('locations.form.reviewChanges') : t('locations.form.summaryBeforeActivation')}
           </p>
           <div
             className={`flex items-center gap-1.5 rounded-[8px] px-3 py-1 text-[12px] font-semibold ${
@@ -68,42 +70,42 @@ export function AddLocationStepActivate({
             ) : (
               <AlertTriangle size={14} strokeWidth={2.5} />
             )}
-            {isCheckingReadiness ? 'Checking' : readyToActivate ? 'Ready' : 'Needs Attention'}
+            {isCheckingReadiness ? t('locations.form.checking') : readyToActivate ? t('locations.form.ready') : t('locations.form.needsAttention')}
           </div>
         </div>
 
         <div className="space-y-4">
-          <Section title="Basic Information">
-            <SummaryRow label="Site Name:" value={step1.siteName} />
-            <SummaryRow label="Site Code:" value={step1.siteCode} mono />
-            <SummaryRow label="Site Type:" value={step1.siteType} />
-            <SummaryRow label="Country:" value={step1.country} />
-            <SummaryRow label="Timezone:" value={step1.timezone} />
+          <Section title={t('locations.modal.basicInformation')}>
+            <SummaryRow label={`${t('locations.form.siteName')}:`} value={step1.siteName} />
+            <SummaryRow label={`${t('locations.form.siteCode')}:`} value={step1.siteCode} mono />
+            <SummaryRow label={`${t('locations.form.siteType')}:`} value={step1.siteType} />
+            <SummaryRow label={`${t('locations.form.country')}:`} value={step1.country} />
+            <SummaryRow label={`${t('locations.form.timezone')}:`} value={step1.timezone} />
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
 
-          <Section title="Location Configuration">
-            <SummaryRow label="Address:" value={step2.addressLine1} />
-            <SummaryRow label="City:" value={step2.city} />
+          <Section title={t('locations.form.locationConfiguration')}>
+            <SummaryRow label={`${t('locations.form.addressLine1')}:`} value={step2.addressLine1} />
+            <SummaryRow label={`${t('locations.form.city')}:`} value={step2.city} />
             <SummaryRow
-              label="Coordinates:"
+              label={`${t('locations.form.latitude')} / ${t('locations.form.longitude')}:`}
               value={
                 step2.latitude != null && step2.longitude != null
                   ? `${step2.latitude.toFixed(5)}, ${step2.longitude.toFixed(5)}`
                   : '-'
               }
             />
-            <SummaryRow label="Geofence Radius:" value={step2.geofenceRadius ? `${step2.geofenceRadius}m` : '-'} />
+            <SummaryRow label={`${t('locations.form.geofenceRadius')}:`} value={step2.geofenceRadius ? `${step2.geofenceRadius}m` : '-'} />
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
 
-          <Section title="Network Configuration">
-            <SummaryRow label="Network Name:" value={step3.name} />
-            <SummaryRow label="CIDR Block:" value={step3.cidrBlock} mono />
-            <SummaryRow label="Detected IP:" value={step3.detectedIp} mono />
-            <SummaryRow label="Confidence:" value={step3.confidence} />
+          <Section title={t('locations.modal.networkConfiguration')}>
+            <SummaryRow label={`${t('locations.form.networkName')}:`} value={step3.name} />
+            <SummaryRow label={`${t('locations.form.cidrBlock')}:`} value={step3.cidrBlock} mono />
+            <SummaryRow label={`${t('locations.form.detectedIpAddress')}:`} value={step3.detectedIp} mono />
+            <SummaryRow label={`${t('locations.form.confidence')}:`} value={step3.confidence} />
           </Section>
         </div>
       </div>
@@ -134,8 +136,8 @@ export function AddLocationStepActivate({
         <Check size={14} className="shrink-0 text-[#008236]" strokeWidth={2.5} />
         <span className="text-[13px] font-semibold text-[#008236]">
           {isEdit
-            ? 'Saving sends one complete payload to the backend so the location stays consistent across every section.'
-            : 'Create site submits the full site payload once, including any reviewed location and trusted network values.'}
+            ? t('locations.form.savingConsistency')
+            : t('locations.form.createPayloadOnce')}
         </span>
       </div>
     </div>

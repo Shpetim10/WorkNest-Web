@@ -1,4 +1,7 @@
+"use client";
+
 import React, { InputHTMLAttributes, ReactNode } from 'react';
+import { useI18n } from '@/common/i18n';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -21,6 +24,7 @@ export const Input = ({
   className = '',
   ...props
 }: InputProps) => {
+  const { t } = useI18n();
   const isInvalid = !!error;
 
   return (
@@ -47,8 +51,8 @@ export const Input = ({
           <button
             type="button"
             onClick={onIconRightClick}
-            aria-label={`Toggle ${label}`}
-            title={`Toggle ${label}`}
+            aria-label={t('common.placeholders.toggleField', { label })}
+            title={t('common.placeholders.toggleField', { label })}
             className="absolute inset-y-0 right-0 z-10 flex items-center px-3.5 text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-gray-700"
           >
             {iconRight}

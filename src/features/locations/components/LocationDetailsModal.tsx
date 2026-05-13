@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { Modal, Button } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { mapDetailsToLocation, useSiteDetails } from '../api';
 import { AttendancePolicyModal } from './AttendancePolicyModal';
 import { CreateQrTerminalModal } from './CreateQrTerminalModal';
@@ -48,6 +49,7 @@ export function LocationDetailsModal({
   siteId,
   companyId,
 }: LocationDetailsModalProps) {
+  const { t } = useI18n();
   const [isPolicyModalOpen, setIsPolicyModalOpen] = React.useState(false);
   const [isCreateTerminalModalOpen, setIsCreateTerminalModalOpen] = React.useState(false);
   const { data, isLoading, isError } = useSiteDetails(companyId, isOpen ? siteId : null);
@@ -67,7 +69,7 @@ export function LocationDetailsModal({
 
   const formatHeartbeat = (value: string | null) => {
     if (!value) {
-      return 'No heartbeat yet';
+      return t('locations.modal.noHeartbeat');
     }
 
     try {
@@ -79,8 +81,11 @@ export function LocationDetailsModal({
 
   const policySourceText =
     attendancePolicy?.policySource === 'COMPANY_DEFAULT'
-      ? 'This site is currently using the company default attendance policy.'
-      : 'This site has its own attendance policy override.';
+      ? t('locations.modal.companyDefaultPolicy')
+      : t('locations.modal.sitePolicyOverride');
+  const yesNo = (value: boolean) => (value ? t('common.yes') : t('common.no'));
+  const siteTypeLabel = location?.siteType ? t(`locations.types.${location.siteType}`) : '';
+  const statusLabel = location?.status ? t(`common.statuses.${location.status.toLowerCase()}`) : '';
 
   return (
     <>
@@ -103,9 +108,9 @@ export function LocationDetailsModal({
                 </div>
                 <div className="space-y-0.5">
                   <h2 className="text-[24px] font-bold leading-tight tracking-tight text-white">
-                    {location?.siteName ?? 'Location details'}
+                    {location?.siteName ?? t('locations.modal.detailsTitle')}
                   </h2>
-                  <p className="text-[14px] font-normal text-white/80">{location?.siteCode ?? 'Loading...'}</p>
+                  <p className="text-[14px] font-normal text-white/80">{location?.siteCode ?? t('locations.modal.loadingDetails')}</p>
                 </div>
               </div>
               <button
@@ -124,26 +129,26 @@ export function LocationDetailsModal({
               </div>
             ) : isError || !location ? (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
-                Failed to load the latest location details.
+                {t('locations.modal.loadDetailsFailed')}
               </div>
             ) : (
               <div className="space-y-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Building2 size={18} className="text-[#155DFC]" />
-                  <h3 className="text-[16px] font-semibold text-[#101828]">Basic Information</h3>
+                  <h3 className="text-[16px] font-semibold text-[#101828]">{t('locations.modal.basicInformation')}</h3>
                 </div>
                 <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
                   <div className="flex items-center justify-between py-1.5">
-                    <span className="text-[13px] font-normal text-[#4A5565]">Site Type:</span>
+                    <span className="text-[13px] font-normal text-[#4A5565]">{t('tables.headers.siteType')}:</span>
                     <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-[12px] font-bold text-[#1D4ED8]">
-                      {location.siteType}
+                      {siteTypeLabel}
                     </span>
                   </div>
-                  <DetailRow label="Country:" value={location.country} />
-                  <DetailRow label="Timezone:" value={location.timezone} />
+                  <DetailRow label={`${t('tables.headers.country')}:`} value={location.country} />
+                  <DetailRow label={`${t('locations.form.timezone')}:`} value={location.timezone} />
                   <div className="flex items-center justify-between py-1.5">
-                    <span className="text-[13px] font-normal text-[#4A5565]">Status:</span>
+                    <span className="text-[13px] font-normal text-[#4A5565]">{t('common.fields.status')}:</span>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
                         location.status === 'ACTIVE'
@@ -162,7 +167,7 @@ export function LocationDetailsModal({
                               : 'bg-gray-400'
                         }`}
                       />
-                      {location.status}
+                      {statusLabel}
                     </span>
                   </div>
                 </div>
@@ -171,33 +176,33 @@ export function LocationDetailsModal({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Map size={18} className="text-[#155DFC]" />
-                  <h3 className="text-[16px] font-semibold text-[#101828]">Location Details</h3>
+                  <h3 className="text-[16px] font-semibold text-[#101828]">{t('locations.modal.locationDetails')}</h3>
                 </div>
                 <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
-                  <DetailRow label="Address:" value={location.addressLine1 || '-'} />
-                  <DetailRow label="City:" value={location.city || '-'} />
+                  <DetailRow label={`${t('locations.form.addressLine1')}:`} value={location.addressLine1 || '-'} />
+                  <DetailRow label={`${t('locations.form.city')}:`} value={location.city || '-'} />
                   <DetailRow
-                    label="Coordinates:"
+                    label={`${t('locations.form.latitude')} / ${t('locations.form.longitude')}:`}
                     value={
                       location.latitude != null && location.longitude != null
                         ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
                         : '-'
                     }
                   />
-                  <DetailRow label="Geofence Radius:" value={`${location.geofenceRadius}m`} />
+                  <DetailRow label={`${t('locations.form.geofenceRadius')}:`} value={`${location.geofenceRadius}m`} />
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Network size={18} className="text-[#155DFC]" />
-                  <h3 className="text-[16px] font-semibold text-[#101828]">Network Configuration</h3>
+                  <h3 className="text-[16px] font-semibold text-[#101828]">{t('locations.modal.networkConfiguration')}</h3>
                 </div>
                 <div className="space-y-0.5 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-3">
-                  <DetailRow label="Network Name:" value={location.networkName || '-'} />
-                  <DetailRow label="CIDR Block:" value={location.cidrBlock || '-'} isMono />
-                  <DetailRow label="Detected IP:" value={location.detectedIp || '-'} isMono />
-                  <DetailRow label="Confidence:" value={location.confidence} />
+                  <DetailRow label={`${t('locations.form.networkName')}:`} value={location.networkName || '-'} />
+                  <DetailRow label={`${t('locations.form.cidrBlock')}:`} value={location.cidrBlock || '-'} isMono />
+                  <DetailRow label={`${t('locations.form.detectedIpAddress')}:`} value={location.detectedIp || '-'} isMono />
+                  <DetailRow label={`${t('locations.form.confidence')}:`} value={location.confidence} />
                 </div>
               </div>
 
@@ -205,7 +210,7 @@ export function LocationDetailsModal({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Activity size={18} className="text-[#155DFC]" />
-                    <h3 className="text-[16px] font-semibold text-[#101828]">Attendance</h3>
+                    <h3 className="text-[16px] font-semibold text-[#101828]">{t('locations.modal.attendance')}</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -213,21 +218,21 @@ export function LocationDetailsModal({
                       onClick={() => setIsPolicyModalOpen(true)}
                       className="bg-[#EFF6FF] text-[#155DFC] hover:bg-[#DBEAFE]"
                     >
-                      Edit Attendance Policy
+                      {t('locations.modal.editAttendancePolicy')}
                     </Button>
                   </div>
                 </div>
 
                 {!attendancePolicy ? (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-medium text-rose-700">
-                    We could not load the attendance policy right now.
+                    {t('locations.modal.policyLoadFailed')}
                   </div>
                 ) : (
                   <>
                     <div className="rounded-xl border border-[#D6E4FF] bg-[#F8FBFF] p-4">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#155DFC]">
-                          Policy Source
+                          {t('locations.modal.policySource')}
                         </span>
                         <span className="rounded-full bg-white px-3 py-1 text-[12px] font-bold text-[#155DFC] shadow-sm">
                           {attendancePolicy.policySource}
@@ -237,13 +242,13 @@ export function LocationDetailsModal({
                     </div>
 
                     <div className="grid gap-3 rounded-xl border border-[#F1F3F5] bg-[#F9FAFB] p-4 sm:grid-cols-2">
-                      <DetailRow label="Require QR:" value={attendancePolicy.requireQr ? 'Yes' : 'No'} />
-                      <DetailRow label="Require Location:" value={attendancePolicy.requireLocation ? 'Yes' : 'No'} />
-                      <DetailRow label="Check-in Enabled:" value={attendancePolicy.checkInEnabled ? 'Yes' : 'No'} />
-                      <DetailRow label="Check-out Enabled:" value={attendancePolicy.checkOutEnabled ? 'Yes' : 'No'} />
-                      <DetailRow label="Reject Outside Geofence:" value={attendancePolicy.rejectOutsideGeofence ? 'Yes' : 'No'} />
-                      <DetailRow label="Reject Poor Accuracy:" value={attendancePolicy.rejectPoorAccuracy ? 'Yes' : 'No'} />
-                      <DetailRow label="Allow Manager Manual Entry:" value={attendancePolicy.allowManagerManualEntry ? 'Yes' : 'No'} />
+                      <DetailRow label={`${t('locations.modal.requireQr')}:`} value={yesNo(attendancePolicy.requireQr)} />
+                      <DetailRow label={`${t('locations.modal.requireLocation')}:`} value={yesNo(attendancePolicy.requireLocation)} />
+                      <DetailRow label={`${t('locations.modal.checkInEnabled')}:`} value={yesNo(attendancePolicy.checkInEnabled)} />
+                      <DetailRow label={`${t('locations.modal.checkOutEnabled')}:`} value={yesNo(attendancePolicy.checkOutEnabled)} />
+                      <DetailRow label={`${t('locations.modal.rejectOutsideGeofence')}:`} value={yesNo(attendancePolicy.rejectOutsideGeofence)} />
+                      <DetailRow label={`${t('locations.modal.rejectPoorAccuracy')}:`} value={yesNo(attendancePolicy.rejectPoorAccuracy)} />
+                      <DetailRow label={`${t('locations.modal.allowManagerManualEntry')}:`} value={yesNo(attendancePolicy.allowManagerManualEntry)} />
                     </div>
                   </>
                 )}
@@ -252,23 +257,23 @@ export function LocationDetailsModal({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <MonitorSmartphone size={18} className="text-[#155DFC]" />
-                        <h4 className="text-[15px] font-semibold text-[#101828]">Linked QR Terminals</h4>
+                        <h4 className="text-[15px] font-semibold text-[#101828]">{t('locations.modal.linkedQrTerminals')}</h4>
                       </div>
                       <Button
                           variant="secondary"
                           onClick={() => setIsCreateTerminalModalOpen(true)}
                           className="bg-[#ECFDF3] text-[#027A48] hover:bg-[#D1FADF]"
                       >
-                        Create Terminal
+                        {t('locations.modal.createTerminal')}
                       </Button>
                   </div>
                   {linkedQrTerminals.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] px-4 py-4 text-[13px] font-medium text-[#4A5565]">
-                      <p>No QR terminals are configured for this site yet.</p>
+                      <p>{t('locations.modal.noQrTerminals')}</p>
                         {attendancePolicy?.requireQr && (
                           <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
                             <AlertCircle size={15} className="mt-0.5 shrink-0" />
-                            <span>QR attendance is required here, so a terminal display should be available before staff use it.</span>
+                            <span>{t('locations.modal.qrRequiredWarning')}</span>
                           </div>
                       )}
                     </div>
@@ -292,13 +297,13 @@ export function LocationDetailsModal({
                                 </span>
                                 {terminal.autoCreated && (
                                   <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-bold text-[#155DFC]">
-                                    Auto-created
+                                    {t('locations.modal.autoCreated')}
                                   </span>
                                 )}
                               </div>
                               <div className="grid gap-1 text-[13px] font-medium text-[#4A5565] sm:grid-cols-2 sm:gap-x-6">
-                                <span>Rotation: {terminal.rotationSeconds}s</span>
-                                <span>Last heartbeat: {formatHeartbeat(terminal.lastHeartbeatAt)}</span>
+                                <span>{t('locations.modal.rotation')}: {terminal.rotationSeconds}s</span>
+                                <span>{t('locations.modal.lastHeartbeat')}: {formatHeartbeat(terminal.lastHeartbeatAt)}</span>
                               </div>
                             </div>
                             <Button
@@ -308,7 +313,7 @@ export function LocationDetailsModal({
                               icon={<QrCode size={16} />}
                               iconPosition="left"
                             >
-                              Open Display Page
+                              {t('locations.modal.openDisplayPage')}
                             </Button>
                           </div>
                         </div>
@@ -327,7 +332,7 @@ export function LocationDetailsModal({
               onClick={onClose}
               className="h-10 border-none bg-transparent px-6 font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             >
-              Close
+              {t('common.actions.close')}
             </Button>
           </div>
         </div>

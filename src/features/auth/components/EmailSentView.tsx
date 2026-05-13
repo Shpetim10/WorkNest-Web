@@ -2,15 +2,20 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 
 /**
  * View displayed after a successful Forgot Password request (Step 1).
  */
 export function EmailSentView() {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col min-h-screen w-full items-center justify-center bg-gradient-to-br from-[#f0f4f8] to-[#e2e8f0] font-sans p-4 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#B9F8CF]/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute right-6 top-6 z-20">
+        <LanguageSwitcher />
+      </div>
 
       {/* Card */}
       <Card className="w-full max-w-[460px] p-12 flex flex-col items-center text-center relative z-10">
@@ -40,15 +45,15 @@ export function EmailSentView() {
 
         {/* Heading */}
         <h1 className="text-[26px] leading-[34px] font-bold text-[#1a1c23] mb-4">
-          Email Sent<br />
-          Successfully!
+          {t('auth.emailSent.titleLine1')}<br />
+          {t('auth.emailSent.titleLine2')}
         </h1>
 
         {/* Subtext */}
         <p className="text-gray-500 text-[15px] leading-[24px]">
-          We’ve sent you a password reset link.<br className="hidden sm:block" />
-          Please check your email and follow the<br className="hidden sm:block" />
-          instructions to continue.
+          {t('auth.emailSent.bodyLine1')}<br className="hidden sm:block" />
+          {t('auth.emailSent.bodyLine2')}<br className="hidden sm:block" />
+          {t('auth.emailSent.bodyLine3')}
         </p>
 
       </Card>
@@ -59,7 +64,7 @@ export function EmailSentView() {
           href="/login"
           className="text-[#0066FF] font-medium text-[15px] hover:text-blue-700 transition-colors"
         >
-          Back to Login
+          {t('auth.shared.backToLogin')}
         </Link>
       </div>
 

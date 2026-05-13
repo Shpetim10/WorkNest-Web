@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
 import { AuthHeader } from './AuthHeader';
+import { useI18n } from '@/common/i18n';
 
 const FeatureItem = ({ text }: { text: string }) => (
   <li className="flex items-center gap-2.5">
@@ -15,6 +16,7 @@ const FeatureItem = ({ text }: { text: string }) => (
 );
 
 export function PricingView() {
+  const { t } = useI18n();
   const router = useRouter();
 
   return (
@@ -23,8 +25,8 @@ export function PricingView() {
 
       {/* Headings */}
       <div className="text-center mb-10 shrink-0 mt-2">
-        <h1 className="text-[28px] md:text-[32px] font-bold text-[#1a1c23] mb-2">Choose Your Plan</h1>
-        <p className="text-[14px] text-gray-500 font-medium">Select the perfect plan for your organization</p>
+        <h1 className="text-[28px] md:text-[32px] font-bold text-[#1a1c23] mb-2">{t('auth.register.pricing.title')}</h1>
+        <p className="text-[14px] text-gray-500 font-medium">{t('auth.register.pricing.subtitle')}</p>
       </div>
 
       {/* Pricing Cards - Using Grid for balanced single-row layout */}
@@ -32,26 +34,26 @@ export function PricingView() {
 
         {/* Starter Plan */}
         <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:p-6 flex flex-col lg:hover:-translate-y-1 transition-transform relative z-10 lg:my-2">
-          <h3 className="text-[18px] font-bold text-[#1a1c23] mb-1">Starter</h3>
-          <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">Perfect for small teams getting started</p>
+          <h3 className="text-[18px] font-bold text-[#1a1c23] mb-1">{t('auth.register.pricing.starter')}</h3>
+          <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">{t('auth.register.pricing.starterDescription')}</p>
           <div className="flex items-baseline mb-6">
             <span className="text-[36px] font-bold text-[#1a1c23]">€49</span>
-            <span className="text-[13px] font-semibold text-gray-500 ml-1">/month</span>
+            <span className="text-[13px] font-semibold text-gray-500 ml-1">{t('auth.register.pricing.perMonth')}</span>
           </div>
 
           <ul className="space-y-3 mb-8 flex-grow">
-            <FeatureItem text="Up to 20 employees" />
-            <FeatureItem text="Basic attendance tracking" />
-            <FeatureItem text="Leave management" />
-            <FeatureItem text="Email support" />
-            <FeatureItem text="Mobile app access" />
+            <FeatureItem text={t('auth.register.pricing.features.upTo20')} />
+            <FeatureItem text={t('auth.register.pricing.features.basicAttendance')} />
+            <FeatureItem text={t('auth.register.pricing.features.leaveManagement')} />
+            <FeatureItem text={t('auth.register.pricing.features.emailSupport')} />
+            <FeatureItem text={t('auth.register.pricing.features.mobileAccess')} />
           </ul>
 
           <button
             onClick={() => router.push('/register/company')}
             className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-[#f4f7fb] text-gray-800 text-[13px] font-bold hover:bg-[#e2e8f0] transition-colors mt-auto"
           >
-            Choose Starter
+            {t('auth.register.pricing.chooseStarter')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -60,60 +62,60 @@ export function PricingView() {
         <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:px-7 md:py-8 flex flex-col relative z-20 border border-gray-100 lg:-translate-y-2 transition-transform lg:hover:-translate-y-3">
           <div className="absolute top-4 left-6">
             <span className="bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-              Most Popular
+              {t('auth.register.pricing.mostPopular')}
             </span>
           </div>
 
-          <h3 className="text-[22px] font-bold text-[#1a1c23] mb-1 mt-5">Professional</h3>
-          <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">Most popular for growing businesses</p>
+          <h3 className="text-[22px] font-bold text-[#1a1c23] mb-1 mt-5">{t('auth.register.pricing.professional')}</h3>
+          <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">{t('auth.register.pricing.professionalDescription')}</p>
           <div className="flex items-baseline mb-6">
             <span className="text-[44px] font-bold text-[#1a1c23]">€99</span>
-            <span className="text-[13px] font-semibold text-gray-500 ml-1">/month</span>
+            <span className="text-[13px] font-semibold text-gray-500 ml-1">{t('auth.register.pricing.perMonth')}</span>
           </div>
 
           <ul className="space-y-3 mb-8 flex-grow">
-            <FeatureItem text="Up to 100 employees" />
-            <FeatureItem text="Advanced attendance & GPS" />
-            <FeatureItem text="Payroll management" />
-            <FeatureItem text="Custom reports" />
-            <FeatureItem text="Priority support" />
-            <FeatureItem text="API access" />
-            <FeatureItem text="Custom workflows" />
+            <FeatureItem text={t('auth.register.pricing.features.upTo100')} />
+            <FeatureItem text={t('auth.register.pricing.features.advancedAttendance')} />
+            <FeatureItem text={t('auth.register.pricing.features.payrollManagement')} />
+            <FeatureItem text={t('auth.register.pricing.features.customReports')} />
+            <FeatureItem text={t('auth.register.pricing.features.prioritySupport')} />
+            <FeatureItem text={t('auth.register.pricing.features.apiAccess')} />
+            <FeatureItem text={t('auth.register.pricing.features.customWorkflows')} />
           </ul>
 
           <button
             onClick={() => router.push('/register/company')}
             className="w-full flex items-center justify-center gap-1.5 py-3 rounded-[10px] text-white text-[13px] font-bold shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] mt-auto"
           >
-            Choose Professional
+            {t('auth.register.pricing.chooseProfessional')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* Enterprise Plan */}
         <div className="bg-white rounded-[24px] shadow-[0_12px_40px_-10px_rgba(0,0,0,0.1)] p-5 md:p-6 flex flex-col lg:hover:-translate-y-1 transition-transform relative z-10 lg:my-2">
-          <h3 className="text-[18px] font-bold text-[#1a1c23] mb-1">Enterprise</h3>
-          <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">Advanced features for large organizations</p>
+          <h3 className="text-[18px] font-bold text-[#1a1c23] mb-1">{t('auth.register.pricing.enterprise')}</h3>
+          <p className="text-[12px] text-gray-500 mb-6 font-medium leading-snug">{t('auth.register.pricing.enterpriseDescription')}</p>
           <div className="flex items-baseline mb-6">
             <span className="text-[36px] font-bold text-[#1a1c23]">€199</span>
-            <span className="text-[13px] font-semibold text-gray-500 ml-1">/month</span>
+            <span className="text-[13px] font-semibold text-gray-500 ml-1">{t('auth.register.pricing.perMonth')}</span>
           </div>
 
           <ul className="space-y-3 mb-8 flex-grow">
-            <FeatureItem text="Unlimited employees" />
-            <FeatureItem text="Advanced analytics" />
-            <FeatureItem text="Multi-location support" />
-            <FeatureItem text="Dedicated account manager" />
-            <FeatureItem text="Custom integrations" />
-            <FeatureItem text="SLA guarantee" />
-            <FeatureItem text="On-premise option" />
+            <FeatureItem text={t('auth.register.pricing.features.unlimitedEmployees')} />
+            <FeatureItem text={t('auth.register.pricing.features.advancedAnalytics')} />
+            <FeatureItem text={t('auth.register.pricing.features.multiLocation')} />
+            <FeatureItem text={t('auth.register.pricing.features.dedicatedManager')} />
+            <FeatureItem text={t('auth.register.pricing.features.customIntegrations')} />
+            <FeatureItem text={t('auth.register.pricing.features.sla')} />
+            <FeatureItem text={t('auth.register.pricing.features.onPremise')} />
           </ul>
 
           <button
             onClick={() => router.push('/register/company')}
             className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-[10px] bg-[#f4f7fb] text-gray-800 text-[13px] font-bold hover:bg-[#e2e8f0] transition-colors mt-auto"
           >
-            Choose Enterprise
+            {t('auth.register.pricing.chooseEnterprise')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -122,7 +124,7 @@ export function PricingView() {
 
       {/* Footer Text */}
       <div className="mt-8 text-[12px] text-gray-400 font-medium tracking-wide shrink-0">
-        All plans include 14-day free trial • No credit card required
+        {t('auth.register.pricing.footer')}
       </div>
     </AuthLayout>
   );

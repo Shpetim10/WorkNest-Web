@@ -17,6 +17,7 @@ import { ApiResponse } from '@/common/types/api';
 import { CompanySettingsResponse } from '@/features/company-settings/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { UpdateCompanySettingsRequest } from '@/features/company-settings/types';
+import { useI18n } from '@/common/i18n';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:8080';
 
@@ -146,6 +147,7 @@ interface SettingsFormProps {
 const REQUIRED_FIELDS: (keyof CompanyFormData)[] = ['name', 'currency', 'dateFormat'];
 
 function SettingsForm({ data, updateMutation }: SettingsFormProps) {
+  const { t } = useI18n();
   const [formData, setFormData] = useState<CompanyFormData>({
     name: data.name ?? '',
     email: data.email ?? '',
@@ -175,11 +177,11 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setLogoError('Only JPEG, PNG, and WEBP images are supported');
+      setLogoError(t('validation.imageTypes'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setLogoError('Image size should be less than 5MB');
+      setLogoError(t('validation.imageSize'));
       return;
     }
     setLogoError('');
@@ -224,7 +226,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
     const errors: Partial<Record<keyof CompanyFormData, string>> = {};
     for (const field of REQUIRED_FIELDS) {
       if (!formData[field]?.trim()) {
-        errors[field] = 'This field is required.';
+        errors[field] = t('common.feedback.requiredField');
       }
     }
     setFieldErrors(errors);
@@ -268,7 +270,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
       setLogoDeleted(false);
       setSaveSuccess(true);
     } catch {
-      setSaveError('Failed to save settings. Please try again.');
+      setSaveError(t('dashboard.companySettings.failed'));
     }
   }
 
@@ -290,7 +292,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
           >
             {logoPreviewUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={logoPreviewUrl} alt="Company logo" className="w-full h-full object-cover" />
+              <img src={logoPreviewUrl} alt={t('dashboard.companySettings.logoAlt')} className="w-full h-full object-cover" />
             ) : (
               <Building2 className="w-5 h-5 text-white" />
             )}
@@ -301,7 +303,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
           <button
             type="button"
             onClick={handleLogoClick}
-            aria-label="Upload company logo"
+            aria-label={t('auth.register.company.uploadLogo')}
             className="absolute -bottom-2 -right-2 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -314,7 +316,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
             <button
               type="button"
               onClick={handleLogoDelete}
-              aria-label="Remove company logo"
+              aria-label={t('dashboard.companySettings.removeLogo')}
               className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 border border-white shadow-sm flex items-center justify-center hover:bg-red-600 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -333,25 +335,25 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
 
         {/* Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Company Name" icon={<LayoutGrid size={16} />} {...fieldProps('name')} />
-          <Field label="NIPT (Tax ID)" {...fieldProps('nipt')} />
+          <Field label={t('common.fields.companyName')} icon={<LayoutGrid size={16} />} {...fieldProps('name')} />
+          <Field label={t('common.fields.nipt')} {...fieldProps('nipt')} />
         </div>
 
         {/* Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Primary Contact Email" icon={<Mail size={16} />} {...fieldProps('email')} />
-          <Field label="Primary Contact Number" {...fieldProps('phone')} />
+          <Field label={t('common.fields.contactEmail')} icon={<Mail size={16} />} {...fieldProps('email')} />
+          <Field label={t('common.fields.contactNumber')} {...fieldProps('phone')} />
         </div>
 
         {/* Row 3 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Industry" {...fieldProps('industry')} />
-          <Field label="Currency" {...fieldProps('currency')} />
+          <Field label={t('common.fields.industry')} {...fieldProps('industry')} />
+          <Field label={t('common.fields.currency')} {...fieldProps('currency')} />
         </div>
 
         {/* Row 4 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Field label="Date Format" {...fieldProps('dateFormat')} />
+          <Field label={t('common.fields.dateFormat')} {...fieldProps('dateFormat')} />
         </div>
 
         {/* Divider */}
@@ -361,7 +363,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
           <p className="text-[13px] text-red-500 font-medium text-right">{saveError}</p>
         )}
         {saveSuccess && (
-          <p className="text-[13px] text-green-600 font-medium text-right">Settings saved successfully.</p>
+          <p className="text-[13px] text-green-600 font-medium text-right">{t('dashboard.companySettings.saved')}</p>
         )}
 
         {/* Save button */}
@@ -374,9 +376,9 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
           >
             {updateMutation.isPending ? (
               <span className="flex items-center gap-2">
-                <Loader2 size={15} className="animate-spin" /> Saving...
+                <Loader2 size={15} className="animate-spin" /> {t('common.actions.saving')}
               </span>
-            ) : 'Save Changes'}
+            ) : t('common.actions.saveChanges')}
           </Button>
         </div>
       </div>
@@ -385,6 +387,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
 }
 
 function CompanySettingsView() {
+  const { t } = useI18n();
   const [companyId] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : localStorage.getItem('current_company_id'),
   );
@@ -409,9 +412,9 @@ function CompanySettingsView() {
             <Settings size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Company Settings</h1>
+            <h1 className="text-3xl font-bold text-white">{t('dashboard.companySettings.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Configure company information and preferences
+              {t('dashboard.companySettings.subtitle')}
             </p>
           </div>
         </div>
@@ -425,9 +428,9 @@ function CompanySettingsView() {
 
         {/* Card header */}
         <div className="space-y-1 mb-6">
-          <h2 className="text-[17px] font-bold text-[#1a1c23]">Company Setting</h2>
+          <h2 className="text-[17px] font-bold text-[#1a1c23]">{t('dashboard.companySettings.cardTitle')}</h2>
           <p className="text-[13px] text-gray-500">
-            Update your organization profile and payroll preferences
+            {t('dashboard.companySettings.cardSubtitle')}
           </p>
         </div>
 

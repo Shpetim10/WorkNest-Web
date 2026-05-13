@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useReviewEvent } from '../api/review-event';
 import { AttendanceEvent } from '../types';
 import { Textarea } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 
 interface Props {
   isOpen: boolean;
@@ -36,6 +37,7 @@ function readableEnum(value: string): string {
 }
 
 export function ReviewEventModal({ isOpen, onClose, event, timezone }: Props) {
+  const { t } = useI18n();
   const [reviewStatus, setReviewStatus] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
   const [note, setNote] = useState('');
   const mutation = useReviewEvent();
@@ -57,7 +59,7 @@ export function ReviewEventModal({ isOpen, onClose, event, timezone }: Props) {
           style={{ background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 60%, #10B981 100%)' }}
         >
           <div>
-            <h2 className="text-base font-bold text-white">Review Attendance Record</h2>
+            <h2 className="text-base font-bold text-white">{t('attendance.modal.reviewRecord')}</h2>
             <p className="text-xs text-white/70 mt-0.5">
               {formatTime(event.serverRecordedAt, timezone)} · {readableEnum(event.eventType)}
             </p>
@@ -69,7 +71,7 @@ export function ReviewEventModal({ isOpen, onClose, event, timezone }: Props) {
 
         <div className="px-6 py-5 space-y-4">
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Decision</p>
+            <p className="text-xs font-semibold text-gray-500 mb-2">{t('attendance.modal.decision')}</p>
             <div className="flex gap-3">
               {(['APPROVED', 'REJECTED'] as const).map((s) => (
                 <button
@@ -83,7 +85,7 @@ export function ReviewEventModal({ isOpen, onClose, event, timezone }: Props) {
                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}
                 >
-                  {s === 'APPROVED' ? 'Approve' : 'Reject'}
+                  {s === 'APPROVED' ? t('leave.approve') : t('leave.reject')}
                 </button>
               ))}
             </div>
@@ -91,10 +93,10 @@ export function ReviewEventModal({ isOpen, onClose, event, timezone }: Props) {
 
           <Textarea
             id="review-note"
-            label="Note (optional)"
+            label={t('attendance.modal.noteOptional')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Add a review comment..."
+            placeholder={t('attendance.modal.reviewPlaceholder')}
             rows={3}
           />
         </div>
@@ -104,14 +106,14 @@ export function ReviewEventModal({ isOpen, onClose, event, timezone }: Props) {
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
           >
-            Cancel
+            {t('common.actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending}
             className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            {mutation.isPending ? 'Saving…' : 'Save Review'}
+            {mutation.isPending ? t('common.actions.saving') : t('attendance.modal.saveReview')}
           </button>
         </div>
       </div>

@@ -9,11 +9,12 @@ import {
 import { apiClient } from '@/common/network/api-client';
 import { ApiResponse } from '@/common/types/api';
 import { StaffDTO } from '../types';
-import { useProvisionStaff } from '../api/provision-staff';
-import { useUpdateStaff } from '../api/update-staff';
+import { CreateStaffRequest, useProvisionStaff } from '../api/provision-staff';
+import { UpdateStaffRequest, useUpdateStaff } from '../api/update-staff';
 import { useStaffDetails } from '../api/get-staff-details';
 import { uploadContractDocument } from '../api/upload-media';
 import { getCurrencySymbol, getStoredCompanyCurrency, getStoredCompanyLocale } from '@/features/company-settings/storage';
+import { useI18n } from '@/common/i18n';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -63,16 +64,56 @@ const REVERSE_PERMISSION_CODE_MAP: Record<string, string> = Object.entries(PERMI
   return acc;
 }, {} as Record<string, string>);
 
-const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
-  FULL_TIME: 'Full-Time',
-  PART_TIME: 'Part-Time',
-  CONTRACT: 'Fixed-Term Contract',
-  INTERN: 'Internship',
+const EMPLOYMENT_TYPE_VALUES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN'] as const;
+const PAYMENT_METHOD_VALUES = ['FIXED_MONTHLY', 'HOURLY'] as const;
+
+const EMPLOYMENT_TYPE_LABEL_KEYS: Record<string, string> = {
+  FULL_TIME: 'employees.employmentTypes.FULL_TIME',
+  PART_TIME: 'employees.employmentTypes.PART_TIME',
+  CONTRACT: 'employees.employmentTypes.CONTRACT',
+  INTERN: 'employees.employmentTypes.INTERN',
 };
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  FIXED_MONTHLY: 'Fixed Monthly Salary',
-  HOURLY: 'Hourly Rate',
+const PAYMENT_METHOD_LABEL_KEYS: Record<string, string> = {
+  FIXED_MONTHLY: 'employees.paymentMethods.FIXED_MONTHLY',
+  HOURLY: 'employees.paymentMethods.HOURLY',
+};
+
+const PERMISSION_GROUP_LABEL_KEYS: Record<string, string> = {
+  'USER MANAGEMENT': 'staff.permissions.groups.userManagement',
+  ATTENDANCE: 'staff.permissions.groups.attendance',
+  EMPLOYEE: 'staff.permissions.groups.employee',
+  ANNOUNCEMENTS: 'staff.permissions.groups.announcements',
+  LEAVE: 'staff.permissions.groups.leave',
+  REPORTS: 'staff.permissions.groups.reports',
+  PAYROLL: 'staff.permissions.groups.payroll',
+};
+
+const PERMISSION_ITEM_LABEL_KEYS: Record<string, string> = {
+  'Invite users': 'staff.permissions.items.inviteUsers',
+  'Assign job title': 'staff.permissions.items.assignJobTitle',
+  'Deactivate users': 'staff.permissions.items.deactivateUsers',
+  'Mark attendance': 'staff.permissions.items.markAttendance',
+  'Self check-in/out': 'staff.permissions.items.selfCheckInOut',
+  'Edit attendance': 'staff.permissions.items.editAttendance',
+  'View attendance': 'staff.permissions.items.viewAttendance',
+  'Export reports': 'staff.permissions.items.exportReports',
+  'Create / edit employees': 'staff.permissions.items.createEditEmployees',
+  'View team profiles': 'staff.permissions.items.viewTeamProfiles',
+  'View all employees': 'staff.permissions.items.viewAllEmployees',
+  'Upload documents': 'staff.permissions.items.uploadDocuments',
+  'View contracts': 'staff.permissions.items.viewContracts',
+  'Create announcements': 'staff.permissions.items.createAnnouncements',
+  'View announcements': 'staff.permissions.items.viewAnnouncements',
+  'Approve/reject leave': 'staff.permissions.items.approveRejectLeave',
+  'View leave balance': 'staff.permissions.items.viewLeaveBalance',
+  'View leave calendar': 'staff.permissions.items.viewLeaveCalendar',
+  'View reports': 'staff.permissions.items.viewReports',
+  'Configure Pay': 'staff.permissions.items.configurePay',
+  'Add bonuses/deductions': 'staff.permissions.items.addBonusesDeductions',
+  'Preview payroll': 'staff.permissions.items.previewPayroll',
+  'View payslip': 'staff.permissions.items.viewPayslip',
+  'Export payroll': 'staff.permissions.items.exportPayroll',
 };
 
 // ─── Shared styles ───────────────────────────────────────────────────────────────
@@ -90,6 +131,8 @@ const CHEVRON_SVG = (
 
 // ─── Step Indicator ─────────────────────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: number; total: number }) {
+  const { t } = useI18n();
+
   return (
     <div className="flex items-center gap-1.5">
       {Array.from({ length: total }, (_, i) => (
@@ -99,7 +142,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
         </React.Fragment>
       ))}
       <span className="ml-2 text-[12px] font-semibold text-gray-400 font-[Inter,sans-serif]">
-        Step {current} of {total}
+        {t('common.stepOf', { current, total })}
       </span>
     </div>
   );
@@ -137,13 +180,33 @@ interface Step1Errors {
 interface StaffFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (staff: any) => void;
+  onSave: (staff: Partial<StaffDTO>) => void;
   mode: 'add' | 'edit';
   initialData?: StaffDTO;
 }
 
 function isValidEmail(e: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
-function normalizeAssignedEmployeeId(employee: any) {
+
+type AssignedEmployeeLike = {
+  employeeId?: string;
+  id?: string;
+  userId?: string;
+};
+
+type ApiMessageError = {
+  response?: {
+    data?: {
+      message?: unknown;
+    };
+  };
+};
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const message = (error as ApiMessageError).response?.data?.message;
+  return typeof message === 'string' ? message : fallback;
+}
+
+function normalizeAssignedEmployeeId(employee: AssignedEmployeeLike) {
   return employee?.employeeId || employee?.id || employee?.userId || '';
 }
 
@@ -162,19 +225,25 @@ const EMPTY_STEP2: Step2Values = {
 function PermissionGroup({ groupName, items, toggled, onChange }: {
   groupName: string; items: string[]; toggled: Set<string>; onChange: (key: string) => void;
 }) {
+  const { t } = useI18n();
+  const groupLabelKey = PERMISSION_GROUP_LABEL_KEYS[groupName];
+
   return (
     <div>
       <p className="mb-2 font-[Inter,sans-serif] text-[11px] font-semibold uppercase tracking-[0.06em] text-[#4A5565]">
-        {groupName}
+        {groupLabelKey ? t(groupLabelKey) : groupName}
       </p>
       <div className="space-y-2">
         {items.map((item) => {
           const key = `${groupName}::${item}`;
           const checked = toggled.has(key);
+          const itemLabelKey = PERMISSION_ITEM_LABEL_KEYS[item];
           return (
             <label key={key} className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] border border-[#E5E7EB] bg-white px-3.5 py-2.5 transition-colors hover:bg-gray-50/70">
               <input type="checkbox" checked={checked} onChange={() => onChange(key)} className="h-4 w-4 shrink-0 rounded-[4px] border border-gray-300 bg-[#F3F3F5] accent-[#155DFC]" />
-              <span className="font-[Inter,sans-serif] text-[14px] font-medium leading-[20px] text-[#364153]">{item}</span>
+              <span className="font-[Inter,sans-serif] text-[14px] font-medium leading-[20px] text-[#364153]">
+                {itemLabelKey ? t(itemLabelKey) : item}
+              </span>
             </label>
           );
         })}
@@ -185,6 +254,7 @@ function PermissionGroup({ groupName, items, toggled, onChange }: {
 
 // ─── Component ───────────────────────────────────────────────────────────────────
 export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: StaffFormModalProps) {
+  const { t } = useI18n();
   const companyId = typeof window !== 'undefined' ? localStorage.getItem('current_company_id') || '' : '';
   const currencyCode = getStoredCompanyCurrency();
   const currencySymbol = getCurrencySymbol(currencyCode, getStoredCompanyLocale());
@@ -230,7 +300,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
       }
     };
     fetchLookups();
-  }, [isOpen]);
+  }, [isOpen, companyId]);
 
   // 1. Initial Data Load & Reset
   useEffect(() => {
@@ -257,7 +327,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
         const preAssignedLookup: UnassignedEmployee[] = (editData.assignedEmployees || []).map(
           (e) => ({
             id: normalizeAssignedEmployeeId(e),
-            name: [e.firstName, e.lastName].filter(Boolean).join(' ').trim() || (e as any).name || e.email || 'Assigned Employee',
+            name: [e.firstName, e.lastName].filter(Boolean).join(' ').trim() || e.email || t('staff.entity'),
             email: e.email || '',
             jobTitle: e.jobTitle || '',
           })
@@ -293,7 +363,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
       setErrors({});
       setTimeout(() => firstRef.current?.focus(), 50);
     }
-  }, [isOpen, mode, editData]);
+  }, [isOpen, mode, editData, t]);
 
   // 2. Department/Location Matching
   useEffect(() => {
@@ -339,12 +409,12 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
         } while (page < totalPages);
 
         setUnassignedEmployees(items);
-      } catch (err: any) {
+      } catch {
         setUnassignedEmployees([]);
       }
     };
     fetchUnassigned();
-  }, [values.department, isOpen]);
+  }, [values.department, isOpen, companyId]);
 
   // Escape to close
   useEffect(() => {
@@ -392,18 +462,26 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
   }
 
   function togglePerm(key: string) {
-    setPermissions(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; });
+    setPermissions(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   }
 
   function validateStep1(): Step1Errors {
     const e: Step1Errors = {};
-    if (!values.firstName.trim()) e.firstName = 'Required';
-    if (!values.lastName.trim()) e.lastName = 'Required';
-    if (!values.email.trim()) e.email = 'Required';
-    else if (!isValidEmail(values.email)) e.email = 'Enter a valid email';
-    if (!values.jobTitle.trim()) e.jobTitle = 'Required';
-    if (mode === 'add' && !values.department) e.department = 'Required';
-    if (mode === 'add' && !values.startDate) e.startDate = 'Required';
+    if (!values.firstName.trim()) e.firstName = t('validation.firstNameRequired');
+    if (!values.lastName.trim()) e.lastName = t('validation.lastNameRequired');
+    if (!values.email.trim()) e.email = t('validation.emailRequired');
+    else if (!isValidEmail(values.email)) e.email = t('validation.validEmail');
+    if (!values.jobTitle.trim()) e.jobTitle = t('employees.form.jobTitleRequired');
+    if (mode === 'add' && !values.department) e.department = t('employees.form.departmentRequired');
+    if (mode === 'add' && !values.startDate) e.startDate = t('employees.form.hireDateRequired');
     return e;
   }
 
@@ -436,9 +514,9 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
         const uploaded = await uploadContractDocument(step2.contractFile);
         contractDocumentKey = uploaded.storageKey;
         contractDocumentPath = uploaded.storagePath;
-      } catch (err: any) {
+      } catch (err) {
         setIsUploadingFile(false);
-        setSubmitError(err?.response?.data?.message || 'Failed to upload contract document');
+        setSubmitError(getApiErrorMessage(err, t('employees.jobModal.uploadFailed')));
         return;
       }
       setIsUploadingFile(false);
@@ -451,7 +529,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
       const cId = localStorage.getItem('current_company_id');
       if (!cId) return;
 
-      const payload: any = {
+      const payload: CreateStaffRequest = {
         companyId: cId,
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),
@@ -487,9 +565,9 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
       }
 
       provisionMutation.mutate(payload, {
-        onSuccess: () => { onSave({} as any); onClose(); },
-        onError: (err: any) => {
-          setSubmitError(err.response?.data?.message || 'Failed to provision staff');
+        onSuccess: () => { onSave({}); onClose(); },
+        onError: (err) => {
+          setSubmitError(getApiErrorMessage(err, t('staff.form.createFailed')));
         },
       });
       return;
@@ -500,25 +578,27 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
       if (!cId) throw new Error('Company ID missing');
       if (!initialData?.id) throw new Error('Staff ID missing');
 
+      const updatePayload: UpdateStaffRequest = {
+        companyId: cId,
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim(),
+        jobTitle: values.jobTitle.trim(),
+        departmentId: values.department || undefined,
+        companySiteId: values.location || undefined,
+        startDate: values.startDate || undefined,
+        assignedEmployeeIds: values.assignedEmployees.length > 0 ? values.assignedEmployees : [],
+        permissionCodes,
+      };
+
       await updateMutation.mutateAsync({
         staffId: initialData.id,
-        data: {
-          companyId: cId,
-          firstName: values.firstName.trim(),
-          lastName: values.lastName.trim(),
-          email: values.email.trim(),
-          jobTitle: values.jobTitle.trim(),
-          departmentId: values.department || undefined,
-          companySiteId: values.location || undefined,
-          startDate: values.startDate || undefined,
-          assignedEmployeeIds: values.assignedEmployees.length > 0 ? values.assignedEmployees : [],
-          permissionCodes,
-        },
+        data: updatePayload,
       });
       onSave({});
       onClose();
-    } catch (err: any) {
-      setSubmitError(err.response?.data?.message || 'Failed to update staff member');
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, t('staff.form.updateFailed')));
     }
   }
 
@@ -528,14 +608,14 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
   const headerContent: { title: string; sub: string } =
     step === 1
       ? {
-          title: mode === 'add' ? 'Add New Staff Member' : 'Edit Staff Member',
+          title: mode === 'add' ? t('staff.form.addStaffMember') : t('staff.form.editStaffMember'),
           sub: mode === 'add'
-            ? 'Send an invitation and configure the new staff member'
-            : 'Update basic information and team assignments',
+            ? t('staff.form.addSubtitle')
+            : t('staff.form.editSubtitle'),
         }
       : step === 2 && mode === 'add'
-      ? { title: 'Employment & Contract', sub: 'Set employment type, contract, and compensation details' }
-      : { title: 'Permissions', sub: 'Select which actions this staff member can perform.' };
+      ? { title: t('employees.view.employmentContract'), sub: t('staff.form.employmentContractSubtitle') }
+      : { title: t('staff.form.permissionsTitle'), sub: t('staff.form.permissionsSubtitle') };
 
   return createPortal(
     <>
@@ -565,53 +645,53 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
               <div className="w-full space-y-6">
                 {mode === 'edit' && isLoadingStaffDetails ? (
                   <div className="h-12 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 text-[14px] font-medium text-gray-400 flex items-center">
-                    Loading staff details...
+                    {t('staff.view.fetchingDetails')}
                   </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className={LABEL}>First Name <span className="text-red-500">*</span></label>
+                        <label className={LABEL}>{t('common.fields.firstName')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                          <input ref={firstRef} type="text" placeholder="John" value={values.firstName} onChange={set('firstName')} className={`${INPUT} pl-10 ${errors.firstName ? 'border-red-400' : ''}`} />
+                          <input ref={firstRef} type="text" placeholder={t('employees.form.firstNamePlaceholder')} value={values.firstName} onChange={set('firstName')} className={`${INPUT} pl-10 ${errors.firstName ? 'border-red-400' : ''}`} />
                         </div>
                         {errors.firstName && <p className="mt-1 text-[12px] text-red-500 font-medium">{errors.firstName}</p>}
                       </div>
                       <div>
-                        <label className={LABEL}>Last Name <span className="text-red-500">*</span></label>
+                        <label className={LABEL}>{t('common.fields.lastName')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                          <input type="text" placeholder="Doe" value={values.lastName} onChange={set('lastName')} className={`${INPUT} pl-10 ${errors.lastName ? 'border-red-400' : ''}`} />
+                          <input type="text" placeholder={t('employees.form.lastNamePlaceholder')} value={values.lastName} onChange={set('lastName')} className={`${INPUT} pl-10 ${errors.lastName ? 'border-red-400' : ''}`} />
                         </div>
                         {errors.lastName && <p className="mt-1 text-[12px] text-red-500 font-medium">{errors.lastName}</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className={LABEL}>Email <span className="text-red-500">*</span></label>
+                        <label className={LABEL}>{t('employees.form.workEmail')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                          <input type="email" placeholder="john.doe@company.com" value={values.email} onChange={set('email')} className={`${INPUT} pl-10 ${errors.email ? 'border-red-400' : ''}`} />
+                          <input type="email" placeholder={t('employees.form.staffEmailPlaceholder')} value={values.email} onChange={set('email')} className={`${INPUT} pl-10 ${errors.email ? 'border-red-400' : ''}`} />
                         </div>
                         {errors.email && <p className="mt-1 text-[12px] text-red-500 font-medium">{errors.email}</p>}
                       </div>
                       <div>
-                        <label className={LABEL}>Job Title <span className="text-red-500">*</span></label>
+                        <label className={LABEL}>{t('tables.headers.jobTitle')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                          <input type="text" placeholder="Manager" value={values.jobTitle} onChange={set('jobTitle')} className={`${INPUT} pl-10 ${errors.jobTitle ? 'border-red-400' : ''}`} />
+                          <input type="text" placeholder={t('employees.form.staffJobTitlePlaceholder')} value={values.jobTitle} onChange={set('jobTitle')} className={`${INPUT} pl-10 ${errors.jobTitle ? 'border-red-400' : ''}`} />
                         </div>
                         {errors.jobTitle && <p className="mt-1 text-[12px] text-red-500 font-medium">{errors.jobTitle}</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className={LABEL}>Department <span className="text-red-500">*</span></label>
+                        <label className={LABEL}>{t('tables.headers.department')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                           <select value={values.department} onChange={set('department')} className={`${SELECT} pl-10 ${errors.department ? 'border-red-400' : ''}`}>
-                            <option value="" disabled>Select Department</option>
+                            <option value="" disabled>{t('employees.form.selectDepartment')}</option>
                             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
                           {CHEVRON_SVG}
@@ -619,11 +699,11 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                         {errors.department && <p className="mt-1 text-[12px] text-red-500 font-medium">{errors.department}</p>}
                       </div>
                       <div>
-                        <label className={LABEL}>Location</label>
+                        <label className={LABEL}>{t('tables.headers.location')}</label>
                         <div className="relative">
                           <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                           <select value={values.location} onChange={set('location')} className={`${SELECT} pl-10`}>
-                            <option value="">Select Location</option>
+                            <option value="">{t('employees.form.selectLocation')}</option>
                             {locations.map(l => <option key={l.id} value={l.id}>{l.code} – {l.name}</option>)}
                           </select>
                           {CHEVRON_SVG}
@@ -631,7 +711,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                       </div>
                     </div>
                     <div>
-                      <label className={LABEL}>Start Date <span className="text-red-500">*</span></label>
+                      <label className={LABEL}>{t('employees.form.employmentStart')} <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input type="date" value={values.startDate} onChange={set('startDate')} className={`${INPUT} pl-10 ${errors.startDate ? 'border-red-400' : ''}`} style={{ colorScheme: 'light' }} />
@@ -639,7 +719,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                       {errors.startDate && <p className="mt-1 text-[12px] text-red-500 font-medium">{errors.startDate}</p>}
                     </div>
                     <div>
-                      <label className={LABEL}>Assign Employees</label>
+                      <label className={LABEL}>{t('assignEmployees.action')}</label>
                       <div className="min-h-[44px] w-full rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-[13.5px] font-medium text-gray-700">
                         <div className="flex flex-wrap gap-1.5">
                           {values.assignedEmployees.map((id) => {
@@ -653,17 +733,21 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                             );
                           })}
                           {values.assignedEmployees.length === 0 && (
-                            <span className="text-gray-400">{!values.department ? 'Select a department first' : 'No employees selected'}</span>
+                            <span className="text-gray-400">
+                              {!values.department ? t('employees.form.selectDepartmentFirst') : t('staff.form.noEmployeesSelected')}
+                            </span>
                           )}
                         </div>
                       </div>
                       <div className="mt-3">
                         {!values.department ? (
                           <p className="text-[12px] font-medium text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 italic">
-                            Select a department to view available employees
+                            {t('staff.form.selectDepartmentToViewEmployees')}
                           </p>
                         ) : unassignedEmployees.length === 0 ? (
-                          <p className="text-[12px] font-medium text-gray-400 italic">No unassigned employees found in this department</p>
+                          <p className="text-[12px] font-medium text-gray-400 italic">
+                            {t('staff.form.noUnassignedEmployees')}
+                          </p>
                         ) : (
                           <div className="flex flex-wrap gap-2">
                             {unassignedEmployees.filter(e => !values.assignedEmployees.includes(e.id)).map(emp => (
@@ -687,13 +771,13 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
               <div className="w-full space-y-6">
                 {/* Employment Type */}
                 <div className="space-y-2">
-                  <label className={LABEL}>Employment Type</label>
+                  <label className={LABEL}>{t('employees.view.employmentType')}</label>
                   <div className="relative">
                     <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <select value={step2.employmentType} onChange={setS2('employmentType')} className={`${SELECT} pl-10`}>
-                      <option value="">Select Employment Type</option>
-                      {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([val, label]) => (
-                        <option key={val} value={val}>{label}</option>
+                      <option value="">{t('employees.jobModal.selectEmploymentType')}</option>
+                      {EMPLOYMENT_TYPE_VALUES.map((val) => (
+                        <option key={val} value={val}>{t(EMPLOYMENT_TYPE_LABEL_KEYS[val])}</option>
                       ))}
                     </select>
                     {CHEVRON_SVG}
@@ -704,11 +788,11 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <FileText size={14} className="inline mr-1.5 -mt-0.5" />
-                    Contract Document
+                    {t('employees.jobModal.contractDocument')}
                   </label>
                   <div className="flex items-center gap-3">
                     <div className={`flex-1 h-12 rounded-xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] px-4 flex items-center text-[14px] font-medium ${step2.contractFileName ? 'text-[#155DFC]' : 'text-gray-400'}`}>
-                      {step2.contractFileName || 'No contract uploaded (optional)'}
+                      {step2.contractFileName || t('employees.jobModal.noContractUploadedOptional')}
                     </div>
                     <button
                       type="button"
@@ -716,7 +800,7 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                       className="h-12 px-5 rounded-xl border border-[#155DFC]/30 bg-[#E8F1FF] text-[#155DFC] text-[13px] font-bold flex items-center gap-2 hover:bg-[#155DFC] hover:text-white transition-all active:scale-95"
                     >
                       <Upload size={16} />
-                      Upload
+                      {t('employees.jobModal.upload')}
                     </button>
                     <input
                       ref={fileInputRef}
@@ -726,12 +810,12 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                       className="hidden"
                     />
                   </div>
-                  <p className="text-[12px] text-gray-400 font-medium">PDF or DOCX format only</p>
+                  <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.pdfDocxOnly')}</p>
                 </div>
 
                 {/* Contract Expiry Date */}
                 <div className="space-y-2">
-                  <label className={LABEL}>Contract Expiry Date</label>
+                  <label className={LABEL}>{t('employees.view.contractExpiry')}</label>
                   <div className="relative">
                     <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input type="date" value={step2.contractExpiryDate} onChange={setS2('contractExpiryDate')} className={`${INPUT} pl-10`} style={{ colorScheme: 'light' }} />
@@ -742,23 +826,23 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                 <div className="space-y-2">
                   <label className={LABEL}>
                     <Sun size={14} className="inline mr-1.5 -mt-0.5" />
-                    Paid Leave Days / Year
+                    {t('employees.view.paidLeaveDays')}
                   </label>
                   <div className="relative">
                     <Sun className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input type="number" min="0" max="365" placeholder="e.g. 30" value={step2.leaveDaysPerYear} onChange={setS2('leaveDaysPerYear')} className={`${INPUT} pl-10`} />
+                    <input type="number" min="0" max="365" placeholder={t('employees.form.leaveDaysPlaceholder')} value={step2.leaveDaysPerYear} onChange={setS2('leaveDaysPerYear')} className={`${INPUT} pl-10`} />
                   </div>
                 </div>
 
                 {/* Payment Method */}
                 <div className="space-y-2">
-                  <label className={LABEL}>Payment Method</label>
+                  <label className={LABEL}>{t('employees.view.paymentMethod')}</label>
                   <div className="relative">
                     <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <select value={step2.paymentMethod} onChange={setS2('paymentMethod')} className={`${SELECT} pl-10`}>
-                      <option value="">Select Payment Method</option>
-                      {Object.entries(PAYMENT_METHOD_LABELS).map(([val, label]) => (
-                        <option key={val} value={val}>{label}</option>
+                      <option value="">{t('employees.jobModal.selectPaymentMethod')}</option>
+                      {PAYMENT_METHOD_VALUES.map((val) => (
+                        <option key={val} value={val}>{t(PAYMENT_METHOD_LABEL_KEYS[val])}</option>
                       ))}
                     </select>
                     {CHEVRON_SVG}
@@ -767,10 +851,10 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
 
                 {step2.paymentMethod === 'FIXED_MONTHLY' && (
                   <div className="space-y-2">
-                    <label className={LABEL}>Monthly Salary</label>
+                    <label className={LABEL}>{t('employees.jobModal.monthlySalary')}</label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
-                      <input type="number" min="0" step="0.01" placeholder="e.g. 5000.00" value={step2.monthlySalary} onChange={setS2('monthlySalary')} className={`${INPUT} pl-8`} />
+                      <input type="number" min="0" step="0.01" placeholder={t('employees.form.staffMonthlySalaryPlaceholder')} value={step2.monthlySalary} onChange={setS2('monthlySalary')} className={`${INPUT} pl-8`} />
                     </div>
                   </div>
                 )}
@@ -779,13 +863,13 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                   <div className="space-y-2">
                     <label className={LABEL}>
                       <Clock size={14} className="inline mr-1.5 -mt-0.5" />
-                      Hourly Rate
+                      {t('employees.jobModal.hourlyRate')}
                     </label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[14px] font-bold">{currencySymbol}</span>
-                      <input type="number" min="0" step="0.01" placeholder="e.g. 25.00" value={step2.hourlyRate} onChange={setS2('hourlyRate')} className={`${INPUT} pl-8`} />
+                      <input type="number" min="0" step="0.01" placeholder={t('employees.form.staffHourlyRatePlaceholder')} value={step2.hourlyRate} onChange={setS2('hourlyRate')} className={`${INPUT} pl-8`} />
                     </div>
-                    <p className="text-[12px] text-gray-400 font-medium">Rate per hour worked</p>
+                    <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.ratePerHour')}</p>
                   </div>
                 )}
 
@@ -847,11 +931,13 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
                   </div>
                 </div>
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                  <p className="mb-2 font-[Inter,sans-serif] text-[13px] font-bold text-amber-700">⚠ Important Rules</p>
+                  <p className="mb-2 font-[Inter,sans-serif] text-[13px] font-bold text-amber-700">
+                    {t('staff.form.importantRules')}
+                  </p>
                   <ul className="space-y-1 font-[Inter,sans-serif] text-[13px] font-medium text-amber-700">
-                    <li>• Permissions are assigned per staff user</li>
-                    <li>• Staff can act ONLY on assigned employees</li>
-                    <li>• Staff cannot approve their own leave requests</li>
+                    <li>{t('staff.form.permissionsPerUser')}</li>
+                    <li>{t('staff.form.onlyAssignedEmployees')}</li>
+                    <li>{t('staff.form.noOwnLeaveApproval')}</li>
                   </ul>
                 </div>
               </div>
@@ -867,17 +953,17 @@ export function StaffFormModal({ isOpen, onClose, onSave, mode, initialData }: S
           {/* Footer */}
           <div className="flex items-center justify-between px-8 py-6 border-t border-gray-50 bg-white rounded-b-[24px] shrink-0">
             {step === 1 ? (
-              <button type="button" onClick={onClose} className={BTN_CANCEL}>Discard</button>
+              <button type="button" onClick={onClose} className={BTN_CANCEL}>{t('common.actions.discard')}</button>
             ) : (
-              <button type="button" onClick={handleBack} className={BTN_BACK}>Back</button>
+              <button type="button" onClick={handleBack} className={BTN_BACK}>{t('common.actions.back')}</button>
             )}
             {step < totalSteps ? (
               <button type="button" onClick={handleNext} className={BTN_PRIMARY} disabled={isBusy}>
-                Next
+                {t('common.actions.next')}
               </button>
             ) : (
               <button type="button" onClick={handleSubmit} className={BTN_PRIMARY} disabled={isBusy}>
-                {isUploadingFile ? 'Uploading...' : isBusy ? 'Processing...' : (mode === 'add' ? 'Create Account' : 'Confirm Updates')}
+                {isUploadingFile ? t('employees.jobModal.uploading') : isBusy ? t('common.feedback.processing') : (mode === 'add' ? t('employees.form.createAccount') : t('employees.form.confirmUpdates'))}
               </button>
             )}
           </div>

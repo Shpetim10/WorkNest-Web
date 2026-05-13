@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Input } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useAdjustDayRecord } from '../api/adjust-day-record';
 import { AttendanceDayStatus } from '../types';
 import { formatAttendanceFriendlyError } from '@/features/locations/utils/errors';
@@ -21,16 +22,16 @@ interface Props {
   isAdmin?: boolean;
 }
 
-const DAY_STATUS_LABELS: Record<AttendanceDayStatus, string> = {
-  [AttendanceDayStatus.PRESENT]: 'Present',
-  [AttendanceDayStatus.ABSENT]: 'Absent',
-  [AttendanceDayStatus.LATE]: 'Late',
-  [AttendanceDayStatus.HALF_DAY]: 'Half Day',
-  [AttendanceDayStatus.ON_LEAVE]: 'On Leave',
-  [AttendanceDayStatus.HOLIDAY]: 'Holiday',
-  [AttendanceDayStatus.MISSING_CHECKOUT]: 'Missing Check Out',
-  [AttendanceDayStatus.FLAGGED]: 'Flagged',
-  [AttendanceDayStatus.PENDING_REVIEW]: 'Pending Review',
+const DAY_STATUS_LABEL_KEYS: Record<AttendanceDayStatus, string> = {
+  [AttendanceDayStatus.PRESENT]: 'common.statuses.present',
+  [AttendanceDayStatus.ABSENT]: 'common.statuses.absent',
+  [AttendanceDayStatus.LATE]: 'attendance.dayStatuses.late',
+  [AttendanceDayStatus.HALF_DAY]: 'attendance.dayStatuses.halfDay',
+  [AttendanceDayStatus.ON_LEAVE]: 'attendance.dayStatuses.onLeave',
+  [AttendanceDayStatus.HOLIDAY]: 'attendance.dayStatuses.holiday',
+  [AttendanceDayStatus.MISSING_CHECKOUT]: 'attendance.states.missingCheckout',
+  [AttendanceDayStatus.FLAGGED]: 'attendance.dayStatuses.flagged',
+  [AttendanceDayStatus.PENDING_REVIEW]: 'common.statuses.pendingReview',
 };
 
 function toLocalDatetimeValue(date: Date, timezone: string): string {
@@ -108,6 +109,7 @@ export function AdjustDayRecordModal({
   timezone,
   isAdmin = false,
 }: Props) {
+  const { t } = useI18n();
   const [checkIn, setCheckIn] = useState(toLocal(firstCheckInAt, timezone));
   const [checkOut, setCheckOut] = useState(toLocal(lastCheckOutAt, timezone));
   const [worked, setWorked] = useState<string>(workedMinutes ? String(workedMinutes) : '');
@@ -137,7 +139,7 @@ export function AdjustDayRecordModal({
       setFormError(
         formatAttendanceFriendlyError(
           error,
-          'We could not save this day-record adjustment. Please try again.',
+          t('attendance.modal.adjustFailed'),
         ),
       );
     }
@@ -152,7 +154,7 @@ export function AdjustDayRecordModal({
           className="px-6 py-5 flex items-center justify-between"
           style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
         >
-          <h2 className="text-base font-bold text-white">Adjust Day Record</h2>
+          <h2 className="text-base font-bold text-white">{t('attendance.actions.adjustDayRecord')}</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors">
             <X size={18} />
           </button>
@@ -166,13 +168,13 @@ export function AdjustDayRecordModal({
           )}
           {!isToday && (
             <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-              Adjustments are only allowed for today&apos;s records.
+              {t('attendance.modal.todayOnly')}
             </p>
           )}
 
           <Input
             id="adj-check-in"
-            label={`Check-In time (${timezone})`}
+            label={t('attendance.modal.checkInTime', { timezone })}
             type="datetime-local"
             value={checkIn}
             {...(!isAdmin && { min: `${workDate}T00:00`, max: `${workDate}T23:59` })}
@@ -182,7 +184,7 @@ export function AdjustDayRecordModal({
 
           <Input
             id="adj-check-out"
-            label={`Check-Out time (${timezone})`}
+            label={t('attendance.modal.checkOutTime', { timezone })}
             type="datetime-local"
             value={checkOut}
             {...(!isAdmin && { min: `${workDate}T00:00`, max: `${addOneDay(workDate)}T12:00` })}
@@ -192,23 +194,23 @@ export function AdjustDayRecordModal({
 
           <Input
             id="adj-worked"
-            label="Worked minutes (leave blank to auto-calculate)"
+            label={t('attendance.modal.workedMinutes')}
             type="number"
             value={worked}
             onChange={(e) => setWorked(e.target.value)}
-            placeholder="e.g. 480"
+            placeholder={t('attendance.modal.workedPlaceholder')}
           />
 
           <div className="space-y-1.5">
-            <label className="block text-[13px] font-semibold text-gray-700">Day Status</label>
+            <label className="block text-[13px] font-semibold text-gray-700">{t('attendance.headers.dayStatus')}</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as AttendanceDayStatus)}
               className="w-full h-11 pl-4 pr-10 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-700 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-400/40 appearance-none"
             >
-              {Object.entries(DAY_STATUS_LABELS).map(([value, label]) => (
+              {Object.entries(DAY_STATUS_LABEL_KEYS).map(([value, labelKey]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(labelKey)}
                 </option>
               ))}
             </select>
@@ -220,14 +222,14 @@ export function AdjustDayRecordModal({
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
           >
-            Cancel
+            {t('common.actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={mutation.isPending || !isToday}
             className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            {mutation.isPending ? 'Saving…' : 'Save Adjustment'}
+            {mutation.isPending ? t('common.actions.saving') : t('attendance.modal.saveAdjustment')}
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, ArrowRight, Loader2, Check, X } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
 import { ApiErrorResponse } from '@/common/types/api';
@@ -13,13 +14,14 @@ type SetNewPasswordViewProps = {
 };
 
 export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const resetPasswordMutation = useResetPassword();
 
   const RULES = [
-    { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-    { label: 'At least one uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-    { label: 'At least one number', test: (p: string) => /[0-9]/.test(p) },
+    { label: t('passwordRules.atLeast8'), test: (p: string) => p.length >= 8 },
+    { label: t('passwordRules.uppercase'), test: (p: string) => /[A-Z]/.test(p) },
+    { label: t('passwordRules.number'), test: (p: string) => /[0-9]/.test(p) },
   ];
 
   const [password, setPassword] = useState('');
@@ -30,15 +32,15 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
 
   const validate = () => {
     if (!token) {
-      setError('Invalid or missing reset token.');
+      setError(t('validation.invalidResetToken'));
       return false;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setError(t('validation.passwordMin'));
       return false;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('validation.passwordsDoNotMatch'));
       return false;
     }
     return true;
@@ -55,7 +57,7 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
         router.push('/password-reset-success');
       } catch (err: unknown) {
         const msg = (err as AxiosError<ApiErrorResponse>)?.response?.data?.message;
-        setError(msg || 'Failed to reset password. The link may have expired.');
+        setError(msg || t('validation.resetFailed'));
       }
     }
   };
@@ -65,6 +67,9 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
 
       {/* Background Glow - Lower Left Green Glow */}
       <div className="absolute bottom-0 left-0 -translate-x-1/4 translate-y-1/4 w-[500px] h-[500px] bg-[#B9F8CF]/40 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute right-6 top-6 z-20">
+        <LanguageSwitcher />
+      </div>
 
       {/* Card */}
       <Card className="relative w-full max-w-[480px] p-10 sm:p-12 z-10">
@@ -77,9 +82,9 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
             </h1>
           </div>
 
-          <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">Set New Password</h2>
+          <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">{t('auth.resetPassword.title')}</h2>
           <p className="text-gray-500 text-[15px]">
-            Your new password must be different from previously used passwords
+            {t('auth.resetPassword.subtitle')}
           </p>
         </div>
 
@@ -87,9 +92,9 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
 
           <Input
             id="new-password"
-            label="New Password"
+            label={t('auth.resetPassword.newPassword')}
             type={showPassword ? "text" : "password"}
-            placeholder="Enter new password"
+            placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
             icon={<Lock className="h-[18px] w-[18px]" />}
             iconRight={showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
             onIconRightClick={() => setShowPassword(!showPassword)}
@@ -99,9 +104,9 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
 
           <Input
             id="confirm-password"
-            label="Confirm Password"
+            label={t('auth.resetPassword.confirmPassword')}
             type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm new password"
+            placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
             icon={<Lock className="h-[18px] w-[18px]" />}
             iconRight={showConfirmPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
             onIconRightClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -112,7 +117,7 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
 
           {/* Password requirements */}
           <div className="bg-[#f8fafc] border border-gray-100 rounded-2xl p-5 space-y-3">
-            <p className="text-[13px] font-semibold text-gray-700">Password requirements</p>
+            <p className="text-[13px] font-semibold text-gray-700">{t('auth.resetPassword.requirementsTitle')}</p>
             <div className="space-y-2.5">
               {RULES.map((rule) => {
                 const passed = rule.test(password);
@@ -145,7 +150,7 @@ export function SetNewPasswordView({ token }: SetNewPasswordViewProps) {
             icon={resetPasswordMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
             disabled={resetPasswordMutation.isPending}
           >
-            {resetPasswordMutation.isPending ? 'Updating...' : 'Update Password'}
+            {resetPasswordMutation.isPending ? t('auth.resetPassword.updating') : t('auth.resetPassword.update')}
           </Button>
         </form>
 

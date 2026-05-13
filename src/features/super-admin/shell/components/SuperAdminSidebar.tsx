@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useI18n } from '@/common/i18n';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
@@ -20,20 +21,20 @@ import {
 } from 'lucide-react';
 
 interface SuperAdminNavItem {
-  name: string;
+  labelKey: string;
   icon: LucideIcon;
   href: string;
 }
 
 const NAV_ITEMS: SuperAdminNavItem[] = [
-  { name: 'Dashboard', icon: LayoutGrid, href: '/superadmin_dashboard' },
-  { name: 'Companies', icon: Building2, href: '/superadmin_dashboard/companies' },
-  { name: 'Audit Log', icon: ShieldCheck, href: '/superadmin_dashboard/audit-log' },
+  { labelKey: 'shell.nav.dashboard', icon: LayoutGrid, href: '/superadmin_dashboard' },
+  { labelKey: 'shell.nav.companies', icon: Building2, href: '/superadmin_dashboard/companies' },
+  { labelKey: 'shell.nav.auditLog', icon: ShieldCheck, href: '/superadmin_dashboard/audit-log' },
 ];
 
 const PROFILE_ITEMS: SuperAdminNavItem[] = [
-  { name: 'My Profile', icon: UserCircle, href: '/superadmin_dashboard/profile/personal-info' },
-  { name: 'Change Password', icon: KeyRound, href: '/superadmin_dashboard/profile/change-password' },
+  { labelKey: 'shell.topHeader.myProfile', icon: UserCircle, href: '/superadmin_dashboard/profile/personal-info' },
+  { labelKey: 'shell.nav.changePassword', icon: KeyRound, href: '/superadmin_dashboard/profile/change-password' },
 ];
 
 function isActiveRoute(pathname: string, href: string): boolean {
@@ -50,6 +51,7 @@ export function SuperAdminSidebar({
   isSidebarExpanded: boolean;
   toggleSidebar: () => void;
 }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const hasActiveProfileRoute = PROFILE_ITEMS.some((item) => isActiveRoute(pathname, item.href));
@@ -128,9 +130,9 @@ export function SuperAdminSidebar({
 
           return (
             <Link
-              key={item.name}
+              key={item.labelKey}
               href={item.href}
-              title={!isSidebarExpanded ? item.name : undefined}
+              title={!isSidebarExpanded ? t(item.labelKey) : undefined}
               className={`flex h-10 items-center transition-all duration-200 ${
                 isSidebarExpanded ? 'justify-between px-3' : 'justify-center px-0'
               } ${!active ? 'hover:bg-white/10' : ''}`}
@@ -138,7 +140,7 @@ export function SuperAdminSidebar({
             >
               <div className="flex min-w-0 items-center gap-2.5">
                 <item.icon size={18} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-                <span className={labelClass}>{item.name}</span>
+                <span className={labelClass}>{t(item.labelKey)}</span>
               </div>
             </Link>
           );
@@ -154,7 +156,7 @@ export function SuperAdminSidebar({
           <button
             type="button"
             onClick={() => isSidebarExpanded && setIsSettingsOpen((value) => !value)}
-            title={!isSidebarExpanded ? 'Settings' : undefined}
+            title={!isSidebarExpanded ? t('shell.nav.settings') : undefined}
             className={`flex h-10 w-full items-center transition-all duration-200 ${
               isSidebarExpanded ? 'justify-between px-3' : 'justify-center px-0'
             } ${!hasActiveProfileRoute ? 'hover:bg-white/10' : ''}`}
@@ -167,7 +169,7 @@ export function SuperAdminSidebar({
                   isSidebarExpanded ? 'w-auto opacity-100' : 'w-0 opacity-0'
                 }`}
               >
-                Settings
+                {t('shell.nav.settings')}
               </span>
             </div>
             {isSidebarExpanded && (
@@ -184,7 +186,7 @@ export function SuperAdminSidebar({
 
                 return (
                   <Link
-                    key={item.name}
+                    key={item.labelKey}
                     href={item.href}
                     className="flex h-9 items-center gap-2.5 px-3 transition-all"
                     style={{
@@ -202,7 +204,7 @@ export function SuperAdminSidebar({
                       className="h-1.5 w-1.5 shrink-0 rounded-full"
                       style={{ background: active ? '#ffffff' : 'rgba(255,255,255,0.35)' }}
                     />
-                    <span className="whitespace-nowrap text-[13px] font-medium">{item.name}</span>
+                    <span className="whitespace-nowrap text-[13px] font-medium">{t(item.labelKey)}</span>
                   </Link>
                 );
               })}

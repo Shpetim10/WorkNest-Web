@@ -4,22 +4,24 @@ import React, { useState } from 'react';
 import { Card, Button, PageHeaderDecorativeCircles } from '@/common/ui';
 import { Lock, Eye, EyeOff, KeyRound, Loader2, Check, X, ShieldCheck } from 'lucide-react';
 import { useChangePassword } from '@/features/auth/api/change-password';
+import { useI18n } from '@/common/i18n';
 
 type PasswordKey = 'current' | 'next' | 'confirm';
 
-const LABELS: Record<PasswordKey, string> = {
-  current: 'Current Password',
-  next: 'New Password',
-  confirm: 'Confirm New Password',
+const LABEL_KEYS: Record<PasswordKey, string> = {
+  current: 'dashboard.changePassword.currentPassword',
+  next: 'auth.resetPassword.newPassword',
+  confirm: 'dashboard.changePassword.confirmNewPassword',
 };
 
 const RULES = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'At least one uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'At least one number', test: (p: string) => /[0-9]/.test(p) },
+  { labelKey: 'passwordRules.atLeast8', test: (p: string) => p.length >= 8 },
+  { labelKey: 'passwordRules.uppercase', test: (p: string) => /[A-Z]/.test(p) },
+  { labelKey: 'passwordRules.number', test: (p: string) => /[0-9]/.test(p) },
 ];
 
 export function ChangePasswordView() {
+  const { t } = useI18n();
   const changePassword = useChangePassword();
 
   const [passwordData, setPasswordData] = useState<Record<PasswordKey, string>>({
@@ -39,11 +41,11 @@ export function ChangePasswordView() {
     setSuccess(false);
     setError('');
     if (!passwordData.current || !passwordData.next || !passwordData.confirm) {
-      setError('All fields are required.');
+      setError(t('validation.allFieldsRequired'));
       return;
     }
     if (passwordData.next !== passwordData.confirm) {
-      setError('New passwords do not match.');
+      setError(t('validation.newPasswordsDoNotMatch'));
       return;
     }
     try {
@@ -53,9 +55,12 @@ export function ChangePasswordView() {
       });
       setSuccess(true);
       setPasswordData({ current: '', next: '', confirm: '' });
-    } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      setError(msg ?? 'Failed to change password. Please try again.');
+    } catch (err: unknown) {
+      const msg =
+        typeof err === 'object' && err !== null && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+      setError(msg ?? t('validation.changePasswordFailed'));
     }
   }
 
@@ -63,7 +68,7 @@ export function ChangePasswordView() {
   const showRules = newPassword.length > 0;
   const passedCount = RULES.filter(r => r.test(newPassword)).length;
   const strength = passedCount === 0 ? null : passedCount === 1 ? 'weak' : passedCount === 2 ? 'fair' : 'strong';
-  const strengthLabel = { weak: 'Weak', fair: 'Fair', strong: 'Strong' };
+  const strengthLabel = { weak: t('passwordRules.weak'), fair: t('passwordRules.fair'), strong: t('passwordRules.strong') };
   const strengthColor = { weak: 'bg-red-400', fair: 'bg-amber-400', strong: 'bg-emerald-500' };
 
   return (
@@ -83,9 +88,9 @@ export function ChangePasswordView() {
             <KeyRound size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Change Password</h1>
+            <h1 className="text-3xl font-bold text-white">{t('dashboard.changePassword.title')}</h1>
             <p className="text-white/80 text-sm mt-0.5">
-              Keep your account secure with a strong password
+              {t('dashboard.changePassword.subtitle')}
             </p>
           </div>
         </div>
@@ -97,8 +102,8 @@ export function ChangePasswordView() {
       {/* Card */}
       <Card className="p-8 lg:p-10 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div className="space-y-1 mb-6">
-          <h2 className="text-[17px] font-bold text-[#1a1c23]">Update Password</h2>
-          <p className="text-[13px] text-gray-500">Enter your current password and choose a new one</p>
+          <h2 className="text-[17px] font-bold text-[#1a1c23]">{t('dashboard.changePassword.cardTitle')}</h2>
+          <p className="text-[13px] text-gray-500">{t('dashboard.changePassword.cardSubtitle')}</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -107,7 +112,7 @@ export function ChangePasswordView() {
           <div className="flex-1 space-y-5 max-w-md">
             {(['current', 'next', 'confirm'] as PasswordKey[]).map((key) => (
               <div key={key} className="flex flex-col gap-2">
-                <label className="block text-[13px] font-semibold text-gray-700">{LABELS[key]}</label>
+                <label className="block text-[13px] font-semibold text-gray-700">{t(LABEL_KEYS[key])}</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
@@ -136,7 +141,7 @@ export function ChangePasswordView() {
               <p className="text-[13px] text-red-500 font-medium">{error}</p>
             )}
             {success && (
-              <p className="text-[13px] text-green-600 font-medium">Password updated successfully.</p>
+              <p className="text-[13px] text-green-600 font-medium">{t('dashboard.changePassword.success')}</p>
             )}
 
             <div className="flex justify-end pt-1">
@@ -149,9 +154,9 @@ export function ChangePasswordView() {
               >
                 {changePassword.isPending ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 size={15} className="animate-spin" /> Updating...
+                    <Loader2 size={15} className="animate-spin" /> {t('common.actions.updating')}
                   </span>
-                ) : 'Update Password'}
+                ) : t('auth.resetPassword.update')}
               </Button>
             </div>
           </div>
@@ -166,8 +171,8 @@ export function ChangePasswordView() {
                   <ShieldCheck size={18} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-800">Password strength</p>
-                  <p className="text-[11px] text-gray-400">Requirements for a secure password</p>
+                  <p className="text-[13px] font-bold text-gray-800">{t('passwordRules.strength')}</p>
+                  <p className="text-[11px] text-gray-400">{t('passwordRules.requirements')}</p>
                 </div>
               </div>
 
@@ -191,7 +196,7 @@ export function ChangePasswordView() {
                   strength === 'fair' ? 'text-amber-500' :
                   'text-emerald-600'
                 }`}>
-                  {strength ? strengthLabel[strength] : 'Enter a new password'}
+                  {strength ? strengthLabel[strength] : t('passwordRules.enterNew')}
                 </p>
               </div>
 
@@ -203,7 +208,7 @@ export function ChangePasswordView() {
                 {RULES.map((rule) => {
                   const passed = rule.test(newPassword);
                   return (
-                    <div key={rule.label} className="flex items-center gap-2.5">
+                    <div key={rule.labelKey} className="flex items-center gap-2.5">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                         showRules && passed ? 'bg-emerald-500' : showRules ? 'bg-red-400' : 'bg-gray-200'
                       }`}>
@@ -216,7 +221,7 @@ export function ChangePasswordView() {
                       <span className={`text-[12px] transition-colors ${
                         showRules && passed ? 'text-emerald-600 font-medium' : showRules ? 'text-red-500' : 'text-gray-500'
                       }`}>
-                        {rule.label}
+                        {t(rule.labelKey)}
                       </span>
                     </div>
                   );
@@ -226,7 +231,7 @@ export function ChangePasswordView() {
               {/* Tip */}
               <div className="mt-auto pt-2 border-t border-gray-100">
                 <p className="text-[11px] text-gray-400 leading-relaxed">
-                  Tip: use a mix of words, numbers, and uppercase letters you can remember.
+                  {t('passwordRules.tip')}
                 </p>
               </div>
 

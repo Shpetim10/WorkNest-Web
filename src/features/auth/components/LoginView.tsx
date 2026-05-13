@@ -4,11 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { Input, Button } from '@/common/ui';
+import { LanguageSwitcher, useI18n } from '@/common/i18n';
 import { useLogin } from '../api/login';
 import { PlatformAccess } from '../types';
 import { useRouter } from 'next/navigation';
 
 export function LoginView() {
+  const { t } = useI18n();
   const router = useRouter();
   const loginMutation = useLogin();
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -17,13 +19,13 @@ export function LoginView() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('validation.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('validation.validEmail');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('validation.passwordRequired');
     }
 
     setErrors(newErrors);
@@ -45,10 +47,10 @@ export function LoginView() {
         } else {
           router.push('/dashboard');
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Errors are handled by the mutation and typically displayed via global toast
         // but we can also set local errors if preferred
-        console.error('Login failed:', error);
+        console.error(t('auth.login.failedLog'), error);
       }
     }
   };
@@ -65,6 +67,9 @@ export function LoginView() {
     <div className="flex min-h-screen w-full bg-white font-sans">
       {/* Left Panel - Form */}
       <div className="flex w-full flex-col justify-center px-8 sm:px-12 md:w-1/2 lg:px-24 xl:px-32 relative">
+        <div className="absolute right-8 top-6 z-20">
+          <LanguageSwitcher />
+        </div>
         <div className="w-full max-w-[400px] mx-auto">
           {/* Logo */}
           <div className="mb-10">
@@ -74,16 +79,16 @@ export function LoginView() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-[#1a1c23] mb-2">Welcome Back !</h2>
-            <p className="text-gray-500 text-sm">Sign in to continue to your account</p>
+            <h2 className="text-3xl font-bold text-[#1a1c23] mb-2">{t('auth.login.title')}</h2>
+            <p className="text-gray-500 text-sm">{t('auth.login.subtitle')}</p>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             <Input
               id="email"
-              label="Email Address"
+              label={t('common.fields.emailAddress')}
               type="text" // Use text so html5 validation doesn't block custom validation
-              placeholder="you@company.com"
+              placeholder={t('auth.login.emailPlaceholder')}
               icon={<Mail className="h-[18px] w-[18px]" />}
               value={formData.email}
               onChange={handleChange('email')}
@@ -92,9 +97,9 @@ export function LoginView() {
 
             <Input
               id="password"
-              label="Password"
+              label={t('common.fields.password')}
               type="password"
-              placeholder="Enter your password"
+              placeholder={t('auth.login.passwordPlaceholder')}
               icon={<Lock className="h-[18px] w-[18px]" />}
               value={formData.password}
               onChange={handleChange('password')}
@@ -106,7 +111,7 @@ export function LoginView() {
                 href="/forgot-password"
                 className="text-[13px] font-bold text-[#0066FF] hover:text-blue-700 transition-colors"
               >
-                Forgot password?
+                {t('auth.login.forgotPassword')}
               </Link>
             </div>
 
@@ -117,15 +122,15 @@ export function LoginView() {
                 icon={loginMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
                 disabled={loginMutation.isPending}
               >
-                {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
+                {loginMutation.isPending ? t('auth.login.submitting') : t('auth.login.submit')}
               </Button>
             </div>
           </form>
 
           <div className="mt-8 text-center text-sm text-gray-500">
-            Don't have an account?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link href="/register/pricing" className="font-bold text-[#0066FF] hover:text-blue-700 transition-colors">
-              Sign up
+              {t('auth.login.signUp')}
             </Link>
           </div>
         </div>
@@ -141,7 +146,7 @@ export function LoginView() {
           <div className="mb-6 flex justify-center">
             <Image
               src="/logo.png"
-              alt="WorkNest Brand"
+              alt={t('auth.shared.brandAlt')}
               width={430}
               height={307}
               className="w-[430px] h-auto object-contain drop-shadow-lg"
@@ -150,7 +155,7 @@ export function LoginView() {
           </div>
 
           <p className="font-sans font-normal text-[20px] leading-[28px] tracking-normal text-center text-white/90 max-w-[438px]">
-            Step into a better HR experience — where managing your team is easier, collaboration feels natural, and growth happens every day.
+            {t('auth.shared.tagline')}
           </p>
         </div>
       </div>

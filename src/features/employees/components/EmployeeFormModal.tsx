@@ -127,6 +127,7 @@ interface Step2Values {
   paymentMethod: string;
   monthlySalary: string;
   hourlyRate: string;
+  dailyWorkingHours: string;
   leaveDaysPerYear: string;
 }
 
@@ -163,7 +164,7 @@ const EMPTY_STEP1: Step1Values = {
 const EMPTY_STEP2: Step2Values = {
   employmentType: '', contractFile: null, contractDocumentKey: '',
   contractDocumentPath: '', contractFileName: '', contractExpiryDate: '',
-  paymentMethod: '', monthlySalary: '', hourlyRate: '', leaveDaysPerYear: '',
+  paymentMethod: '', monthlySalary: '', hourlyRate: '', dailyWorkingHours: '', leaveDaysPerYear: '',
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────────
@@ -441,6 +442,9 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
           }
           if (step2.paymentMethod === 'HOURLY' && step2.hourlyRate) {
             payload.hourlyRate = Number(step2.hourlyRate);
+          }
+          if (step2.dailyWorkingHours) {
+            payload.dailyWorkingHours = Number(step2.dailyWorkingHours);
           }
         }
 
@@ -801,6 +805,26 @@ export function EmployeeFormModal({ isOpen, onClose, onSave, mode, initialData }
                       </div>
                       {step2Errors.hourlyRate && <p className="text-[12px] font-semibold text-red-500 ml-1">{step2Errors.hourlyRate}</p>}
                       <p className="text-[12px] text-gray-400 font-medium">{t('employees.jobModal.ratePerHour')}</p>
+                    </div>
+                  )}
+
+                  {!!step2.paymentMethod && (
+                    <div className="space-y-2">
+                      <label className={LABEL_CLASS}>
+                        <Clock size={14} className="inline mr-1.5 -mt-0.5" />
+                        Daily Working Hours
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="24"
+                        step="0.5"
+                        placeholder="e.g. 8"
+                        value={step2.dailyWorkingHours}
+                        onChange={setS2('dailyWorkingHours')}
+                        className={INPUT_CLASS}
+                      />
+                      <p className="text-[12px] text-gray-400 font-medium">Used to calculate sick leave pay.</p>
                     </div>
                   )}
                 </>

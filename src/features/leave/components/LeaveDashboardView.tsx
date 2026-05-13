@@ -6,6 +6,7 @@ import { PageHeaderDecorativeCircles, TablePagination } from '@/common/ui';
 import { LeaveRequestDto, LeaveStatus } from '@/features/leave/types';
 import { ViewLeaveModal } from '@/features/leave/components/ViewLeaveModal';
 import { RejectLeaveModal } from './RejectLeaveModal';
+import { ApproveLeaveModal } from './ApproveLeaveModal';
 import { useLeaveRequests, useApproveLeave, useRejectLeave } from '../api';
 import { useI18n } from '@/common/i18n';
 
@@ -25,6 +26,8 @@ function statusBadgeStyles(status: LeaveStatus) {
       return { color: '#00C950', backgroundColor: '#00C95033' };
     case 'REJECTED':
       return { color: '#EF4444', backgroundColor: '#EF444433' };
+    case 'CANCELLED':
+      return { color: '#6B7280', backgroundColor: '#6B728033' };
     default:
       return { color: '#6B7280', backgroundColor: '#F3F4F6' };
   }
@@ -73,6 +76,8 @@ export function LeaveDashboardView() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [approveNote, setApproveNote] = useState('');
   const [approveError, setApproveError] = useState<string | null>(null);
 
   // Debounce search input (300 ms)
@@ -100,20 +105,31 @@ export function LeaveDashboardView() {
   const totalItems = data?.totalItems ?? rows.length;
   // Use pageSize from state
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (row: LeaveRequestDto) => {
+    setSelectedLeave(row);
+    setApproveNote('');
+    setIsApproveModalOpen(true);
+  };
+
+  const handleApproveConfirm = (id: string, note: string) => {
     setApproveError(null);
-    approve.mutate(id, {
-      onError: (error: unknown) => {
-        const code = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
-        if (code === 'INSUFFICIENT_LEAVE_BALANCE') {
-          setApproveError(t('leave.insufficientBalance'));
-        } else if (code === 'LEAVE_NOT_PENDING') {
-          setApproveError(t('leave.noLongerPending'));
-        } else {
-          setApproveError(t('leave.approveFailed'));
-        }
+    approve.mutate(
+      { id, note: note || undefined },
+      {
+        onSuccess: () => setIsApproveModalOpen(false),
+        onError: (error: unknown) => {
+          setIsApproveModalOpen(false);
+          const code = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
+          if (code === 'INSUFFICIENT_LEAVE_BALANCE') {
+            setApproveError('Cannot approve: employee has insufficient leave balance.');
+          } else if (code === 'LEAVE_NOT_PENDING') {
+            setApproveError('This request is no longer pending.');
+          } else {
+            setApproveError('Failed to approve request. Please try again.');
+          }
+        },
       },
-    });
+    );
   };
 
   const handleOpenView = (row: LeaveRequestDto) => {
@@ -299,7 +315,7 @@ export function LeaveDashboardView() {
                   </td>
 
                   {/* Days */}
-                  <td className="px-4 py-3.5 text-gray-600">{row.totalDays}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{row.daysCount}</td>
 
                   {/* Status */}
                   <td className="px-4 py-3.5">
@@ -329,7 +345,7 @@ export function LeaveDashboardView() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleApprove(row.id);
+                              handleApprove(row);
                             }}
                             disabled={approve.isPending}
                             className="p-1.5 rounded-lg hover:bg-green-50 text-green-500 hover:text-green-600 transition-colors disabled:opacity-50"
@@ -386,6 +402,16 @@ export function LeaveDashboardView() {
         onReasonChange={setRejectReason}
         onConfirm={handleRejectConfirm}
         isLoading={reject.isPending}
+      />
+
+      <ApproveLeaveModal
+        isOpen={isApproveModalOpen}
+        onClose={() => setIsApproveModalOpen(false)}
+        leaveRequest={selectedLeave}
+        note={approveNote}
+        onNoteChange={setApproveNote}
+        onConfirm={handleApproveConfirm}
+        isLoading={approve.isPending}
       />
     </div>
   );

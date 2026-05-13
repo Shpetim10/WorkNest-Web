@@ -51,9 +51,18 @@ const NAV_ITEMS: NavItem[] = [
       { labelKey: 'shell.nav.assignEmployees', href: '/dashboard/employees/assign' },
     ],
   },
-  { labelKey: 'shell.nav.attendance', icon: Clock, href: '/dashboard/attendance' },
-  { labelKey: 'shell.nav.leave', icon: Calendar, href: '/dashboard/leave' },
-  { labelKey: 'shell.nav.payroll', icon: DollarSign, href: '/dashboard/payroll' },
+  { name: 'Attendance', icon: Clock, href: '/dashboard/attendance' },
+  { name: 'Leave', icon: Calendar, href: '/dashboard/leave' },
+  {
+    name: 'Payroll',
+    icon: DollarSign,
+    href: '#',
+    hasChevron: true,
+    subItems: [
+      { name: 'Payroll', href: '/dashboard/payroll' },
+      { name: 'Sick Leave Policy', href: '/dashboard/payroll/settings' },
+    ],
+  },
   {
     labelKey: 'shell.nav.locations',
     icon: MapPin,

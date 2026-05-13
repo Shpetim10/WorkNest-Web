@@ -163,7 +163,7 @@ export function useUpdateSuperAdminProfile() {
         ...(current ?? DEFAULT_SUPER_ADMIN_PROFILE),
         ...profile,
         displayName: profile.displayName ?? variables.displayName,
-        email: profile.email ?? variables.email,
+        email: profile.email ?? current?.email ?? DEFAULT_SUPER_ADMIN_PROFILE.email,
       }));
     },
   });

@@ -100,8 +100,8 @@ export function ViewLeaveModal({ isOpen, onClose, leaveRequest }: ViewLeaveModal
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-sm text-slate-500 font-medium">{t('leave.headers.days')}</span>
-              <span className="text-[15px] text-slate-800 font-medium">{leaveRequest.totalDays}</span>
+              <span className="text-sm text-slate-500 font-medium">Days</span>
+              <span className="text-[15px] text-slate-800 font-medium">{leaveRequest.daysCount}</span>
             </div>
           </div>
 
@@ -112,11 +112,29 @@ export function ViewLeaveModal({ isOpen, onClose, leaveRequest }: ViewLeaveModal
             </div>
           </div>
 
+          {leaveRequest.medicalReportDocumentId && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-slate-500 font-medium">Medical Report ID</span>
+              <span className="text-[15px] text-slate-800 font-mono break-all">
+                {leaveRequest.medicalReportDocumentId}
+              </span>
+            </div>
+          )}
+
           {leaveRequest.status === 'REJECTED' && leaveRequest.rejectionReason && (
             <div className="flex flex-col gap-2">
               <span className="text-sm text-red-500 font-medium">{t('leave.rejectionReason')}</span>
               <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-[15px] text-red-700 font-medium min-h-[60px]">
                 {leaveRequest.rejectionReason}
+              </div>
+            </div>
+          )}
+
+          {leaveRequest.status === 'APPROVED' && leaveRequest.approvalNote && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-green-600 font-medium">Approval note</span>
+              <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-[15px] text-green-800 font-medium min-h-[60px]">
+                {leaveRequest.approvalNote}
               </div>
             </div>
           )}

@@ -14,6 +14,7 @@ export interface UpdateEmployeeJobDetailsRequest {
   paymentMethod?: string | null;
   monthlySalary?: number | null;
   hourlyRate?: number | null;
+  dailyWorkingHours?: number | null;
 }
 
 interface UpdateParams {

@@ -8,6 +8,7 @@ export interface CreateLeaveRequestBody {
   startDate: string;
   endDate: string;
   note?: string | null;
+  medicalReportDocumentId?: string | null;
 }
 
 export interface RejectLeaveRequestBody {
@@ -30,10 +31,12 @@ export interface LeaveRequestDto {
   leaveType: LeaveType;
   startDate: string;
   endDate: string;
-  totalDays: number;
+  daysCount: number;
   status: LeaveStatus;
   note: string | null;
+  medicalReportDocumentId: string | null;
   rejectionReason: string | null;
+  approvalNote: string | null;
   reviewedAt: string | null;
   createdAt: string;
 }

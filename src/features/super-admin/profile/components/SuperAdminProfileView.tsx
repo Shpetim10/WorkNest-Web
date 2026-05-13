@@ -2,21 +2,13 @@
 
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { Check, Eye, EyeOff, KeyRound, Loader2, Lock, Save, ShieldCheck, UserCircle, X } from 'lucide-react';
-import { PageHeaderDecorativeCircles, ProfileAvatar, ProfilePhotoUploader } from '@/common/ui';
-import { useI18n } from '@/common/i18n';
-import { uploadMedia } from '@/common/api/upload-media';
-import {
-  clearUserProfileImage,
-  persistUserProfileFromAuthPayload,
-  readUserMenuProfile,
-  resolveProfileImageUrl,
-} from '@/common/utils/user-session-profile';
+import { Button, PageHeaderDecorativeCircles } from '@/common/ui';
 import { useChangePassword } from '@/features/auth/api/change-password';
 import {
   DEFAULT_SUPER_ADMIN_PROFILE,
   useSuperAdminProfile,
   useUpdateSuperAdminProfile,
-} from '../api/use-super-admin-profile';
+} from '@/features/super-admin/profile/api/use-super-admin-profile';
 import type { SuperAdminProfile } from '../types';
 
 function subscribeToUserEmail(onStoreChange: () => void) {
@@ -211,29 +203,22 @@ export function SuperAdminProfileView({
 
   const saveProfile = async () => {
     const displayName = profileForm.displayName.trim();
-    const email = profileForm.email.trim();
 
-    if (!displayName || !email) {
-      setProfileError(t('superAdmin.profile.nameEmailRequired'));
-      setProfileMessage('');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setProfileError(t('validation.validEmail'));
+    if (!displayName) {
+      setProfileError('Display name is required.');
       setProfileMessage('');
       return;
     }
 
     try {
       const serverProfile = enableProfileQuery
-        ? await updateProfile.mutateAsync({ displayName, email })
+        ? await updateProfile.mutateAsync({ displayName })
         : {};
       const savedProfile: SuperAdminProfile = {
         ...currentProfile,
         ...serverProfile,
         displayName: serverProfile.displayName?.trim() || displayName,
-        email: serverProfile.email?.trim() || email,
+        email: serverProfile.email?.trim() || currentProfile.email,
       };
 
       setLocalProfile(savedProfile);
@@ -414,13 +399,26 @@ export function SuperAdminProfileView({
             </div>
           </div>
 
-          <div className="grid gap-6 px-6 py-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <ProfilePhotoUploader
-              imageUrl={profileImageUrl}
-              initial={userInitial}
-              displayName={profileForm.displayName}
-              onUpload={handleProfilePhotoUpload}
-              onRemove={handleProfilePhotoRemove}
+          <div className="grid grid-cols-2 gap-x-10 gap-y-6 px-6 py-6">
+            <EditableField
+              label="Display Name"
+              value={profileForm.displayName}
+              disabled={!isEditing}
+              onChange={updateProfileField('displayName')}
+            />
+            <EditableField
+              label="Email Address"
+              value={profileForm.email}
+              disabled
+              type="email"
+              onChange={updateProfileField('email')}
+            />
+            <EditableField label="Role" value={profileForm.role} disabled onChange={updateProfileField('role')} />
+            <EditableField
+              label="Account Status"
+              value={profileForm.accountStatus}
+              disabled
+              onChange={updateProfileField('accountStatus')}
             />
 
             <div className="grid content-start grid-cols-2 gap-x-10 gap-y-6">
@@ -463,21 +461,16 @@ export function SuperAdminProfileView({
 
       {activeSection === 'change-password' && (
         <div
-          className="overflow-hidden rounded-2xl border border-[#DDE8F8] bg-white"
-          style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.12)' }}
+          className="overflow-hidden rounded-2xl border border-[#DDE8F8] bg-white px-8 py-8 lg:px-10 lg:py-10"
+          style={{ boxShadow: '0px 4px 12px rgba(0,0,0,0.08)' }}
         >
-          <div className="flex items-center gap-3 border-b border-[#EEF2F7] px-6 py-5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#155DFC]">
-              <KeyRound size={20} strokeWidth={2.2} />
-            </span>
-            <div>
-              <h2 className="text-[17px] font-bold text-[#111827]">{t('shell.nav.changePassword')}</h2>
-              <p className="text-[12px] font-medium text-[#6B7280]">{t('superAdmin.profile.updateAccountPassword')}</p>
-            </div>
+          <div className="mb-6 space-y-1">
+            <h2 className="text-[17px] font-bold text-[#1a1c23]">Update Password</h2>
+            <p className="text-[13px] text-gray-500">Enter your current password and choose a new one</p>
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-8 px-6 py-6">
-            <div className="max-w-[480px] space-y-5">
+          <div className="flex flex-col gap-8 lg:flex-row">
+            <div className="max-w-md flex-1 space-y-5">
               {(['current', 'next', 'confirm'] as PasswordKey[]).map((key) => (
                 <PasswordInput
                   key={key}
@@ -495,67 +488,110 @@ export function SuperAdminProfileView({
                 </p>
               )}
 
-              <button
-                type="button"
-                onClick={handleChangePassword}
-                disabled={changePassword.isPending}
-                className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] px-5 text-[13px] font-bold text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {changePassword.isPending ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    {t('common.actions.updating')}
-                  </>
-                ) : (
-                  <>
-                    <Save size={15} strokeWidth={2.2} />
-                    {t('superAdmin.profile.savePassword')}
-                  </>
-                )}
-              </button>
+              <div className="flex justify-start pt-6">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleChangePassword}
+                  disabled={changePassword.isPending}
+                  className="bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] text-white hover:shadow-lg"
+                >
+                  {changePassword.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 size={15} className="animate-spin" /> Updating...
+                    </span>
+                  ) : (
+                    'Update Password'
+                  )}
+                </Button>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCFCE7] text-[#008F45]">
-                  <ShieldCheck size={17} strokeWidth={2.2} />
-                </span>
-                <div>
-                  <p className="text-[13px] font-bold text-[#111827]">{t('superAdmin.profile.passwordRules')}</p>
-                  <p className="text-[11px] font-medium text-[#8A9BB2]">{t('superAdmin.profile.requiredBeforeSaving')}</p>
+            <div className="shrink-0 lg:w-72">
+              <div className="flex h-full flex-col gap-5 rounded-2xl border border-gray-100 bg-[#f8fafc] p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7]">
+                    <ShieldCheck size={18} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-gray-800">Password strength</p>
+                    <p className="text-[11px] text-gray-400">Requirements for a secure password</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mb-4 flex gap-1.5">
-                {[0, 1, 2].map((index) => (
-                  <span
-                    key={index}
-                    className={`h-1.5 flex-1 rounded-full ${
-                      passedRuleCount > index ? strengthColor : 'bg-gray-200'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <div className="space-y-3">
-                {PASSWORD_RULES.map((rule) => {
-                  const passed = rule.test(newPassword);
-
-                  return (
-                    <div key={rule.labelKey} className="flex items-center gap-2.5">
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                          passed ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'
+                <div className="space-y-1.5">
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                          strength !== 'empty' && passedRuleCount > i ? strengthColor : 'bg-gray-200'
                         }`}
-                      >
-                        {passed ? <Check size={11} strokeWidth={3} /> : null}
-                      </span>
-                      <span className={`text-[12px] ${passed ? 'font-medium text-emerald-600' : 'text-gray-500'}`}>
-                        {t(rule.labelKey)}
-                      </span>
-                    </div>
-                  );
-                })}
+                      />
+                    ))}
+                  </div>
+                  <p
+                    className={`text-[11px] font-semibold transition-colors ${
+                      strength === 'empty'
+                        ? 'text-gray-400'
+                        : strength === 'weak'
+                          ? 'text-red-500'
+                          : strength === 'fair'
+                            ? 'text-amber-500'
+                            : 'text-emerald-600'
+                    }`}
+                  >
+                    {strength === 'empty'
+                      ? 'Enter a new password'
+                      : strength === 'weak'
+                        ? 'Weak'
+                        : strength === 'fair'
+                          ? 'Fair'
+                          : 'Strong'}
+                  </p>
+                </div>
+
+                <div className="border-t border-gray-100" />
+
+                <div className="space-y-3">
+                  {PASSWORD_RULES.map((rule) => {
+                    const passed = rule.test(newPassword);
+                    const showRules = newPassword.length > 0;
+
+                    return (
+                      <div key={rule.label} className="flex items-center gap-2.5">
+                        <div
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors ${
+                            showRules && passed ? 'bg-emerald-500' : showRules ? 'bg-red-400' : 'bg-gray-200'
+                          }`}
+                        >
+                          {showRules && passed ? (
+                            <Check size={11} className="text-white" strokeWidth={3} />
+                          ) : showRules ? (
+                            <X size={11} className="text-white" strokeWidth={3} />
+                          ) : null}
+                        </div>
+                        <span
+                          className={`text-[12px] transition-colors ${
+                            showRules && passed
+                              ? 'font-medium text-emerald-600'
+                              : showRules
+                                ? 'text-red-500'
+                                : 'text-gray-500'
+                          }`}
+                        >
+                          {rule.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-auto border-t border-gray-100 pt-2">
+                  <p className="text-[11px] leading-relaxed text-gray-400">
+                    Tip: use a mix of words, numbers, and uppercase letters you can remember.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -8,7 +8,7 @@ import { ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { Button, Input } from '@/common/ui';
 import { LanguageSwitcher, useI18n } from '@/common/i18n';
 import { PlatformAccess } from '@/features/auth/types';
-import { useSuperAdminLogin } from '../api/use-super-admin-login';
+import { useSuperAdminLogin } from '@/features/super-admin/auth/api/use-super-admin-login';
 
 export function SuperAdminLoginView() {
   const { t } = useI18n();
@@ -107,7 +107,7 @@ export function SuperAdminLoginView() {
 
             <div className="flex justify-end pt-1">
               <Link
-                href="/forgot-password"
+                href="/forgot-password?from=superadmin"
                 className="text-[13px] font-bold text-[#0066FF] transition-colors hover:text-blue-700"
               >
                 {t('auth.login.forgotPassword')}

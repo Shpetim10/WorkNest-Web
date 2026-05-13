@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { Button, Input } from '@/common/ui';
 import { PlatformAccess } from '@/features/auth/types';
-import { useSuperAdminLogin } from '../api/use-super-admin-login';
+import { useSuperAdminLogin } from '@/features/super-admin/auth/api/use-super-admin-login';
 
 export function SuperAdminLoginView() {
   const router = useRouter();

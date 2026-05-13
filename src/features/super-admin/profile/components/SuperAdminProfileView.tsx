@@ -8,7 +8,7 @@ import {
   DEFAULT_SUPER_ADMIN_PROFILE,
   useSuperAdminProfile,
   useUpdateSuperAdminProfile,
-} from '../api/use-super-admin-profile';
+} from '@/features/super-admin/profile/api/use-super-admin-profile';
 import type { SuperAdminProfile } from '../types';
 
 function subscribeToUserEmail(onStoreChange: () => void) {

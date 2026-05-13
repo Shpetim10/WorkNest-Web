@@ -11,7 +11,7 @@ import {
   Info
 } from 'lucide-react';
 import { Card, PageHeaderDecorativeCircles } from '@/common/ui';
-import { useSuperAdminDashboard } from '../api/use-super-admin-dashboard';
+import { useSuperAdminDashboard } from '@/features/super-admin/dashboard/api/use-super-admin-dashboard';
 import {
   CompanyRegistrationPointDto,
   SubscriptionPlanBreakdownDto,

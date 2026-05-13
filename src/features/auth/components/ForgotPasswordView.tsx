@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Card, Input, Button } from '@/common/ui';
-import { useForgotPassword } from '../api/password-reset';
+import { useForgotPassword } from '@/features/auth/api/password-reset';
 
 export function ForgotPasswordView({
   backHref = '/login',
@@ -39,8 +39,9 @@ export function ForgotPasswordView({
       try {
         await forgotPasswordMutation.mutateAsync({ email });
         router.push('/check-email');
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      } catch (err: unknown) {
+        const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        setError(message || 'Something went wrong. Please try again.');
       }
     }
   };
@@ -75,7 +76,7 @@ export function ForgotPasswordView({
 
           <h2 className="text-2xl font-bold text-[#1a1c23] mb-3">Forgot Password?</h2>
           <p className="text-gray-500 text-[15px]">
-            No worries, we'll send you reset instructions
+            No worries, we&apos;ll send you reset instructions
           </p>
         </div>
 

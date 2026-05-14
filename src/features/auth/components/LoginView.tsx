@@ -45,7 +45,7 @@ export function LoginView() {
         } else {
           router.push('/dashboard');
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Login failed:', error);
       }
     }
@@ -121,7 +121,7 @@ export function LoginView() {
           </form>
 
           <div className="mt-8 text-center text-sm text-gray-500">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register/pricing" className="font-bold text-[#0066FF] hover:text-blue-700 transition-colors">
               Sign up
             </Link>

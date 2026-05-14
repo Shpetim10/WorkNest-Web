@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Mail,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { useCompanySettings, useUpdateCompanySettings } from '@/features/company-settings/api/use-company-settings';
 import { apiClient } from '@/common/network/api-client';
@@ -17,6 +18,7 @@ import { ApiResponse } from '@/common/types/api';
 import { CompanySettingsResponse } from '@/features/company-settings/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { UpdateCompanySettingsRequest } from '@/features/company-settings/types';
+import { CurrencyExchangeModal } from '@/features/company-settings/components/CurrencyExchangeModal';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:8080';
 
@@ -31,7 +33,6 @@ type CompanyFormData = {
   nipt: string;
   phone: string;
   industry: string;
-  currency: string;
   dateFormat: string;
 };
 
@@ -46,17 +47,10 @@ const INDUSTRY_OPTIONS = [
   'Retail',
   'Other',
 ];
-const CURRENCY_OPTIONS: { value: string; label: string }[] = [
-  { value: 'ALL', label: 'LEK - Albanian Lek' },
-  { value: 'EUR', label: 'EUR – Euro' },
-  { value: 'USD', label: 'USD – US Dollar' },
-  { value: 'GBP', label: 'GBP – British Pound' },
-];
 const DATE_FORMAT_OPTIONS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 
 const SELECT_OPTIONS: Partial<Record<keyof CompanyFormData, SelectOption[]>> = {
   industry: INDUSTRY_OPTIONS,
-  currency: CURRENCY_OPTIONS,
   dateFormat: DATE_FORMAT_OPTIONS,
 };
 
@@ -140,21 +134,22 @@ function Field({ id, label, value, onChange, readOnly, icon, error }: FieldProps
 
 interface SettingsFormProps {
   data: CompanySettingsResponse;
+  companyId: string;
   updateMutation: UseMutationResult<ApiResponse<CompanySettingsResponse>, Error, UpdateCompanySettingsRequest>;
 }
 
-const REQUIRED_FIELDS: (keyof CompanyFormData)[] = ['name', 'currency', 'dateFormat'];
+const REQUIRED_FIELDS: (keyof CompanyFormData)[] = ['name', 'dateFormat'];
 
-function SettingsForm({ data, updateMutation }: SettingsFormProps) {
+function SettingsForm({ data, companyId, updateMutation }: SettingsFormProps) {
   const [formData, setFormData] = useState<CompanyFormData>({
     name: data.name ?? '',
     email: data.email ?? '',
     nipt: data.nipt ?? '',
     phone: data.phoneNumber ?? '',
     industry: data.industry ?? '',
-    currency: data.currency ?? '',
     dateFormat: data.dateFormat ?? '',
   });
+  const [currencyModalOpen, setCurrencyModalOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CompanyFormData, string>>>({});
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -258,7 +253,7 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
         nipt: formData.nipt || null,
         phoneNumber: formData.phone || null,
         industry: formData.industry || null,
-        currency: formData.currency,
+        currency: data.currency,
         dateFormat: formData.dateFormat,
         timezone: data.timezone ?? 'Europe/Tirane',
         countryCode: data.countryCode ?? 'AL',
@@ -346,8 +341,30 @@ function SettingsForm({ data, updateMutation }: SettingsFormProps) {
         {/* Row 3 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Field label="Industry" {...fieldProps('industry')} />
-          <Field label="Currency" {...fieldProps('currency')} />
+          <div className="flex flex-col gap-2">
+            <label className="block text-[13px] font-semibold text-gray-700">Currency</label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-11 bg-[#f8fafc] border border-gray-100 rounded-xl text-sm text-gray-800 flex items-center px-4">
+                {data.currency || '—'}
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrencyModalOpen(true)}
+                className="h-11 px-4 flex items-center gap-1.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
+              >
+                <Pencil size={13} />
+                Change
+              </button>
+            </div>
+          </div>
         </div>
+
+        <CurrencyExchangeModal
+          isOpen={currencyModalOpen}
+          onClose={() => setCurrencyModalOpen(false)}
+          companyId={companyId}
+          currentCurrency={data.currency}
+        />
 
         {/* Row 4 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -439,6 +456,7 @@ function CompanySettingsView() {
           <SettingsForm
             key={data.companyId}
             data={data}
+            companyId={companyId ?? ''}
             updateMutation={updateMutation}
           />
         )}

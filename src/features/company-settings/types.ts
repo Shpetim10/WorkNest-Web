@@ -27,3 +27,8 @@ export interface UpdateCompanySettingsRequest {
   logoPath?: string | null;
   clearLogo?: boolean;
 }
+
+export interface CurrencyExchangeRequest {
+  newCurrency: string;
+  exchangeRate: number;
+}

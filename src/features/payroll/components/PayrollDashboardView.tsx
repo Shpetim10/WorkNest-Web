@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -43,6 +43,16 @@ type ModalState =
   | { kind: 'view'; person: CompanyPersonRow; details?: PayrollCalculationResponse }
   | { kind: 'bonus'; person: CompanyPersonRow; details?: PayrollCalculationResponse }
   | { kind: 'deduction'; person: CompanyPersonRow; details?: PayrollCalculationResponse };
+
+function useClientCurrency() {
+  const [currency, setCurrency] = useState('EUR');
+  const [locale, setLocale] = useState('en-US');
+  useEffect(() => {
+    setCurrency(getStoredCompanyCurrency());
+    setLocale(getStoredCompanyLocale());
+  }, []);
+  return { currency, locale };
+}
 
 function currentPeriod(): PayrollPeriod {
   const now = new Date();
@@ -257,11 +267,10 @@ function ViewPayrollModal({
   period: PayrollPeriod;
   onClose: () => void;
 }) {
-  const companyCurrency = getStoredCompanyCurrency();
-  const companyLocale = getStoredCompanyLocale();
+  const { currency, locale: companyLocale } = useClientCurrency();
   const detailsQuery = usePayrollDetails(person.id, period);
   const details = detailsQuery.data ?? initialDetails;
-  const currency = companyCurrency;
+
   const persist = usePersistPayrollCalculation();
   const [error, setError] = useState<string | null>(null);
 
@@ -403,11 +412,10 @@ function AdjustmentModal({
   period: PayrollPeriod;
   onClose: () => void;
 }) {
-  const companyCurrency = getStoredCompanyCurrency();
-  const companyLocale = getStoredCompanyLocale();
+  const { currency, locale: companyLocale } = useClientCurrency();
   const detailsQuery = usePayrollDetails(person.id, period);
   const details = detailsQuery.data ?? initialDetails;
-  const currency = companyCurrency;
+
   const bonusMutation = useAddPayrollBonus();
   const deductionMutation = useAddPayrollDeduction();
   const mutation = kind === 'bonus' ? bonusMutation : deductionMutation;
@@ -539,8 +547,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function PayrollDashboardView() {
-  const companyCurrency = getStoredCompanyCurrency();
-  const companyLocale = getStoredCompanyLocale();
+  const { currency, locale: companyLocale } = useClientCurrency();
   const [period, setPeriod] = useState<PayrollPeriod>(currentPeriod);
   const [appliedPeriod, setAppliedPeriod] = useState<PayrollPeriod>(currentPeriod);
   const [search, setSearch] = useState('');
@@ -593,7 +600,7 @@ export function PayrollDashboardView() {
   });
 
   const loadedDetails = detailQueries.map((query) => query.data).filter(Boolean) as PayrollCalculationResponse[];
-  const currency = companyCurrency;
+
   const summary = loadedDetails.reduce(
     (acc, details) => {
       const totals = payrollTotals(details);
@@ -774,11 +781,11 @@ export function PayrollDashboardView() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-slate-600">{paymentLabel(details?.paymentMethod ?? person.raw.paymentMethod)}</td>
-                    <td className="px-6 py-4 text-slate-600">{details ? formatBasePayDisplay(details, person, companyCurrency, companyLocale) : query?.isLoading ? 'Loading...' : '—'}</td>
-                    <td className="px-6 py-4 text-emerald-600 font-semibold">{details ? formatCurrency(payrollAdjustments(details).totalBonus, companyCurrency, companyLocale) : '—'}</td>
-                    <td className="px-6 py-4 text-red-600 font-semibold">{details ? `-${formatCurrency(payrollTotals(details).totalDeductions, companyCurrency, companyLocale)}` : '—'}</td>
+                    <td className="px-6 py-4 text-slate-600">{details ? formatBasePayDisplay(details, person, currency, companyLocale) : query?.isLoading ? 'Loading...' : '—'}</td>
+                    <td className="px-6 py-4 text-emerald-600 font-semibold">{details ? formatCurrency(payrollAdjustments(details).totalBonus, currency, companyLocale) : '—'}</td>
+                    <td className="px-6 py-4 text-red-600 font-semibold">{details ? `-${formatCurrency(payrollTotals(details).totalDeductions, currency, companyLocale)}` : '—'}</td>
                     <td className={`px-6 py-4 font-semibold ${payrollTotals(details).negativeNetPay ? 'text-red-600' : 'text-slate-700'}`}>
-                      {details ? formatCurrency(payrollTotals(details).grossEarnings, companyCurrency, companyLocale) : '—'}
+                      {details ? formatCurrency(payrollTotals(details).grossEarnings, currency, companyLocale) : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badge.cls}`}>{badge.label}</span>

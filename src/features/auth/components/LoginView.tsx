@@ -46,8 +46,6 @@ export function LoginView() {
           router.push('/dashboard');
         }
       } catch (error: any) {
-        // Errors are handled by the mutation and typically displayed via global toast
-        // but we can also set local errors if preferred
         console.error('Login failed:', error);
       }
     }

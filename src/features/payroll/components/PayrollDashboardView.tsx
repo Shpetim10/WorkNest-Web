@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -45,12 +45,8 @@ type ModalState =
   | { kind: 'deduction'; person: CompanyPersonRow; details?: PayrollCalculationResponse };
 
 function useClientCurrency() {
-  const [currency, setCurrency] = useState('EUR');
-  const [locale, setLocale] = useState('en-US');
-  useEffect(() => {
-    setCurrency(getStoredCompanyCurrency());
-    setLocale(getStoredCompanyLocale());
-  }, []);
+  const [currency] = useState(getStoredCompanyCurrency);
+  const [locale] = useState(getStoredCompanyLocale);
   return { currency, locale };
 }
 

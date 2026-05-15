@@ -63,10 +63,10 @@ export function LoginView() {
     <div className="flex min-h-screen w-full bg-white font-sans">
       {/* Left Panel - Form */}
       <div className="flex w-full flex-col justify-center px-8 sm:px-12 md:w-1/2 lg:px-24 xl:px-32 relative">
-        <div className="w-full max-w-[400px] mx-auto">
+        <div className="w-full max-w-100 mx-auto">
           {/* Logo */}
           <div className="mb-10">
-            <h1 className="font-sans font-bold text-[30px] leading-[36px] bg-gradient-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text text-transparent inline-block">
+            <h1 className="font-sans font-bold text-[30px] leading-9 bg-linear-to-r from-[#2B7FFF] to-[#00BBA7] bg-clip-text text-transparent inline-block">
               WorkTrezz
             </h1>
           </div>
@@ -82,7 +82,7 @@ export function LoginView() {
               label="Email Address"
               type="text" // Use text so html5 validation doesn't block custom validation
               placeholder="you@company.com"
-              icon={<Mail className="h-[18px] w-[18px]" />}
+              icon={<Mail className="h-4.5 w-4.5" />}
               value={formData.email}
               onChange={handleChange('email')}
               error={errors.email}
@@ -93,7 +93,7 @@ export function LoginView() {
               label="Password"
               type="password"
               placeholder="Enter your password"
-              icon={<Lock className="h-[18px] w-[18px]" />}
+              icon={<Lock className="h-4.5 w-4.5" />}
               value={formData.password}
               onChange={handleChange('password')}
               error={errors.password}
@@ -112,7 +112,7 @@ export function LoginView() {
               <Button
                 type="submit"
                 fullWidth
-                icon={loginMutation.isPending ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ArrowRight className="h-[18px] w-[18px]" />}
+                icon={loginMutation.isPending ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <ArrowRight className="h-4.5 w-4.5" />}
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
@@ -130,11 +130,11 @@ export function LoginView() {
       </div>
 
       {/* Right Panel - Branding/Gradient */}
-      <div className="hidden md:flex w-1/2 flex-col justify-center items-center bg-gradient-to-br from-[#2B7FFF] to-[#00BBA7] text-white p-12 relative overflow-hidden">
+      <div className="hidden md:flex w-1/2 flex-col justify-center items-center bg-linear-to-br from-[#2B7FFF] to-[#00BBA7] text-white p-12 relative overflow-hidden">
         {/* Very subtle subtle radial background element to enhance the gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent opacity-50"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent opacity-50"></div>
 
-        <div className="relative z-10 flex flex-col items-center text-center max-w-[440px]">
+        <div className="relative z-10 flex flex-col items-center text-center max-w-110">
           {/* WorkTrezz Logo */}
           <div className="mb-6 flex justify-center">
             <Image
@@ -142,12 +142,12 @@ export function LoginView() {
               alt="WorkNest Brand"
               width={430}
               height={307}
-              className="w-[430px] h-auto object-contain drop-shadow-lg"
+              className="w-107.5 h-auto object-contain drop-shadow-lg"
               priority
             />
           </div>
 
-          <p className="font-sans font-normal text-[20px] leading-[28px] tracking-normal text-center text-white/90 max-w-[438px]">
+          <p className="font-sans font-normal text-[20px] leading-7 tracking-normal text-center text-white/90 max-w-109.5">
             Step into a better HR experience — where managing your team is easier, collaboration feels natural, and growth happens every day.
           </p>
         </div>

@@ -640,7 +640,7 @@ export function PayrollDashboardView() {
   return (
     <div className="flex flex-col gap-6 -mx-2 lg:-mx-4 pb-10">
       <div
-        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between min-h-[120px]"
+        className="relative rounded-2xl overflow-hidden px-8 py-8 flex items-center justify-between min-h-30"
         style={{ background: 'linear-gradient(135deg, #2B7FFF 0%, #00BBA7 100%)' }}
       >
         <div className="flex items-center gap-4">
@@ -678,7 +678,7 @@ export function PayrollDashboardView() {
       )}
 
       <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 flex flex-wrap gap-3 items-center shadow-sm">
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-55">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
@@ -720,7 +720,7 @@ export function PayrollDashboardView() {
 
       <div className="bg-white rounded-2xl border border-[#2B7FFF] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[980px]">
+          <table className="w-full text-sm min-w-245">
             <thead>
               <tr className="text-xs font-semibold text-white uppercase tracking-wide" style={{ background: 'linear-gradient(90deg, #2B7FFF 0%, #00BBA7 100%)' }}>
                 {['Employee Name', 'Type of Employee', 'Payment', 'Base Pay', 'Bonuses', 'Deductions', 'Gross Earnings', 'Status', 'Actions'].map((heading) => (
@@ -846,7 +846,7 @@ function SelectFilter({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="appearance-none h-10 min-w-[170px] pl-4 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-300"
+        className="appearance-none h-10 min-w-42.5 pl-4 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-300"
       >
         {options.map(([optionValue, label]) => (
           <option key={optionValue || label} value={optionValue}>{label}</option>

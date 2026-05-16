@@ -334,6 +334,7 @@ export const de: typeof en = {
       attendance: 'Anwesenheit',
       leave: 'Urlaub',
       payroll: 'Gehaltsabrechnung',
+      sickLeavePolicy: 'Krankenurlaubsrichtlinie',
       locations: 'Standorte',
       qrTerminalDisplay: 'QR-Terminalanzeige',
       departments: 'Abteilungen',
@@ -350,6 +351,9 @@ export const de: typeof en = {
   dashboard: {
     title: 'Dashboard',
     welcome: 'Willkommen zurück! Das passiert heute.',
+    welcomeBack: 'Willkommen zurück!',
+    welcomeBackName: 'Willkommen zurück, {{name}}!',
+    welcomeSubtitle: 'Schön, Sie wiederzusehen. Lassen Sie uns heute produktiv sein.',
     kpis: {
       totalEmployees: 'Mitarbeiter gesamt',
       presentToday: 'Heute anwesend',
@@ -360,6 +364,16 @@ export const de: typeof en = {
     attendanceTrend: 'Anwesenheitstrend',
     chartPlaceholder: 'Diagrammkomponente hier',
     recentActivity: 'Letzte Aktivität',
+    noRecentActivity: 'Keine letzten Aktivitäten gefunden',
+    mostActiveDayOfWeek: 'Aktivster Wochentag',
+    quickStats: 'Kurzstatistik',
+    quickStatsItems: {
+      attendanceRate: 'Anwesenheitsrate',
+      onTimeCheckIns: 'Pünktliche Check-ins',
+      leaveUtilization: 'Urlaubsnutzung',
+    },
+    showMore: 'Mehr anzeigen',
+    showLess: 'Weniger anzeigen',
     expiringContracts: 'Auslaufende Verträge',
     days: '{{count}} Tage',
     activity: {

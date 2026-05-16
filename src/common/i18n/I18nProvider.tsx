@@ -21,6 +21,7 @@ type I18nContextValue = {
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 function lookup(dictionary: unknown, key: string): unknown {
+  if (typeof key !== 'string') return undefined;
   return key.split('.').reduce<unknown>((current, part) => {
     if (current && typeof current === 'object' && part in current) {
       return (current as Record<string, unknown>)[part];

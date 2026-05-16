@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useI18n } from '@/common/i18n';
 import {
@@ -17,6 +18,7 @@ import {
   MapPin,
   Building2,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Menu,
   X,
@@ -51,16 +53,16 @@ const NAV_ITEMS: NavItem[] = [
       { labelKey: 'shell.nav.assignEmployees', href: '/dashboard/employees/assign' },
     ],
   },
-  { name: 'Attendance', icon: Clock, href: '/dashboard/attendance' },
-  { name: 'Leave', icon: Calendar, href: '/dashboard/leave' },
+  { labelKey: 'shell.nav.attendance', icon: Clock, href: '/dashboard/attendance' },
+  { labelKey: 'shell.nav.leave', icon: Calendar, href: '/dashboard/leave' },
   {
-    name: 'Payroll',
+    labelKey: 'shell.nav.payroll',
     icon: DollarSign,
     href: '#',
     hasChevron: true,
     subItems: [
-      { name: 'Payroll', href: '/dashboard/payroll' },
-      { name: 'Sick Leave Policy', href: '/dashboard/payroll/settings' },
+      { labelKey: 'shell.nav.payroll', href: '/dashboard/payroll' },
+      { labelKey: 'shell.nav.sickLeavePolicy', href: '/dashboard/payroll/settings' },
     ],
   },
   {
@@ -135,11 +137,14 @@ export function Sidebar() {
           {isSidebarExpanded ? (
             <>
               {/* Logo placeholder */}
-              <div
-                className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.2)' }}
-              >
-                <LayoutGrid size={16} strokeWidth={2} className="text-white" />
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/20">
+                <Image
+                  src="/logos/worktrezz-symbol-cropped.png"
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="font-bold text-[15px] text-white leading-tight tracking-tight truncate">
@@ -151,7 +156,7 @@ export function Sidebar() {
                 onClick={toggleSidebar}
                 className="text-white/60 hover:text-white transition-colors shrink-0"
               >
-                <ChevronsUpDown size={15} strokeWidth={2} />
+                <ChevronLeft size={15} strokeWidth={2} />
               </button>
             </>
           ) : (
@@ -159,7 +164,7 @@ export function Sidebar() {
               onClick={toggleSidebar}
               className="w-9 h-9 flex items-center justify-center text-white/70 hover:text-white transition-all"
             >
-              <Menu size={18} strokeWidth={2} />
+              <ChevronRight size={18} strokeWidth={2} />
             </button>
           )}
         </div>

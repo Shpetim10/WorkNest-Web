@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -11,6 +11,7 @@ import {
   Info
 } from 'lucide-react';
 import { Card, PageHeaderDecorativeCircles } from '@/common/ui';
+import { useI18n } from '@/common/i18n';
 import { useSuperAdminDashboard } from '@/features/super-admin/dashboard/api/use-super-admin-dashboard';
 import {
   CompanyRegistrationPointDto,
@@ -500,6 +501,7 @@ function SubscriptionBreakdownCard({
   period: string;
   onPeriodChange: (value: string) => void;
 }) {
+  const { t } = useI18n();
   const visiblePlans = plans?.length ? plans : EMPTY_SUBSCRIPTION_PLANS;
   const totalCompanies = visiblePlans.reduce(
     (sum, plan) => sum + (typeof plan.companyCount === 'number' ? plan.companyCount : 0),

@@ -334,6 +334,7 @@ export const it: typeof en = {
       attendance: 'Presenze',
       leave: 'Ferie',
       payroll: 'Paghe',
+      sickLeavePolicy: 'Politica di congedo per malattia',
       locations: 'Sedi',
       qrTerminalDisplay: 'Display terminale QR',
       departments: 'Reparti',
@@ -350,6 +351,9 @@ export const it: typeof en = {
   dashboard: {
     title: 'Dashboard',
     welcome: 'Bentornato! Ecco cosa succede oggi.',
+    welcomeBack: 'Bentornato!',
+    welcomeBackName: 'Bentornato, {{name}}!',
+    welcomeSubtitle: 'Bello rivederti. Rendiamo oggi produttiva.',
     kpis: {
       totalEmployees: 'Dipendenti totali',
       presentToday: 'Presenti oggi',
@@ -359,8 +363,18 @@ export const it: typeof en = {
     },
     attendanceTrend: 'Andamento presenze',
     chartPlaceholder: 'Componente grafico qui',
-    recentActivity: 'Attività recente',
-    expiringContracts: 'Contratti in scadenza',
+    recentActivity: 'Attività Recente',
+    noRecentActivity: 'Nessuna attività recente trovata',
+    mostActiveDayOfWeek: 'Giorno della Settimana più Attivo',
+    quickStats: 'Statistiche Veloci',
+    quickStatsItems: {
+      attendanceRate: 'Tasso di Presenza',
+      onTimeCheckIns: 'Check-in in Orario',
+      leaveUtilization: 'Utilizzo Ferie',
+    },
+    showMore: 'Mostra di più',
+    showLess: 'Mostra di meno',
+    expiringContracts: 'Contratti in Scadenza',
     days: '{{count}} giorni',
     activity: {
       submittedLeave: 'ha inviato una richiesta ferie',

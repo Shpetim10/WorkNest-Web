@@ -332,6 +332,7 @@ export const en = {
       attendance: 'Attendance',
       leave: 'Leave',
       payroll: 'Payroll',
+      sickLeavePolicy: 'Sick Leave Policy',
       locations: 'Locations',
       qrTerminalDisplay: 'QR Terminal Display',
       departments: 'Departments',
@@ -348,6 +349,9 @@ export const en = {
   dashboard: {
     title: 'Dashboard',
     welcome: "Welcome back! Here's what's happening today.",
+    welcomeBack: 'Welcome back!',
+    welcomeBackName: 'Welcome back, {{name}}!',
+    welcomeSubtitle: "Good to see you again. Let's make today productive.",
     kpis: {
       totalEmployees: 'Total Employees',
       presentToday: 'Present Today',
@@ -358,6 +362,16 @@ export const en = {
     attendanceTrend: 'Attendance Trend',
     chartPlaceholder: 'Chart Component Here',
     recentActivity: 'Recent Activity',
+    noRecentActivity: 'No recent activity found',
+    mostActiveDayOfWeek: 'Most Active Day of Week',
+    quickStats: 'Quick Stats',
+    quickStatsItems: {
+      attendanceRate: 'Attendance Rate',
+      onTimeCheckIns: 'On-time Check-ins',
+      leaveUtilization: 'Leave Utilization',
+    },
+    showMore: 'Show More',
+    showLess: 'Show Less',
     expiringContracts: 'Expiring Contracts',
     days: '{{count}} days',
     activity: {

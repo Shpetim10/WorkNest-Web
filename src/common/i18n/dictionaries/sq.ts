@@ -334,6 +334,7 @@ export const sq: typeof en = {
       attendance: 'Prezenca',
       leave: 'Lejet',
       payroll: 'Pagat',
+      sickLeavePolicy: 'Politika e Lejes Mjekësore',
       locations: 'Lokacionet',
       qrTerminalDisplay: 'Shfaqja e Terminalit QR',
       departments: 'Departamentet',
@@ -350,6 +351,9 @@ export const sq: typeof en = {
   dashboard: {
     title: 'Dashboard',
     welcome: 'Mirë se u ktheve! Ja çfarë po ndodh sot.',
+    welcomeBack: 'Mirë se u ktheve!',
+    welcomeBackName: 'Mirë se u ktheve, {{name}}!',
+    welcomeSubtitle: 'Mirsevini përsëri. Le ta bëjmë sot një ditë produktive.',
     kpis: {
       totalEmployees: 'Punonjës Total',
       presentToday: 'Prezent Sot',
@@ -360,6 +364,16 @@ export const sq: typeof en = {
     attendanceTrend: 'Trendi i Prezencës',
     chartPlaceholder: 'Komponenti i Grafikut Këtu',
     recentActivity: 'Aktivitetet e Fundit',
+    noRecentActivity: 'Nuk u gjet asnjë aktivitet i fundit',
+    mostActiveDayOfWeek: 'Dita më Aktive e Javës',
+    quickStats: 'Statistikat e Shpejta',
+    quickStatsItems: {
+      attendanceRate: 'Shkalla e Prezencës',
+      onTimeCheckIns: 'Check-in-et në Kohë',
+      leaveUtilization: 'Përdorimi i Lejes',
+    },
+    showMore: 'Shiko më shumë',
+    showLess: 'Shiko më pak',
     expiringContracts: 'Kontrata në Skadim',
     days: '{{count}} ditë',
     activity: {
